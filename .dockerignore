@@ -1,0 +1,15 @@
+**/node_modules
+**/dist
+**/.data
+**/e2e/.artifacts
+**/test-results
+**/playwright-report
+.git
+**/.env
+**/.env.*
+**/secrets
+**/*.pem
+**/*.key
+*.log
+**/.pnpm-store
+**/coverage
