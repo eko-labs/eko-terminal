@@ -1,0 +1,11 @@
+EKO includes third-party software:
+
+TradingView Lightweight Charts™
+Copyright (c) 2025 TradingView, Inc. https://www.tradingview.com/
+Licensed under the Apache License, Version 2.0.
+(Attribution link is shown in the application status bar: "Charts by TradingView".)
+
+Geist and Geist Mono fonts — SIL Open Font License 1.1 (via @fontsource-variable).
+
+All other dependencies are listed in the package.json files with their licenses
+(MIT / Apache-2.0 / OFL-1.1); run `pnpm licenses list` for the full inventory.
