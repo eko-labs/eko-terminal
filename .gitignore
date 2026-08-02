@@ -1,0 +1,35 @@
+node_modules
+dist
+.data
+.env
+.env.local
+*.log
+coverage
+playwright-report
+test-results
+.audit-grade/runs/
+.DS_Store
+apps/web/e2e/.artifacts
+brand/video/out
+
+# Design tokens are source CSS, not environment-secret files.
+!apps/web/src/styles/tokens.css
+# A global ignore on this machine drops every file named token*. Keep source files with that name tracked (secret
+# files such as token*.json or token*.txt stay ignored), and keep the old SignalOS brand kit out.
+!token*.ts
+!token*.tsx
+!token*.mts
+!token*.js
+!token*.mjs
+!token*.css
+!token*.sol
+!token*.md
+brand/tokens/
+
+apps/og-renderer/samples-tmp/
+
+# VPS secrets: encrypted file and recipients stay on the operator machine
+infra/vps/secrets/
+
+# Local pnpm package cache (pnpm 11 may place it in the repo)
+.pnpm-store
