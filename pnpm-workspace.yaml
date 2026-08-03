@@ -1,0 +1,10 @@
+packages:
+  - apps/*
+  - packages/*
+  - contracts
+allowBuilds:
+  esbuild: true
+minimumReleaseAge: 4320
+overrides:
+  # satori pins fflate 0.7.3 (GHSA-px8p-9vwx-vf98, malformed ZIP64 loop); 0.7.5 is the patched release.
+  fflate@>=0.7.0 <0.7.5: 0.7.5
