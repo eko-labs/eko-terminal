@@ -1,0 +1,3126 @@
+{
+  "Address": "0xabababababababababababababababababababab",
+  "Level": "clear",
+  "WalletLabel": "declared_agent",
+  "Untrusted": {
+    "text": "fixture",
+    "truncated": false,
+    "flags": [
+      "agent_bait"
+    ]
+  },
+  "PlaybookMatch": {
+    "id": "honeypot",
+    "level": "clear",
+    "confidence": 1,
+    "evidence": [
+      {
+        "kind": "tx",
+        "ref": "fixture",
+        "block": 1,
+        "label": "fixture",
+        "value": 1,
+        "text": {
+          "text": "fixture",
+          "truncated": false,
+          "flags": [
+            "agent_bait"
+          ]
+        }
+      }
+    ],
+    "history": {
+      "deployerRuns": 1,
+      "crewId": "fixture",
+      "crewRuns": 1
+    }
+  },
+  "PlaybookId": "honeypot",
+  "Verdict": {
+    "coin": "0xabababababababababababababababababababab",
+    "level": "clear",
+    "reasons": [
+      "fixture"
+    ],
+    "playbooks": [
+      {
+        "id": "honeypot",
+        "level": "clear",
+        "confidence": 1,
+        "evidence": [
+          {
+            "kind": "tx",
+            "ref": "fixture",
+            "block": 1,
+            "label": "fixture",
+            "value": 1,
+            "text": {
+              "text": "fixture",
+              "truncated": false,
+              "flags": [
+                "agent_bait"
+              ]
+            }
+          }
+        ],
+        "history": {
+          "deployerRuns": 1,
+          "crewId": "fixture",
+          "crewRuns": 1
+        }
+      }
+    ],
+    "beta": {
+      "apeScore": 1,
+      "setupGrade": "A"
+    },
+    "receipt": {
+      "id": "fixture",
+      "hash": "fixture",
+      "status": "pending",
+      "batchId": 1,
+      "txHash": "fixture"
+    },
+    "schemaVersion": "fixture",
+    "asOfBlock": 1
+  },
+  "CoinCard": {
+    "identity": {
+      "address": "0xabababababababababababababababababababab",
+      "name": {
+        "text": "fixture",
+        "truncated": false,
+        "flags": [
+          "agent_bait"
+        ]
+      },
+      "symbol": {
+        "text": "fixture",
+        "truncated": false,
+        "flags": [
+          "agent_bait"
+        ]
+      },
+      "deployer": "0xabababababababababababababababababababab",
+      "createdAt": "fixture",
+      "launchpad": "pons",
+      "stage": "curve",
+      "curvePct": 1,
+      "quoteAsset": "ETH",
+      "pools": [
+        {
+          "id": "fixture",
+          "venue": "uniswap_v3",
+          "address": "0xabababababababababababababababababababab",
+          "poolId": "0x12",
+          "quote": "0xabababababababababababababababababababab",
+          "feeBps": 1,
+          "hooks": "0xabababababababababababababababababababab",
+          "liquidityUsd": 1,
+          "executable": false
+        }
+      ]
+    },
+    "clone": {
+      "isClone": false,
+      "originalAddress": "0xabababababababababababababababababababab"
+    },
+    "tradeability": {
+      "exitCostPct": {
+        "usd100": 1,
+        "usd1k": 1,
+        "usd10k": 1
+      },
+      "buyTaxPct": 1,
+      "sellTaxPct": 1,
+      "honeypot": false,
+      "limits": {
+        "maxTxUsd": 1,
+        "maxWalletPct": 1
+      },
+      "hookFeePct": 1,
+      "antiSnipe": {
+        "taxPct": 1,
+        "endsInSec": 1
+      }
+    },
+    "liquidity": {
+      "depthUsd": {
+        "pct2": 1,
+        "pct5": 1,
+        "pct10": 1
+      },
+      "lpStatus": "burned",
+      "feeTiers": [
+        1
+      ]
+    },
+    "supply": {
+      "top10Pct": 1,
+      "devPct": 1,
+      "bundlesHeldPct": 1,
+      "exemptWalletsHeldPct": 1,
+      "freshWalletsPct": 1,
+      "burnedPct": 1,
+      "circulating": "fixture"
+    },
+    "control": {
+      "owner": "0xabababababababababababababababababababab",
+      "canChangeTax": false,
+      "canBlacklist": false,
+      "canPause": false,
+      "canMint": false,
+      "upgradeable": false
+    },
+    "flow": {
+      "window": "5m",
+      "agentPct": 1,
+      "crewPct": 1,
+      "humanPct": 1,
+      "washEstPct": 1,
+      "beta": true,
+      "confidence": 0.9
+    },
+    "playbooks": [
+      {
+        "id": "honeypot",
+        "level": "clear",
+        "confidence": 1,
+        "evidence": [
+          {
+            "kind": "tx",
+            "ref": "fixture",
+            "block": 1,
+            "label": "fixture",
+            "value": 1,
+            "text": {
+              "text": "fixture",
+              "truncated": false,
+              "flags": [
+                "agent_bait"
+              ]
+            }
+          }
+        ],
+        "history": {
+          "deployerRuns": 1,
+          "crewId": "fixture",
+          "crewRuns": 1
+        }
+      }
+    ],
+    "verdict": {
+      "coin": "0xabababababababababababababababababababab",
+      "level": "clear",
+      "reasons": [
+        "fixture"
+      ],
+      "playbooks": [
+        {
+          "id": "honeypot",
+          "level": "clear",
+          "confidence": 1,
+          "evidence": [
+            {
+              "kind": "tx",
+              "ref": "fixture",
+              "block": 1,
+              "label": "fixture",
+              "value": 1,
+              "text": {
+                "text": "fixture",
+                "truncated": false,
+                "flags": [
+                  "agent_bait"
+                ]
+              }
+            }
+          ],
+          "history": {
+            "deployerRuns": 1,
+            "crewId": "fixture",
+            "crewRuns": 1
+          }
+        }
+      ],
+      "beta": {
+        "apeScore": 1,
+        "setupGrade": "A"
+      },
+      "receipt": {
+        "id": "fixture",
+        "hash": "fixture",
+        "status": "pending",
+        "batchId": 1,
+        "txHash": "fixture"
+      },
+      "schemaVersion": "fixture",
+      "asOfBlock": 1
+    },
+    "freshness": {
+      "block": 1,
+      "ageSec": 1
+    },
+    "meta": {
+      "flow": {
+        "confidence": 0.9,
+        "asOfBlock": 1
+      }
+    }
+  },
+  "ChartMarker": {
+    "ts": 1,
+    "side": "buy",
+    "sizeUsd": 1,
+    "label": "declared_agent",
+    "confidence": 1,
+    "wallet": "0xabababababababababababababababababababab",
+    "crewId": "fixture"
+  },
+  "Policy": {
+    "mode": "safe",
+    "maxPositionUsd": 1,
+    "maxPositionPct": 1,
+    "maxDailyLossUsd": 1,
+    "allowAssets": [
+      "fixture"
+    ],
+    "blockAssets": [
+      "fixture"
+    ],
+    "blockPlaybookLevel": "danger",
+    "earningsBlackoutDays": 1,
+    "minLiquidityUsd": 1,
+    "maxRoundTripCostPct": 1,
+    "maxLeverage": 1,
+    "approvalAboveUsd": 1,
+    "killed": false,
+    "version": 1
+  },
+  "PreflightRequest": {
+    "agentId": "fixture",
+    "clientOrderRef": "fixture",
+    "order": {
+      "venue": "robinhood",
+      "instrument": "fixture",
+      "side": "buy",
+      "qty": 1,
+      "notionalUsd": 1,
+      "orderType": "market",
+      "limitPrice": 1,
+      "leverage": 1,
+      "tx": {
+        "to": "0xabababababababababababababababababababab",
+        "data": "0x12",
+        "value": "fixture"
+      }
+    },
+    "context": {
+      "positions": [
+        {
+          "instrument": "fixture",
+          "qty": 1,
+          "valueUsd": 1
+        }
+      ],
+      "cashUsd": 1,
+      "dailyPnlUsd": 1,
+      "earningsDate": "fixture",
+      "reportedAt": "fixture"
+    }
+  },
+  "PreflightResult": {
+    "preflightId": "fixture",
+    "decision": "allow",
+    "reasons": [
+      "fixture"
+    ],
+    "policyVersion": 1,
+    "approvalId": "fixture",
+    "senses": {
+      "verdict": {
+        "coin": "0xabababababababababababababababababababab",
+        "level": "clear",
+        "reasons": [
+          "fixture"
+        ],
+        "playbooks": [
+          {
+            "id": "honeypot",
+            "level": "clear",
+            "confidence": 1,
+            "evidence": [
+              {
+                "kind": "tx",
+                "ref": "fixture",
+                "block": 1,
+                "label": "fixture",
+                "value": 1,
+                "text": {
+                  "text": "fixture",
+                  "truncated": false,
+                  "flags": [
+                    "agent_bait"
+                  ]
+                }
+              }
+            ],
+            "history": {
+              "deployerRuns": 1,
+              "crewId": "fixture",
+              "crewRuns": 1
+            }
+          }
+        ],
+        "beta": {
+          "apeScore": 1,
+          "setupGrade": "A"
+        },
+        "receipt": {
+          "id": "fixture",
+          "hash": "fixture",
+          "status": "pending",
+          "batchId": 1,
+          "txHash": "fixture"
+        },
+        "schemaVersion": "fixture",
+        "asOfBlock": 1
+      }
+    },
+    "journalId": "fixture",
+    "attestation": {
+      "executor": "0xabababababababababababababababababababab",
+      "chainId": 4663,
+      "safe": "0xabababababababababababababababababababab",
+      "tokenIn": "0xabababababababababababababababababababab",
+      "tokenOut": "0xabababababababababababababababababababab",
+      "amountIn": "fixture",
+      "minOut": "fixture",
+      "callHash": "0x12",
+      "policyVersion": 1,
+      "expiry": 1,
+      "nonce": "fixture",
+      "signature": "0x12"
+    }
+  },
+  "JournalEntry": {
+    "id": "fixture",
+    "agentId": "fixture",
+    "ts": "fixture",
+    "kind": "session_start",
+    "payload": {
+      "arbitrary": true
+    },
+    "preflightId": "fixture",
+    "share": false,
+    "commitment": "fixture"
+  },
+  "Approval": {
+    "id": "fixture",
+    "agentId": "fixture",
+    "preflightId": "fixture",
+    "summary": "fixture",
+    "status": "pending",
+    "expiresAt": "fixture",
+    "detail": {
+      "clientOrderRef": "fixture",
+      "order": {
+        "venue": "robinhood",
+        "instrument": "fixture",
+        "side": "buy",
+        "qty": 1,
+        "notionalUsd": 1,
+        "orderType": "market",
+        "limitPrice": 1,
+        "leverage": 1,
+        "tx": {
+          "to": "0xabababababababababababababababababababab",
+          "data": "0x12",
+          "value": "fixture"
+        }
+      },
+      "orderHash": "0x12",
+      "notionalUsd": 1,
+      "approvalAboveUsd": 1,
+      "usualSizeUsd": 1,
+      "reasons": [
+        "fixture"
+      ],
+      "policyVersion": 1,
+      "verdict": {
+        "coin": "0xabababababababababababababababababababab",
+        "level": "clear",
+        "reasons": [
+          "fixture"
+        ],
+        "playbooks": [
+          {
+            "id": "honeypot",
+            "level": "clear",
+            "confidence": 1,
+            "evidence": [
+              {
+                "kind": "tx",
+                "ref": "fixture",
+                "block": 1,
+                "label": "fixture",
+                "value": 1,
+                "text": {
+                  "text": "fixture",
+                  "truncated": false,
+                  "flags": [
+                    "agent_bait"
+                  ]
+                }
+              }
+            ],
+            "history": {
+              "deployerRuns": 1,
+              "crewId": "fixture",
+              "crewRuns": 1
+            }
+          }
+        ],
+        "beta": {
+          "apeScore": 1,
+          "setupGrade": "A"
+        },
+        "receipt": {
+          "id": "fixture",
+          "hash": "fixture",
+          "status": "pending",
+          "batchId": 1,
+          "txHash": "fixture"
+        },
+        "schemaVersion": "fixture",
+        "asOfBlock": 1
+      },
+      "contextReportedAt": "fixture"
+    }
+  },
+  "Agent": {
+    "id": "fixture",
+    "name": "fixture",
+    "kind": "robinhood_mcp",
+    "wallet": "0xabababababababababababababababababababab",
+    "status": "active",
+    "lastSeen": "fixture",
+    "uncheckedOrders24h": 1,
+    "guardrails": "advisory"
+  },
+  "Receipt": {
+    "id": "fixture",
+    "kind": "verdict",
+    "hash": "fixture",
+    "merkleRoot": "fixture",
+    "block": 1,
+    "txHash": "fixture",
+    "revealed": {
+      "arbitrary": true
+    },
+    "grade": "hit"
+  },
+  "BurnStats": {
+    "totalBurned": "fixture",
+    "pctSupplyBurned": 1,
+    "burns24h": {
+      "count": 1,
+      "tokens": "fixture",
+      "usd": 1
+    },
+    "nextBurnEtaSec": 1,
+    "engineBalanceUsd": 1,
+    "recent": [
+      {
+        "txHash": "fixture",
+        "tokens": "fixture",
+        "usd": 1,
+        "ts": "fixture"
+      }
+    ]
+  },
+  "Entitlements": {
+    "tier": "listener",
+    "trial": {
+      "endsAt": "fixture"
+    },
+    "limits": {
+      "agents": 1,
+      "deepResearchPerDay": 1,
+      "loopBacktestsPerDay": 1,
+      "realtime": false
+    },
+    "feeBps": 0
+  },
+  "Tf": "1s",
+  "EvidenceRef": {
+    "kind": "tx",
+    "ref": "fixture",
+    "block": 1,
+    "label": "fixture",
+    "value": 1,
+    "text": {
+      "text": "fixture",
+      "truncated": false,
+      "flags": [
+        "agent_bait"
+      ]
+    }
+  },
+  "PoolRef": {
+    "id": "fixture",
+    "venue": "uniswap_v3",
+    "address": "0xabababababababababababababababababababab",
+    "poolId": "0x12",
+    "quote": "0xabababababababababababababababababababab",
+    "feeBps": 1,
+    "hooks": "0xabababababababababababababababababababab",
+    "liquidityUsd": 1,
+    "executable": false
+  },
+  "ReceiptRef": {
+    "id": "fixture",
+    "hash": "fixture",
+    "status": "pending",
+    "batchId": 1,
+    "txHash": "fixture"
+  },
+  "CoinCardFlowExtra": {
+    "beta": false,
+    "confidence": 1
+  },
+  "CoinCardMeta": {},
+  "Alert": {
+    "id": "fixture",
+    "ts": "fixture",
+    "kind": "verdict_change",
+    "level": "clear",
+    "coin": "0xabababababababababababababababababababab",
+    "symbol": {
+      "text": "fixture",
+      "truncated": false,
+      "flags": [
+        "agent_bait"
+      ]
+    },
+    "agentId": "fixture",
+    "wallet": "0xabababababababababababababababababababab",
+    "crewId": "fixture",
+    "sizeUsd": 1,
+    "title": "fixture",
+    "body": "fixture",
+    "url": "fixture",
+    "read": false
+  },
+  "FeedItem": {
+    "id": "fixture",
+    "ts": 1,
+    "block": 1,
+    "kind": "new_pair",
+    "coin": "0xabababababababababababababababababababab",
+    "symbol": {
+      "text": "fixture",
+      "truncated": false,
+      "flags": [
+        "agent_bait"
+      ]
+    },
+    "level": "clear",
+    "playbookId": "honeypot",
+    "label": "declared_agent",
+    "sizeUsd": 1,
+    "wallet": "0xabababababababababababababababababababab",
+    "crewId": "fixture"
+  },
+  "CoinSummary": {
+    "address": "0xabababababababababababababababababababab",
+    "name": {
+      "text": "fixture",
+      "truncated": false,
+      "flags": [
+        "agent_bait"
+      ]
+    },
+    "symbol": {
+      "text": "fixture",
+      "truncated": false,
+      "flags": [
+        "agent_bait"
+      ]
+    },
+    "launchpad": "pons",
+    "stage": "curve",
+    "curvePct": 1,
+    "priceUsd": 1,
+    "change1hPct": 1,
+    "liquidityUsd": 1,
+    "verdict": "clear",
+    "topPlaybook": "honeypot",
+    "ageSec": 1
+  },
+  "RadarRow": {
+    "rank": 1,
+    "flow": {
+      "window": "5m",
+      "agentPct": 1,
+      "crewPct": 1,
+      "humanPct": 1,
+      "washEstPct": 1,
+      "beta": false,
+      "confidence": 1
+    },
+    "exitCost1kPct": 1,
+    "beta": {
+      "apeScore": 1,
+      "setupGrade": "A"
+    },
+    "address": "0xabababababababababababababababababababab",
+    "name": {
+      "text": "fixture",
+      "truncated": false,
+      "flags": [
+        "agent_bait"
+      ]
+    },
+    "symbol": {
+      "text": "fixture",
+      "truncated": false,
+      "flags": [
+        "agent_bait"
+      ]
+    },
+    "launchpad": "pons",
+    "stage": "curve",
+    "curvePct": 1,
+    "priceUsd": 1,
+    "change1hPct": 1,
+    "liquidityUsd": 1,
+    "verdict": "clear",
+    "topPlaybook": "honeypot",
+    "ageSec": 1
+  },
+  "PairRow": {
+    "column": "new",
+    "buyers": 1,
+    "exitCost100Pct": 1,
+    "flow": {
+      "window": "5m",
+      "agentPct": 1,
+      "crewPct": 1,
+      "humanPct": 1,
+      "washEstPct": 1,
+      "beta": false,
+      "confidence": 1
+    },
+    "antiSnipe": {
+      "taxPct": 1,
+      "endsInSec": 1
+    },
+    "verdictPending": false,
+    "address": "0xabababababababababababababababababababab",
+    "name": {
+      "text": "fixture",
+      "truncated": false,
+      "flags": [
+        "agent_bait"
+      ]
+    },
+    "symbol": {
+      "text": "fixture",
+      "truncated": false,
+      "flags": [
+        "agent_bait"
+      ]
+    },
+    "launchpad": "pons",
+    "stage": "curve",
+    "curvePct": 1,
+    "priceUsd": 1,
+    "change1hPct": 1,
+    "liquidityUsd": 1,
+    "verdict": "clear",
+    "topPlaybook": "honeypot",
+    "ageSec": 1
+  },
+  "Bar": {
+    "ts": 1,
+    "o": 1,
+    "h": 1,
+    "l": 1,
+    "c": 1,
+    "vUsd": 1
+  },
+  "Tick": {
+    "ts": 1,
+    "price": 1,
+    "volumeUsd": 1,
+    "block": 1
+  },
+  "ScanResult": {
+    "id": "fixture",
+    "status": "ready",
+    "card": {
+      "identity": {
+        "address": "0xabababababababababababababababababababab",
+        "name": {
+          "text": "fixture",
+          "truncated": false,
+          "flags": [
+            "agent_bait"
+          ]
+        },
+        "symbol": {
+          "text": "fixture",
+          "truncated": false,
+          "flags": [
+            "agent_bait"
+          ]
+        },
+        "deployer": "0xabababababababababababababababababababab",
+        "createdAt": "fixture",
+        "launchpad": "pons",
+        "stage": "curve",
+        "curvePct": 1,
+        "quoteAsset": "ETH",
+        "pools": [
+          {
+            "id": "fixture",
+            "venue": "uniswap_v3",
+            "address": "0xabababababababababababababababababababab",
+            "poolId": "0x12",
+            "quote": "0xabababababababababababababababababababab",
+            "feeBps": 1,
+            "hooks": "0xabababababababababababababababababababab",
+            "liquidityUsd": 1,
+            "executable": false
+          }
+        ]
+      },
+      "clone": {
+        "isClone": false,
+        "originalAddress": "0xabababababababababababababababababababab"
+      },
+      "tradeability": {
+        "exitCostPct": {
+          "usd100": 1,
+          "usd1k": 1,
+          "usd10k": 1
+        },
+        "buyTaxPct": 1,
+        "sellTaxPct": 1,
+        "honeypot": false,
+        "limits": {
+          "maxTxUsd": 1,
+          "maxWalletPct": 1
+        },
+        "hookFeePct": 1,
+        "antiSnipe": {
+          "taxPct": 1,
+          "endsInSec": 1
+        }
+      },
+      "liquidity": {
+        "depthUsd": {
+          "pct2": 1,
+          "pct5": 1,
+          "pct10": 1
+        },
+        "lpStatus": "burned",
+        "feeTiers": [
+          1
+        ]
+      },
+      "supply": {
+        "top10Pct": 1,
+        "devPct": 1,
+        "bundlesHeldPct": 1,
+        "exemptWalletsHeldPct": 1,
+        "freshWalletsPct": 1,
+        "burnedPct": 1,
+        "circulating": "fixture"
+      },
+      "control": {
+        "owner": "0xabababababababababababababababababababab",
+        "canChangeTax": false,
+        "canBlacklist": false,
+        "canPause": false,
+        "canMint": false,
+        "upgradeable": false
+      },
+      "flow": {
+        "window": "5m",
+        "agentPct": 1,
+        "crewPct": 1,
+        "humanPct": 1,
+        "washEstPct": 1
+      },
+      "playbooks": [
+        {
+          "id": "honeypot",
+          "level": "clear",
+          "confidence": 1,
+          "evidence": [
+            {
+              "kind": "tx",
+              "ref": "fixture",
+              "block": 1,
+              "label": "fixture",
+              "value": 1,
+              "text": {
+                "text": "fixture",
+                "truncated": false,
+                "flags": [
+                  "agent_bait"
+                ]
+              }
+            }
+          ],
+          "history": {
+            "deployerRuns": 1,
+            "crewId": "fixture",
+            "crewRuns": 1
+          }
+        }
+      ],
+      "verdict": {
+        "coin": "0xabababababababababababababababababababab",
+        "level": "clear",
+        "reasons": [
+          "fixture"
+        ],
+        "playbooks": [
+          {
+            "id": "honeypot",
+            "level": "clear",
+            "confidence": 1,
+            "evidence": [
+              {
+                "kind": "tx",
+                "ref": "fixture",
+                "block": 1,
+                "label": "fixture",
+                "value": 1,
+                "text": {
+                  "text": "fixture",
+                  "truncated": false,
+                  "flags": [
+                    "agent_bait"
+                  ]
+                }
+              }
+            ],
+            "history": {
+              "deployerRuns": 1,
+              "crewId": "fixture",
+              "crewRuns": 1
+            }
+          }
+        ],
+        "beta": {
+          "apeScore": 1,
+          "setupGrade": "A"
+        },
+        "receipt": {
+          "id": "fixture",
+          "hash": "fixture",
+          "status": "pending",
+          "batchId": 1,
+          "txHash": "fixture"
+        },
+        "schemaVersion": "fixture",
+        "asOfBlock": 1
+      },
+      "freshness": {
+        "block": 1,
+        "ageSec": 1
+      }
+    },
+    "shareUrl": "fixture",
+    "candidates": [
+      {
+        "address": "0xabababababababababababababababababababab",
+        "name": {
+          "text": "fixture",
+          "truncated": false,
+          "flags": [
+            "agent_bait"
+          ]
+        },
+        "symbol": {
+          "text": "fixture",
+          "truncated": false,
+          "flags": [
+            "agent_bait"
+          ]
+        },
+        "launchpad": "pons",
+        "stage": "curve",
+        "curvePct": 1,
+        "priceUsd": 1,
+        "change1hPct": 1,
+        "liquidityUsd": 1,
+        "verdict": "clear",
+        "topPlaybook": "honeypot",
+        "ageSec": 1
+      }
+    ]
+  },
+  "BagReport": {
+    "wallet": "0xabababababababababababababababababababab",
+    "asOfBlock": 1,
+    "holdings": [
+      {
+        "coin": {
+          "address": "0xabababababababababababababababababababab",
+          "name": {
+            "text": "fixture",
+            "truncated": false,
+            "flags": [
+              "agent_bait"
+            ]
+          },
+          "symbol": {
+            "text": "fixture",
+            "truncated": false,
+            "flags": [
+              "agent_bait"
+            ]
+          },
+          "launchpad": "pons",
+          "stage": "curve",
+          "curvePct": 1,
+          "priceUsd": 1,
+          "change1hPct": 1,
+          "liquidityUsd": 1,
+          "verdict": "clear",
+          "topPlaybook": "honeypot",
+          "ageSec": 1
+        },
+        "balance": "fixture",
+        "valueUsd": 1,
+        "playbooks": [
+          "honeypot"
+        ],
+        "exitCost1kPct": 1
+      }
+    ],
+    "summary": {
+      "coins": 1,
+      "flagged": 1,
+      "danger": 1,
+      "valueUsd": 1
+    },
+    "shareUrl": "fixture"
+  },
+  "GuardCheck": {
+    "code": "fixture",
+    "status": "pass",
+    "label": "fixture",
+    "value": 1
+  },
+  "GuardResult": {
+    "decision": "allow",
+    "checks": [
+      {
+        "code": "fixture",
+        "status": "pass",
+        "label": "fixture",
+        "value": 1
+      }
+    ]
+  },
+  "TradeQuoteRequest": {
+    "coin": "0xabababababababababababababababababababab",
+    "side": "buy",
+    "amountUsd": 1,
+    "slippageBps": 1,
+    "riskMode": "safe",
+    "account": "0xabababababababababababababababababababab"
+  },
+  "TradeQuote": {
+    "id": "fixture",
+    "coin": "0xabababababababababababababababababababab",
+    "side": "buy",
+    "amountUsd": 1,
+    "binding": false,
+    "account": "0xabababababababababababababababababababab",
+    "amountIn": "fixture",
+    "valueWei": "fixture",
+    "networkFeeUsd": 1,
+    "route": {
+      "venue": "uniswap_v3",
+      "poolId": "fixture",
+      "executable": false,
+      "linkOut": "fixture"
+    },
+    "expectedOut": "fixture",
+    "minOut": "fixture",
+    "priceImpactBps": 1,
+    "buyTaxPct": 1,
+    "sellTaxPct": 1,
+    "exitCostPct": 1,
+    "fee": {
+      "bps": 0,
+      "usd": 1,
+      "destination": "burn_wallet"
+    },
+    "approvals": [
+      {
+        "token": "0xabababababababababababababababababababab",
+        "spender": "0xabababababababababababababababababababab",
+        "amount": "fixture",
+        "kind": "erc20",
+        "expiration": 1
+      }
+    ],
+    "guard": {
+      "decision": "allow",
+      "checks": [
+        {
+          "code": "fixture",
+          "status": "pass",
+          "label": "fixture",
+          "value": 1
+        }
+      ]
+    },
+    "expiresAt": "fixture",
+    "asOfBlock": 1
+  },
+  "TradeOrder": {
+    "id": "fixture",
+    "quoteId": "fixture",
+    "status": "awaiting_signature",
+    "coin": "0xabababababababababababababababababababab",
+    "side": "buy",
+    "feeBps": 1,
+    "txHash": "fixture",
+    "filledIn": "fixture",
+    "filledOut": "fixture",
+    "errorCode": "fixture",
+    "createdAt": "fixture"
+  },
+  "UnsignedTx": {
+    "chainId": 4663,
+    "to": "0xabababababababababababababababababababab",
+    "data": "0x12",
+    "value": "fixture"
+  },
+  "ErrorCode": "bad_request",
+  "ApiError": {
+    "error": "bad_request",
+    "message": "fixture",
+    "requiredTier": "listener",
+    "retryAfterSec": 1
+  },
+  "PublicConfig": {
+    "phase": "launch_week",
+    "flags": {
+      "approvals": false,
+      "mission_kill": false,
+      "policy_editor": false,
+      "unchecked_orders": false,
+      "loop_lab": false,
+      "deep_research": false,
+      "perps_panel": false,
+      "summon_x": false,
+      "beat_the_swarm": false,
+      "clear_badge": false,
+      "burn_board": false,
+      "onchain_guardrails": false,
+      "packs_chatgpt_openclaw": false,
+      "tiers_active": false,
+      "trial": false,
+      "referrals": false,
+      "afi": false,
+      "x402_api": false,
+      "agent_annotations": false,
+      "lenses": false,
+      "agent_flow_tools": false,
+      "rug_ring_radar": false,
+      "leaderboards": false,
+      "arena": false,
+      "desk_live": false,
+      "ask_the_swarm": false,
+      "agent_launcher": false,
+      "loop_lab_pro": false,
+      "stocks_lane": false,
+      "eko_score": false,
+      "eko_inside": false,
+      "chain_base": false,
+      "institutional_pack": false,
+      "marketplace": false,
+      "eko_agent": false
+    },
+    "tiers": [
+      {
+        "tier": "listener",
+        "minBalance": "fixture",
+        "feeBps": 1,
+        "limits": {
+          "agents": 1,
+          "deepResearchPerDay": 1,
+          "loopBacktestsPerDay": 1,
+          "realtime": false
+        },
+        "perks": [
+          {
+            "label": "fixture",
+            "from": "fixture"
+          }
+        ]
+      }
+    ],
+    "trading": {
+      "liveEnabled": false,
+      "maxTradeUsd": 1,
+      "routers": [
+        "0xabababababababababababababababababababab"
+      ],
+      "spenders": [
+        "0xabababababababababababababababababababab"
+      ]
+    },
+    "contracts": {
+      "receiptsRegistry": "0xabababababababababababababababababababab",
+      "burnEngine": "0xabababababababababababababababababababab",
+      "milestoneLockFactory": "0xabababababababababababababababababababab"
+    },
+    "wallets": {
+      "burn": "0xabababababababababababababababababababab",
+      "dev": "0xabababababababababababababababababababab"
+    },
+    "burnBoard": {
+      "heroPctSupply": 1,
+      "heroUsd24h": 1
+    },
+    "drops": [
+      {
+        "n": 1,
+        "date": "fixture",
+        "title": "fixture",
+        "status": "hidden"
+      }
+    ],
+    "vapidPublicKey": "fixture",
+    "loops": {
+      "maxBars": 1,
+      "syncMaxBars": 1
+    },
+    "exampleScans": [
+      "0xabababababababababababababababababababab"
+    ]
+  },
+  "Me": {
+    "account": {
+      "id": "fixture",
+      "wallet": "0xabababababababababababababababababababab",
+      "linked": [
+        "x"
+      ]
+    },
+    "entitlements": {
+      "tier": "listener",
+      "trial": {
+        "endsAt": "fixture"
+      },
+      "limits": {
+        "agents": 1,
+        "deepResearchPerDay": 1,
+        "loopBacktestsPerDay": 1,
+        "realtime": false
+      },
+      "feeBps": 0
+    },
+    "trial": {
+      "status": "eligible",
+      "reason": "fixture",
+      "endsAt": "fixture"
+    },
+    "holdings": {
+      "minBalance24h": "fixture"
+    },
+    "referralCode": "fixture"
+  },
+  "Referrals": {
+    "code": "fixture",
+    "link": "fixture",
+    "referred": 1,
+    "qualified": 1,
+    "bonusMinutes": 1
+  },
+  "TrialRecap": {
+    "rugsFlagged": 1,
+    "ordersStopped": 1,
+    "alertsFired": 1,
+    "items": [
+      {
+        "id": "fixture",
+        "ts": 1,
+        "block": 1,
+        "kind": "new_pair",
+        "coin": "0xabababababababababababababababababababab",
+        "symbol": {
+          "text": "fixture",
+          "truncated": false,
+          "flags": [
+            "agent_bait"
+          ]
+        },
+        "level": "clear",
+        "playbookId": "honeypot",
+        "label": "declared_agent",
+        "sizeUsd": 1,
+        "wallet": "0xabababababababababababababababababababab",
+        "crewId": "fixture"
+      }
+    ]
+  },
+  "Census": {
+    "gated": false,
+    "reason": "fixture",
+    "methodologyUrl": "fixture",
+    "gate": {
+      "metric": "likely_agent_precision",
+      "value": 1,
+      "threshold": 1,
+      "modelVersion": "fixture",
+      "evaluatedAt": "fixture"
+    },
+    "chain": [
+      {
+        "window": "24h",
+        "agentPct": 1,
+        "crewPct": 1,
+        "humanPct": 1,
+        "asOfBlock": 1
+      }
+    ],
+    "coins": [
+      {
+        "rank": 1,
+        "flow": {
+          "window": "5m",
+          "agentPct": 1,
+          "crewPct": 1,
+          "humanPct": 1,
+          "washEstPct": 1,
+          "beta": false,
+          "confidence": 1
+        },
+        "exitCost1kPct": 1,
+        "beta": {
+          "apeScore": 1,
+          "setupGrade": "A"
+        },
+        "address": "0xabababababababababababababababababababab",
+        "name": {
+          "text": "fixture",
+          "truncated": false,
+          "flags": [
+            "agent_bait"
+          ]
+        },
+        "symbol": {
+          "text": "fixture",
+          "truncated": false,
+          "flags": [
+            "agent_bait"
+          ]
+        },
+        "launchpad": "pons",
+        "stage": "curve",
+        "curvePct": 1,
+        "priceUsd": 1,
+        "change1hPct": 1,
+        "liquidityUsd": 1,
+        "verdict": "clear",
+        "topPlaybook": "honeypot",
+        "ageSec": 1
+      }
+    ],
+    "asOf": "fixture"
+  },
+  "ScoreboardKind": "calls",
+  "ScoreboardRow": {
+    "kind": "calls",
+    "id": "fixture",
+    "ts": "fixture",
+    "coin": "0xabababababababababababababababababababab",
+    "level": "clear",
+    "grade": "hit",
+    "receiptId": "fixture",
+    "txHash": "fixture",
+    "detail": {
+      "fixture": 1
+    }
+  },
+  "ReceiptProof": {
+    "leaf": "fixture",
+    "proof": [
+      "fixture"
+    ],
+    "batchId": 1,
+    "canonicalization": "jcs-rfc8785/v1"
+  },
+  "BurnStatsExtra": {
+    "mode": "manual",
+    "burnWallet": {
+      "address": "0xabababababababababababababababababababab",
+      "balanceUsd": 1,
+      "nextScheduledBurnAt": "fixture"
+    },
+    "ponsBuybacks": {
+      "tokens": "fixture",
+      "usd": 1,
+      "count24h": 1
+    },
+    "engine": {
+      "address": "0xabababababababababababababababababababab",
+      "active": false,
+      "renounced": false,
+      "tuningEndsAt": "fixture",
+      "phase": "curve",
+      "taxPaid": {
+        "eth": "fixture",
+        "usd": 1
+      }
+    }
+  },
+  "BurnWalletInfo": {
+    "address": "0xabababababababababababababababababababab",
+    "balanceUsd": 1,
+    "nextScheduledBurnAt": "fixture"
+  },
+  "PonsBuybackStats": {
+    "tokens": "fixture",
+    "usd": 1,
+    "count24h": 1
+  },
+  "BurnEvent": {
+    "txHash": "fixture",
+    "tokens": "fixture",
+    "usd": 1,
+    "ts": "fixture",
+    "kind": "daily",
+    "signer": "burn_wallet",
+    "buyTxHash": "fixture",
+    "ethIn": "fixture",
+    "method": "token_burn",
+    "pctSupply": 1,
+    "block": 1
+  },
+  "BurnEngineInfo": {
+    "address": "0xabababababababababababababababababababab",
+    "active": false,
+    "renounced": false,
+    "tuningEndsAt": "fixture",
+    "phase": "curve",
+    "taxPaid": {
+      "eth": "fixture",
+      "usd": 1
+    }
+  },
+  "ApiKeyCreated": {
+    "keyId": "fixture",
+    "prefix": "fixture",
+    "secret": "fixture"
+  },
+  "ApiKeyInfo": {
+    "keyId": "fixture",
+    "prefix": "fixture",
+    "kind": "api",
+    "createdAt": "fixture",
+    "lastUsedAt": "fixture",
+    "revokedAt": "fixture",
+    "clientName": {
+      "text": "fixture",
+      "truncated": false,
+      "flags": [
+        "agent_bait"
+      ]
+    },
+    "scopes": [
+      "fixture"
+    ]
+  },
+  "AgentGuardrails": "advisory",
+  "UncheckedOrder": {
+    "id": "fixture",
+    "agentId": "fixture",
+    "externalId": "fixture",
+    "instrument": "fixture",
+    "side": "buy",
+    "qty": 1,
+    "notionalUsd": 1,
+    "placedAt": "fixture",
+    "reportedAt": "fixture"
+  },
+  "HardKill": {
+    "kind": "deeplink",
+    "url": "fixture"
+  },
+  "AgentSummary": {
+    "exposureUsd": 1,
+    "pnl24hUsd": 1,
+    "policyHits24h": 1,
+    "preflights24h": 1,
+    "health": "ok"
+  },
+  "AgentDetail": {
+    "guardrails": "advisory",
+    "policy": {
+      "mode": "safe",
+      "version": 1,
+      "killed": false,
+      "blockPlaybookLevel": "danger",
+      "approvalAboveUsd": 1,
+      "maxPositionUsd": 1,
+      "maxDailyLossUsd": 1
+    },
+    "id": "fixture",
+    "name": "fixture",
+    "kind": "robinhood_mcp",
+    "wallet": "0xabababababababababababababababababababab",
+    "status": "active",
+    "lastSeen": "fixture",
+    "uncheckedOrders24h": 1
+  },
+  "ApprovalDetail": {
+    "clientOrderRef": "fixture",
+    "order": {
+      "venue": "robinhood",
+      "instrument": "fixture",
+      "side": "buy",
+      "qty": 1,
+      "notionalUsd": 1,
+      "orderType": "market",
+      "limitPrice": 1,
+      "leverage": 1,
+      "tx": {
+        "to": "0xabababababababababababababababababababab",
+        "data": "0x12",
+        "value": "fixture"
+      }
+    },
+    "orderHash": "0x12",
+    "notionalUsd": 1,
+    "approvalAboveUsd": 1,
+    "usualSizeUsd": 1,
+    "reasons": [
+      "fixture"
+    ],
+    "policyVersion": 1,
+    "verdict": {
+      "coin": "0xabababababababababababababababababababab",
+      "level": "clear",
+      "reasons": [
+        "fixture"
+      ],
+      "playbooks": [
+        {
+          "id": "honeypot",
+          "level": "clear",
+          "confidence": 1,
+          "evidence": [
+            {
+              "kind": "tx",
+              "ref": "fixture",
+              "block": 1,
+              "label": "fixture",
+              "value": 1,
+              "text": {
+                "text": "fixture",
+                "truncated": false,
+                "flags": [
+                  "agent_bait"
+                ]
+              }
+            }
+          ],
+          "history": {
+            "deployerRuns": 1,
+            "crewId": "fixture",
+            "crewRuns": 1
+          }
+        }
+      ],
+      "beta": {
+        "apeScore": 1,
+        "setupGrade": "A"
+      },
+      "receipt": {
+        "id": "fixture",
+        "hash": "fixture",
+        "status": "pending",
+        "batchId": 1,
+        "txHash": "fixture"
+      },
+      "schemaVersion": "fixture",
+      "asOfBlock": 1
+    },
+    "contextReportedAt": "fixture"
+  },
+  "PreflightOrderTx": {
+    "to": "0xabababababababababababababababababababab",
+    "data": "0x12",
+    "value": "fixture"
+  },
+  "PreflightAttestation": {
+    "executor": "0xabababababababababababababababababababab",
+    "chainId": 4663,
+    "safe": "0xabababababababababababababababababababab",
+    "tokenIn": "0xabababababababababababababababababababab",
+    "tokenOut": "0xabababababababababababababababababababab",
+    "amountIn": "fixture",
+    "minOut": "fixture",
+    "callHash": "0x12",
+    "policyVersion": 1,
+    "expiry": 1,
+    "nonce": "fixture",
+    "signature": "0x12"
+  },
+  "Pack": {
+    "platform": "claude_code",
+    "stage": "T",
+    "version": 1,
+    "configTemplate": "fixture",
+    "instructions": "fixture",
+    "setup": "fixture"
+  },
+  "LoopBacktest": {
+    "id": "fixture",
+    "status": "done",
+    "specHash": "fixture",
+    "source": "onchain",
+    "result": {
+      "strategyId": "fixture",
+      "strategyVersion": "fixture",
+      "params": {
+        "fixture": 1
+      },
+      "assumptions": {
+        "feeBps": 1,
+        "slippageBps": 1,
+        "allocation": 1,
+        "useInvalidationStop": false,
+        "maxHoldBars": 1,
+        "inSampleFraction": 1,
+        "startingEquity": 1
+      },
+      "period": {
+        "start": 1,
+        "end": 1,
+        "splitTime": 1
+      },
+      "candles": 1,
+      "warmupBars": 1,
+      "signals": [
+        {
+          "time": 1,
+          "action": "buy",
+          "price": 1
+        }
+      ],
+      "trades": [
+        {
+          "entryTime": 1,
+          "entryPrice": 1,
+          "exitTime": 1,
+          "exitPrice": 1,
+          "exitReason": "signal",
+          "qty": 1,
+          "fees": 1,
+          "pnl": 1,
+          "returnPct": 1,
+          "bars": 1,
+          "segment": "in_sample"
+        }
+      ],
+      "equity": [
+        {
+          "time": 1,
+          "equity": 1,
+          "drawdownPct": 1
+        }
+      ],
+      "metrics": {
+        "overall": {
+          "bars": 1,
+          "trades": 1,
+          "wins": 1,
+          "losses": 1,
+          "winRate": 1,
+          "avgWinPct": 1,
+          "avgLossPct": 1,
+          "expectancyPct": 1,
+          "profitFactor": 1,
+          "totalReturnPct": 1,
+          "maxDrawdownPct": 1,
+          "exposurePct": 1,
+          "feesPaid": 1,
+          "buyHoldReturnPct": 1
+        },
+        "inSample": {
+          "bars": 1,
+          "trades": 1,
+          "wins": 1,
+          "losses": 1,
+          "winRate": 1,
+          "avgWinPct": 1,
+          "avgLossPct": 1,
+          "expectancyPct": 1,
+          "profitFactor": 1,
+          "totalReturnPct": 1,
+          "maxDrawdownPct": 1,
+          "exposurePct": 1,
+          "feesPaid": 1,
+          "buyHoldReturnPct": 1
+        },
+        "outOfSample": {
+          "bars": 1,
+          "trades": 1,
+          "wins": 1,
+          "losses": 1,
+          "winRate": 1,
+          "avgWinPct": 1,
+          "avgLossPct": 1,
+          "expectancyPct": 1,
+          "profitFactor": 1,
+          "totalReturnPct": 1,
+          "maxDrawdownPct": 1,
+          "exposurePct": 1,
+          "feesPaid": 1,
+          "buyHoldReturnPct": 1
+        }
+      },
+      "limitations": [
+        "fixture"
+      ]
+    }
+  },
+  "ResearchJob": {
+    "id": "fixture",
+    "status": "queued",
+    "steps": [
+      {
+        "tool": "fixture",
+        "status": "ok",
+        "ms": 1
+      }
+    ],
+    "note": {
+      "coin": "0xabababababababababababababababababababab",
+      "level": "clear",
+      "confidence": 0.9,
+      "summary": {
+        "text": "fixture",
+        "truncated": false,
+        "flags": [
+          "agent_bait"
+        ]
+      },
+      "sections": [
+        {
+          "title": "playbooks",
+          "findings": [
+            {
+              "text": "fixture",
+              "truncated": false,
+              "flags": [
+                "agent_bait"
+              ]
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "tx",
+              "ref": "fixture",
+              "block": 1,
+              "label": "fixture",
+              "value": 1,
+              "text": {
+                "text": "fixture",
+                "truncated": false,
+                "flags": [
+                  "agent_bait"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "xSentiment": null,
+      "models": [
+        "fixture"
+      ],
+      "costUsd": 1,
+      "asOfBlock": 1
+    },
+    "receipt": {
+      "id": "fixture",
+      "hash": "fixture",
+      "status": "pending",
+      "batchId": 1,
+      "txHash": "fixture"
+    },
+    "refunded": false,
+    "costUsd": 1
+  },
+  "PerpContext": {
+    "asset": "fixture",
+    "venues": [
+      {
+        "id": "fixture",
+        "name": "fixture",
+        "url": "fixture",
+        "availability": "fixture",
+        "fundingRate": 1,
+        "openInterestUsd": 1,
+        "asOf": "fixture"
+      }
+    ],
+    "disclaimer": "fixture"
+  },
+  "WatchBody": {
+    "kind": "coin",
+    "target": "fixture"
+  },
+  "AlertSettings": {
+    "telegram": false,
+    "push": false,
+    "minLevel": "clear",
+    "kinds": [
+      "verdict_change"
+    ],
+    "quietHoursUtc": [
+      1,
+      1
+    ],
+    "agentTradeAboveUsd": 1
+  },
+  "BacktestAssumptions": {
+    "feeBps": 1,
+    "slippageBps": 1,
+    "allocation": 1,
+    "useInvalidationStop": false,
+    "maxHoldBars": 1,
+    "inSampleFraction": 1,
+    "startingEquity": 1
+  },
+  "BacktestTrade": {
+    "entryTime": 1,
+    "entryPrice": 1,
+    "exitTime": 1,
+    "exitPrice": 1,
+    "exitReason": "signal",
+    "qty": 1,
+    "fees": 1,
+    "pnl": 1,
+    "returnPct": 1,
+    "bars": 1,
+    "segment": "in_sample"
+  },
+  "SegmentMetrics": {
+    "bars": 1,
+    "trades": 1,
+    "wins": 1,
+    "losses": 1,
+    "winRate": 1,
+    "avgWinPct": 1,
+    "avgLossPct": 1,
+    "expectancyPct": 1,
+    "profitFactor": 1,
+    "totalReturnPct": 1,
+    "maxDrawdownPct": 1,
+    "exposurePct": 1,
+    "feesPaid": 1,
+    "buyHoldReturnPct": 1
+  },
+  "BacktestResult": {
+    "strategyId": "fixture",
+    "strategyVersion": "fixture",
+    "params": {
+      "fixture": 1
+    },
+    "assumptions": {
+      "feeBps": 1,
+      "slippageBps": 1,
+      "allocation": 1,
+      "useInvalidationStop": false,
+      "maxHoldBars": 1,
+      "inSampleFraction": 1,
+      "startingEquity": 1
+    },
+    "period": {
+      "start": 1,
+      "end": 1,
+      "splitTime": 1
+    },
+    "candles": 1,
+    "warmupBars": 1,
+    "signals": [
+      {
+        "time": 1,
+        "action": "buy",
+        "price": 1
+      }
+    ],
+    "trades": [
+      {
+        "entryTime": 1,
+        "entryPrice": 1,
+        "exitTime": 1,
+        "exitPrice": 1,
+        "exitReason": "signal",
+        "qty": 1,
+        "fees": 1,
+        "pnl": 1,
+        "returnPct": 1,
+        "bars": 1,
+        "segment": "in_sample"
+      }
+    ],
+    "equity": [
+      {
+        "time": 1,
+        "equity": 1,
+        "drawdownPct": 1
+      }
+    ],
+    "metrics": {
+      "overall": {
+        "bars": 1,
+        "trades": 1,
+        "wins": 1,
+        "losses": 1,
+        "winRate": 1,
+        "avgWinPct": 1,
+        "avgLossPct": 1,
+        "expectancyPct": 1,
+        "profitFactor": 1,
+        "totalReturnPct": 1,
+        "maxDrawdownPct": 1,
+        "exposurePct": 1,
+        "feesPaid": 1,
+        "buyHoldReturnPct": 1
+      },
+      "inSample": {
+        "bars": 1,
+        "trades": 1,
+        "wins": 1,
+        "losses": 1,
+        "winRate": 1,
+        "avgWinPct": 1,
+        "avgLossPct": 1,
+        "expectancyPct": 1,
+        "profitFactor": 1,
+        "totalReturnPct": 1,
+        "maxDrawdownPct": 1,
+        "exposurePct": 1,
+        "feesPaid": 1,
+        "buyHoldReturnPct": 1
+      },
+      "outOfSample": {
+        "bars": 1,
+        "trades": 1,
+        "wins": 1,
+        "losses": 1,
+        "winRate": 1,
+        "avgWinPct": 1,
+        "avgLossPct": 1,
+        "expectancyPct": 1,
+        "profitFactor": 1,
+        "totalReturnPct": 1,
+        "maxDrawdownPct": 1,
+        "exposurePct": 1,
+        "feesPaid": 1,
+        "buyHoldReturnPct": 1
+      }
+    },
+    "limitations": [
+      "fixture"
+    ]
+  },
+  "Hex": "0x12",
+  "BurnStatsWithExtras": {
+    "totalBurned": "fixture",
+    "pctSupplyBurned": 1,
+    "burns24h": {
+      "count": 1,
+      "tokens": "fixture",
+      "usd": 1
+    },
+    "nextBurnEtaSec": 1,
+    "engineBalanceUsd": 1,
+    "recent": [
+      {
+        "txHash": "fixture",
+        "tokens": "fixture",
+        "usd": 1,
+        "ts": "fixture"
+      }
+    ],
+    "mode": "manual",
+    "burnWallet": {
+      "address": "0xabababababababababababababababababababab",
+      "balanceUsd": 1,
+      "nextScheduledBurnAt": "fixture"
+    },
+    "ponsBuybacks": {
+      "tokens": "fixture",
+      "usd": 1,
+      "count24h": 1
+    },
+    "engine": {
+      "address": "0xabababababababababababababababababababab",
+      "active": false,
+      "renounced": false,
+      "tuningEndsAt": "fixture",
+      "phase": "curve",
+      "taxPaid": {
+        "eth": "fixture",
+        "usd": 1
+      }
+    }
+  },
+  "ResearchNote": {
+    "coin": "0xabababababababababababababababababababab",
+    "level": "clear",
+    "confidence": 0.9,
+    "summary": {
+      "text": "fixture",
+      "truncated": false,
+      "flags": [
+        "agent_bait"
+      ]
+    },
+    "sections": [
+      {
+        "title": "playbooks",
+        "findings": [
+          {
+            "text": "fixture",
+            "truncated": false,
+            "flags": [
+              "agent_bait"
+            ]
+          }
+        ],
+        "evidence": [
+          {
+            "kind": "tx",
+            "ref": "fixture",
+            "block": 1,
+            "label": "fixture",
+            "value": 1,
+            "text": {
+              "text": "fixture",
+              "truncated": false,
+              "flags": [
+                "agent_bait"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "xSentiment": null,
+    "models": [
+      "fixture"
+    ],
+    "costUsd": 1,
+    "asOfBlock": 1
+  },
+  "Operand": {
+    "ind": "close",
+    "period": 1
+  },
+  "Condition": {
+    "left": {
+      "ind": "close",
+      "period": 1
+    },
+    "op": ">",
+    "right": {
+      "const": 1
+    }
+  },
+  "LoopSpec": {
+    "version": 1,
+    "name": "fixture",
+    "source": "onchain",
+    "universe": {
+      "coins": [
+        "0xabababababababababababababababababababab"
+      ]
+    },
+    "timeframe": "1m",
+    "entry": {
+      "all": [
+        {
+          "left": {
+            "ind": "close",
+            "period": 1
+          },
+          "op": ">",
+          "right": {
+            "const": 1
+          }
+        }
+      ]
+    },
+    "exit": {
+      "any": [
+        {
+          "left": {
+            "ind": "close",
+            "period": 1
+          },
+          "op": ">",
+          "right": {
+            "const": 1
+          }
+        }
+      ],
+      "takeProfitPct": 1,
+      "stopLossPct": 1,
+      "maxHoldBars": 1
+    },
+    "sizing": {
+      "allocation": 0.1
+    },
+    "costs": {
+      "feeBps": 0,
+      "slippageBps": 1
+    }
+  },
+  "OAuthScope": "senses:read",
+  "OAuthGrant": {
+    "accountId": "fixture",
+    "agentId": "fixture",
+    "wallet": "0xabababababababababababababababababababab",
+    "scopes": [
+      "senses:read",
+      "preflight",
+      "journal"
+    ]
+  },
+  "OAuthRequest": {
+    "id": "00000000-0000-4000-8000-000000000098",
+    "clientName": {
+      "text": "fixture",
+      "truncated": false,
+      "flags": [
+        "agent_bait"
+      ]
+    },
+    "redirectUri": "https://example.invalid/callback",
+    "scopes": [
+      "senses:read",
+      "preflight",
+      "journal"
+    ],
+    "redirectHost": "example.invalid",
+    "resource": "https://mcp.example.invalid/mcp",
+    "expiresAt": "2026-10-03T12:00:00Z"
+  },
+  "OAuthConsent": {
+    "requestId": "00000000-0000-4000-8000-000000000098",
+    "agentId": "00000000-0000-4000-8000-000000000090",
+    "scopes": [
+      "senses:read",
+      "preflight",
+      "journal"
+    ],
+    "decision": "approve"
+  },
+  "OAuthTokenGrant": {
+    "grant_type": "authorization_code",
+    "code": "fixture",
+    "code_verifier": "fixture",
+    "redirect_uri": "https://example.invalid/callback",
+    "client_id": "fixture"
+  },
+  "OAuthToken": {
+    "access_token": "fixture",
+    "refresh_token": "fixture",
+    "token_type": "Bearer",
+    "expires_in": 1,
+    "scope": "senses:read"
+  },
+  "LabelTier": "high",
+  "LabelConfidence": 0.9,
+  "FlowEvent": {
+    "ts": 1,
+    "side": "buy",
+    "sizeUsd": 1,
+    "label": "declared_agent",
+    "confidence": 1,
+    "wallet": "0xabababababababababababababababababababab",
+    "crewId": "fixture",
+    "coin": "0xabababababababababababababababababababab",
+    "block": 1
+  },
+  "Flow": {
+    "window": "5m",
+    "agentPct": 1,
+    "crewPct": 1,
+    "humanPct": 1,
+    "washEstPct": 1,
+    "beta": true,
+    "confidence": 0.9
+  },
+  "ReceiptKind": "verdict",
+  "Bytes32": "0x1111111111111111111111111111111111111111111111111111111111111111",
+  "ReceiptItem": {
+    "id": "fixture",
+    "kind": "verdict",
+    "hash": "0x1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "BusTopic": "chain.block",
+  "FlagName": "approvals",
+  "Flags": {
+    "approvals": false,
+    "mission_kill": false,
+    "policy_editor": false,
+    "unchecked_orders": false,
+    "loop_lab": false,
+    "deep_research": false,
+    "perps_panel": false,
+    "summon_x": false,
+    "beat_the_swarm": false,
+    "clear_badge": false,
+    "burn_board": false,
+    "onchain_guardrails": false,
+    "packs_chatgpt_openclaw": false,
+    "tiers_active": false,
+    "trial": false,
+    "referrals": false,
+    "afi": false,
+    "x402_api": false,
+    "agent_annotations": false,
+    "lenses": false,
+    "agent_flow_tools": false,
+    "rug_ring_radar": false,
+    "leaderboards": false,
+    "arena": false,
+    "desk_live": false,
+    "ask_the_swarm": false,
+    "agent_launcher": false,
+    "loop_lab_pro": false,
+    "stocks_lane": false,
+    "eko_score": false,
+    "eko_inside": false,
+    "chain_base": false,
+    "institutional_pack": false,
+    "marketplace": false,
+    "eko_agent": false
+  },
+  "OpsSwitch": "trading_live",
+  "WsEventMap": {
+    "radar": {
+      "row_upsert": {
+        "rank": 1,
+        "flow": {
+          "window": "5m",
+          "agentPct": 1,
+          "crewPct": 1,
+          "humanPct": 1,
+          "washEstPct": 1,
+          "beta": false,
+          "confidence": 1
+        },
+        "exitCost1kPct": 1,
+        "beta": {
+          "apeScore": 1,
+          "setupGrade": "A"
+        },
+        "address": "0xabababababababababababababababababababab",
+        "name": {
+          "text": "fixture",
+          "truncated": false,
+          "flags": [
+            "agent_bait"
+          ]
+        },
+        "symbol": {
+          "text": "fixture",
+          "truncated": false,
+          "flags": [
+            "agent_bait"
+          ]
+        },
+        "launchpad": "pons",
+        "stage": "curve",
+        "curvePct": 1,
+        "priceUsd": 1,
+        "change1hPct": 1,
+        "liquidityUsd": 1,
+        "verdict": "clear",
+        "topPlaybook": "honeypot",
+        "ageSec": 1
+      },
+      "row_remove": {
+        "address": "0xabababababababababababababababababababab"
+      },
+      "rerank": {
+        "order": [
+          "0xabababababababababababababababababababab"
+        ]
+      }
+    },
+    "pairs": {
+      "pair_upsert": {
+        "column": "new",
+        "buyers": 1,
+        "exitCost100Pct": 1,
+        "flow": {
+          "window": "5m",
+          "agentPct": 1,
+          "crewPct": 1,
+          "humanPct": 1,
+          "washEstPct": 1,
+          "beta": false,
+          "confidence": 1
+        },
+        "antiSnipe": {
+          "taxPct": 1,
+          "endsInSec": 1
+        },
+        "verdictPending": false,
+        "address": "0xabababababababababababababababababababab",
+        "name": {
+          "text": "fixture",
+          "truncated": false,
+          "flags": [
+            "agent_bait"
+          ]
+        },
+        "symbol": {
+          "text": "fixture",
+          "truncated": false,
+          "flags": [
+            "agent_bait"
+          ]
+        },
+        "launchpad": "pons",
+        "stage": "curve",
+        "curvePct": 1,
+        "priceUsd": 1,
+        "change1hPct": 1,
+        "liquidityUsd": 1,
+        "verdict": "clear",
+        "topPlaybook": "honeypot",
+        "ageSec": 1
+      },
+      "pair_remove": {
+        "address": "0xabababababababababababababababababababab",
+        "column": "new"
+      }
+    },
+    "feed": {
+      "item": {
+        "id": "fixture",
+        "ts": 1,
+        "block": 1,
+        "kind": "new_pair",
+        "coin": "0xabababababababababababababababababababab",
+        "symbol": {
+          "text": "fixture",
+          "truncated": false,
+          "flags": [
+            "agent_bait"
+          ]
+        },
+        "level": "clear",
+        "playbookId": "honeypot",
+        "label": "declared_agent",
+        "sizeUsd": 1,
+        "wallet": "0xabababababababababababababababababababab",
+        "crewId": "fixture"
+      }
+    },
+    "coin": {
+      "card": {
+        "identity": {
+          "address": "0xabababababababababababababababababababab",
+          "name": {
+            "text": "fixture",
+            "truncated": false,
+            "flags": [
+              "agent_bait"
+            ]
+          },
+          "symbol": {
+            "text": "fixture",
+            "truncated": false,
+            "flags": [
+              "agent_bait"
+            ]
+          },
+          "deployer": "0xabababababababababababababababababababab",
+          "createdAt": "fixture",
+          "launchpad": "pons",
+          "stage": "curve",
+          "curvePct": 1,
+          "quoteAsset": "ETH",
+          "pools": [
+            {
+              "id": "fixture",
+              "venue": "uniswap_v3",
+              "address": "0xabababababababababababababababababababab",
+              "poolId": "0x12",
+              "quote": "0xabababababababababababababababababababab",
+              "feeBps": 1,
+              "hooks": "0xabababababababababababababababababababab",
+              "liquidityUsd": 1,
+              "executable": false
+            }
+          ]
+        },
+        "clone": {
+          "isClone": false,
+          "originalAddress": "0xabababababababababababababababababababab"
+        },
+        "tradeability": {
+          "exitCostPct": {
+            "usd100": 1,
+            "usd1k": 1,
+            "usd10k": 1
+          },
+          "buyTaxPct": 1,
+          "sellTaxPct": 1,
+          "honeypot": false,
+          "limits": {
+            "maxTxUsd": 1,
+            "maxWalletPct": 1
+          },
+          "hookFeePct": 1,
+          "antiSnipe": {
+            "taxPct": 1,
+            "endsInSec": 1
+          }
+        },
+        "liquidity": {
+          "depthUsd": {
+            "pct2": 1,
+            "pct5": 1,
+            "pct10": 1
+          },
+          "lpStatus": "burned",
+          "feeTiers": [
+            1
+          ]
+        },
+        "supply": {
+          "top10Pct": 1,
+          "devPct": 1,
+          "bundlesHeldPct": 1,
+          "exemptWalletsHeldPct": 1,
+          "freshWalletsPct": 1,
+          "burnedPct": 1,
+          "circulating": "fixture"
+        },
+        "control": {
+          "owner": "0xabababababababababababababababababababab",
+          "canChangeTax": false,
+          "canBlacklist": false,
+          "canPause": false,
+          "canMint": false,
+          "upgradeable": false
+        },
+        "flow": {
+          "window": "5m",
+          "agentPct": 1,
+          "crewPct": 1,
+          "humanPct": 1,
+          "washEstPct": 1,
+          "beta": true,
+          "confidence": 0.9
+        },
+        "playbooks": [
+          {
+            "id": "honeypot",
+            "level": "clear",
+            "confidence": 1,
+            "evidence": [
+              {
+                "kind": "tx",
+                "ref": "fixture",
+                "block": 1,
+                "label": "fixture",
+                "value": 1,
+                "text": {
+                  "text": "fixture",
+                  "truncated": false,
+                  "flags": [
+                    "agent_bait"
+                  ]
+                }
+              }
+            ],
+            "history": {
+              "deployerRuns": 1,
+              "crewId": "fixture",
+              "crewRuns": 1
+            }
+          }
+        ],
+        "verdict": {
+          "coin": "0xabababababababababababababababababababab",
+          "level": "clear",
+          "reasons": [
+            "fixture"
+          ],
+          "playbooks": [
+            {
+              "id": "honeypot",
+              "level": "clear",
+              "confidence": 1,
+              "evidence": [
+                {
+                  "kind": "tx",
+                  "ref": "fixture",
+                  "block": 1,
+                  "label": "fixture",
+                  "value": 1,
+                  "text": {
+                    "text": "fixture",
+                    "truncated": false,
+                    "flags": [
+                      "agent_bait"
+                    ]
+                  }
+                }
+              ],
+              "history": {
+                "deployerRuns": 1,
+                "crewId": "fixture",
+                "crewRuns": 1
+              }
+            }
+          ],
+          "beta": {
+            "apeScore": 1,
+            "setupGrade": "A"
+          },
+          "receipt": {
+            "id": "fixture",
+            "hash": "fixture",
+            "status": "pending",
+            "batchId": 1,
+            "txHash": "fixture"
+          },
+          "schemaVersion": "fixture",
+          "asOfBlock": 1
+        },
+        "freshness": {
+          "block": 1,
+          "ageSec": 1
+        },
+        "meta": {
+          "flow": {
+            "confidence": 0.9,
+            "asOfBlock": 1
+          }
+        }
+      },
+      "verdict": {
+        "coin": "0xabababababababababababababababababababab",
+        "level": "clear",
+        "reasons": [
+          "fixture"
+        ],
+        "playbooks": [
+          {
+            "id": "honeypot",
+            "level": "clear",
+            "confidence": 1,
+            "evidence": [
+              {
+                "kind": "tx",
+                "ref": "fixture",
+                "block": 1,
+                "label": "fixture",
+                "value": 1,
+                "text": {
+                  "text": "fixture",
+                  "truncated": false,
+                  "flags": [
+                    "agent_bait"
+                  ]
+                }
+              }
+            ],
+            "history": {
+              "deployerRuns": 1,
+              "crewId": "fixture",
+              "crewRuns": 1
+            }
+          }
+        ],
+        "beta": {
+          "apeScore": 1,
+          "setupGrade": "A"
+        },
+        "receipt": {
+          "id": "fixture",
+          "hash": "fixture",
+          "status": "pending",
+          "batchId": 1,
+          "txHash": "fixture"
+        },
+        "schemaVersion": "fixture",
+        "asOfBlock": 1
+      },
+      "tick": {
+        "ts": 1,
+        "price": 1,
+        "volumeUsd": 1,
+        "block": 1
+      }
+    },
+    "flow": {
+      "marker": {
+        "ts": 1,
+        "side": "buy",
+        "sizeUsd": 1,
+        "label": "declared_agent",
+        "confidence": 1,
+        "wallet": "0xabababababababababababababababababababab",
+        "crewId": "fixture"
+      },
+      "flow": {
+        "window": "5m",
+        "agentPct": 1,
+        "crewPct": 1,
+        "humanPct": 1,
+        "washEstPct": 1,
+        "beta": true,
+        "confidence": 0.9
+      }
+    },
+    "burns": {
+      "burn": {
+        "txHash": "fixture",
+        "tokens": "fixture",
+        "usd": 1,
+        "ts": "fixture",
+        "kind": "daily",
+        "signer": "burn_wallet",
+        "buyTxHash": "fixture",
+        "ethIn": "fixture",
+        "method": "token_burn",
+        "pctSupply": 1,
+        "block": 1
+      },
+      "stats": {
+        "totalBurned": "fixture",
+        "pctSupplyBurned": 1,
+        "burns24h": {
+          "count": 1,
+          "tokens": "fixture",
+          "usd": 1
+        },
+        "nextBurnEtaSec": 1,
+        "engineBalanceUsd": 1,
+        "recent": [
+          {
+            "txHash": "fixture",
+            "tokens": "fixture",
+            "usd": 1,
+            "ts": "fixture"
+          }
+        ],
+        "mode": "manual",
+        "burnWallet": {
+          "address": "0xabababababababababababababababababababab",
+          "balanceUsd": 1,
+          "nextScheduledBurnAt": "fixture"
+        },
+        "ponsBuybacks": {
+          "tokens": "fixture",
+          "usd": 1,
+          "count24h": 1
+        },
+        "engine": {
+          "address": "0xabababababababababababababababababababab",
+          "active": false,
+          "renounced": false,
+          "tuningEndsAt": "fixture",
+          "phase": "curve",
+          "taxPaid": {
+            "eth": "fixture",
+            "usd": 1
+          }
+        }
+      }
+    },
+    "alerts": {
+      "alert": {
+        "id": "fixture",
+        "ts": "fixture",
+        "kind": "verdict_change",
+        "level": "clear",
+        "coin": "0xabababababababababababababababababababab",
+        "symbol": {
+          "text": "fixture",
+          "truncated": false,
+          "flags": [
+            "agent_bait"
+          ]
+        },
+        "agentId": "fixture",
+        "wallet": "0xabababababababababababababababababababab",
+        "crewId": "fixture",
+        "sizeUsd": 1,
+        "title": "fixture",
+        "body": "fixture",
+        "url": "fixture",
+        "read": false
+      },
+      "entitlements": {
+        "tier": "listener",
+        "trial": {
+          "endsAt": "fixture"
+        },
+        "limits": {
+          "agents": 1,
+          "deepResearchPerDay": 1,
+          "loopBacktestsPerDay": 1,
+          "realtime": false
+        },
+        "feeBps": 0
+      }
+    },
+    "agents": {
+      "agent": {
+        "id": "fixture",
+        "name": "fixture",
+        "kind": "robinhood_mcp",
+        "wallet": "0xabababababababababababababababababababab",
+        "status": "active",
+        "lastSeen": "fixture",
+        "uncheckedOrders24h": 1,
+        "guardrails": "advisory"
+      },
+      "journal": {
+        "id": "fixture",
+        "agentId": "fixture",
+        "ts": "fixture",
+        "kind": "session_start",
+        "payload": {
+          "arbitrary": true
+        },
+        "preflightId": "fixture",
+        "share": false,
+        "commitment": "fixture"
+      },
+      "preflight": {
+        "preflightId": "fixture",
+        "decision": "allow",
+        "reasons": [
+          "fixture"
+        ],
+        "policyVersion": 1,
+        "approvalId": "fixture",
+        "senses": {
+          "verdict": {
+            "coin": "0xabababababababababababababababababababab",
+            "level": "clear",
+            "reasons": [
+              "fixture"
+            ],
+            "playbooks": [
+              {
+                "id": "honeypot",
+                "level": "clear",
+                "confidence": 1,
+                "evidence": [
+                  {
+                    "kind": "tx",
+                    "ref": "fixture",
+                    "block": 1,
+                    "label": "fixture",
+                    "value": 1,
+                    "text": {
+                      "text": "fixture",
+                      "truncated": false,
+                      "flags": [
+                        "agent_bait"
+                      ]
+                    }
+                  }
+                ],
+                "history": {
+                  "deployerRuns": 1,
+                  "crewId": "fixture",
+                  "crewRuns": 1
+                }
+              }
+            ],
+            "beta": {
+              "apeScore": 1,
+              "setupGrade": "A"
+            },
+            "receipt": {
+              "id": "fixture",
+              "hash": "fixture",
+              "status": "pending",
+              "batchId": 1,
+              "txHash": "fixture"
+            },
+            "schemaVersion": "fixture",
+            "asOfBlock": 1
+          }
+        },
+        "journalId": "fixture",
+        "attestation": {
+          "executor": "0xabababababababababababababababababababab",
+          "chainId": 4663,
+          "safe": "0xabababababababababababababababababababab",
+          "tokenIn": "0xabababababababababababababababababababab",
+          "tokenOut": "0xabababababababababababababababababababab",
+          "amountIn": "fixture",
+          "minOut": "fixture",
+          "callHash": "0x12",
+          "policyVersion": 1,
+          "expiry": 1,
+          "nonce": "fixture",
+          "signature": "0x12"
+        },
+        "agentId": "fixture",
+        "clientOrderRef": "fixture"
+      }
+    },
+    "approvals": {
+      "approval": {
+        "id": "fixture",
+        "agentId": "fixture",
+        "preflightId": "fixture",
+        "summary": "fixture",
+        "status": "pending",
+        "expiresAt": "fixture",
+        "detail": {
+          "clientOrderRef": "fixture",
+          "order": {
+            "venue": "robinhood",
+            "instrument": "fixture",
+            "side": "buy",
+            "qty": 1,
+            "notionalUsd": 1,
+            "orderType": "market",
+            "limitPrice": 1,
+            "leverage": 1,
+            "tx": {
+              "to": "0xabababababababababababababababababababab",
+              "data": "0x12",
+              "value": "fixture"
+            }
+          },
+          "orderHash": "0x12",
+          "notionalUsd": 1,
+          "approvalAboveUsd": 1,
+          "usualSizeUsd": 1,
+          "reasons": [
+            "fixture"
+          ],
+          "policyVersion": 1,
+          "verdict": {
+            "coin": "0xabababababababababababababababababababab",
+            "level": "clear",
+            "reasons": [
+              "fixture"
+            ],
+            "playbooks": [
+              {
+                "id": "honeypot",
+                "level": "clear",
+                "confidence": 1,
+                "evidence": [
+                  {
+                    "kind": "tx",
+                    "ref": "fixture",
+                    "block": 1,
+                    "label": "fixture",
+                    "value": 1,
+                    "text": {
+                      "text": "fixture",
+                      "truncated": false,
+                      "flags": [
+                        "agent_bait"
+                      ]
+                    }
+                  }
+                ],
+                "history": {
+                  "deployerRuns": 1,
+                  "crewId": "fixture",
+                  "crewRuns": 1
+                }
+              }
+            ],
+            "beta": {
+              "apeScore": 1,
+              "setupGrade": "A"
+            },
+            "receipt": {
+              "id": "fixture",
+              "hash": "fixture",
+              "status": "pending",
+              "batchId": 1,
+              "txHash": "fixture"
+            },
+            "schemaVersion": "fixture",
+            "asOfBlock": 1
+          },
+          "contextReportedAt": "fixture"
+        }
+      }
+    },
+    "orders": {
+      "order": {
+        "id": "fixture",
+        "quoteId": "fixture",
+        "status": "awaiting_signature",
+        "coin": "0xabababababababababababababababababababab",
+        "side": "buy",
+        "feeBps": 1,
+        "txHash": "fixture",
+        "filledIn": "fixture",
+        "filledOut": "fixture",
+        "errorCode": "fixture",
+        "createdAt": "fixture"
+      }
+    }
+  },
+  "WsChannelKind": "coin",
+  "WsChannel": "coin:0xabababababababababababababababababababab",
+  "WsKind": "tick",
+  "WsClient": {
+    "op": "sub",
+    "ch": [
+      "radar"
+    ]
+  },
+  "WsEvent": {
+    "t": "ev",
+    "ch": "coin:0xabababababababababababababababababababab",
+    "seq": 1,
+    "ts": 1,
+    "kind": "tick",
+    "data": {
+      "ts": 1,
+      "price": 1,
+      "volumeUsd": 1,
+      "block": 1
+    }
+  },
+  "WsServer": {
+    "t": "ev",
+    "ch": "coin:0xabababababababababababababababababababab",
+    "seq": 1,
+    "ts": 1,
+    "kind": "tick",
+    "data": {
+      "ts": 1,
+      "price": 1,
+      "volumeUsd": 1,
+      "block": 1
+    }
+  },
+  "SignalReadings": {
+    "momentum": 86,
+    "liquidity": 80,
+    "holders": 58,
+    "narrative": 70,
+    "risk": 44
+  },
+  "CoinSignal": {
+    "composite": 72,
+    "readings": {
+      "momentum": 86,
+      "liquidity": 80,
+      "holders": 58,
+      "narrative": 70,
+      "risk": 44
+    },
+    "weights": {
+      "momentum": 0.3,
+      "liquidity": 0.25,
+      "holders": 0.2,
+      "narrative": 0.15,
+      "risk": 0.1
+    },
+    "beta": true,
+    "asOfBlock": 4812337
+  },
+  "RadarTotals": {
+    "coins": 100,
+    "clear": 10,
+    "monitor": 20,
+    "pending": 65,
+    "danger": 5,
+    "evaluatedToday": 40
+  },
+  "RadarResponse": {
+    "rows": [
+      {
+        "rank": 1,
+        "flow": {
+          "window": "5m",
+          "agentPct": 1,
+          "crewPct": 1,
+          "humanPct": 1,
+          "washEstPct": 1,
+          "beta": false,
+          "confidence": 1
+        },
+        "exitCost1kPct": 1,
+        "beta": {
+          "apeScore": 1,
+          "setupGrade": "A"
+        },
+        "address": "0xabababababababababababababababababababab",
+        "name": {
+          "text": "fixture",
+          "truncated": false,
+          "flags": [
+            "agent_bait"
+          ]
+        },
+        "symbol": {
+          "text": "fixture",
+          "truncated": false,
+          "flags": [
+            "agent_bait"
+          ]
+        },
+        "launchpad": "pons",
+        "stage": "curve",
+        "curvePct": 1,
+        "priceUsd": 1,
+        "change1hPct": 1,
+        "liquidityUsd": 1,
+        "verdict": "clear",
+        "topPlaybook": "honeypot",
+        "ageSec": 1
+      }
+    ],
+    "cursor": null,
+    "delayedSec": 0,
+    "totals": {
+      "coins": 100,
+      "clear": 10,
+      "monitor": 20,
+      "pending": 65,
+      "danger": 5,
+      "evaluatedToday": 40
+    }
+  },
+  "SiweNonce": {
+    "nonce": "sampleNonce123",
+    "domain": "app.eko.example",
+    "uri": "https://app.eko.example",
+    "issuedAt": "2026-10-13T12:00:00.000Z",
+    "expirationTime": "2026-10-13T12:10:00.000Z"
+  },
+  "SiweVerify": {
+    "message": "fixture message; signature validation is covered by offline account tests",
+    "signature": "0xabcd",
+    "ref": "sample-ref"
+  },
+  "JournalWrite": {
+    "kind": "note",
+    "payload": {
+      "text": "sample-note"
+    },
+    "share": false
+  },
+  "JournalPage": {
+    "rows": [
+      {
+        "id": "fixture",
+        "agentId": "fixture",
+        "ts": "fixture",
+        "kind": "session_start",
+        "payload": {
+          "arbitrary": true
+        },
+        "preflightId": "fixture",
+        "share": false,
+        "commitment": "fixture"
+      }
+    ],
+    "cursor": null
+  },
+  "DataDeleted": {
+    "deletedAt": "2026-10-02T00:00:00.000Z"
+  },
+  "JournalConsent": {
+    "optedIn": true
+  },
+  "BagShareRequest": {
+    "includeValues": false,
+    "includeWallet": false
+  },
+  "BagShareResponse": {
+    "id": "00000000-0000-4000-8000-000000000109",
+    "shareUrl": "/bags/r/00000000-0000-4000-8000-000000000109"
+  },
+  "PublicBagReport": {
+    "asOfBlock": 1,
+    "holdings": [
+      {
+        "coin": {
+          "address": "0xabababababababababababababababababababab",
+          "name": {
+            "text": "fixture",
+            "truncated": false,
+            "flags": [
+              "agent_bait"
+            ]
+          },
+          "symbol": {
+            "text": "fixture",
+            "truncated": false,
+            "flags": [
+              "agent_bait"
+            ]
+          },
+          "launchpad": "pons",
+          "stage": "curve",
+          "curvePct": 1,
+          "change1hPct": 1,
+          "verdict": "clear",
+          "topPlaybook": "honeypot",
+          "ageSec": 1
+        },
+        "balance": "fixture",
+        "playbooks": [
+          "honeypot"
+        ],
+        "exitCost1kPct": 1
+      }
+    ],
+    "summary": {
+      "coins": 1,
+      "flagged": 1,
+      "danger": 1
+    },
+    "shareUrl": "fixture"
+  },
+  "OAuthConsentResult": {
+    "redirect": "https://example.invalid/callback?code=fixture&state=fixture"
+  },
+  "BlueChip": {
+    "member": true,
+    "via": ["coingecko", "earned"]
+  },
+  "BlueChipCriteria": {
+    "minAgeDays": 3,
+    "minLiquidityUsd": 25000,
+    "minHolders": 250
+  }
+}
