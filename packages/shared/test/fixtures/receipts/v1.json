@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "leafEncoding": [
+    "uint8",
+    "bytes32",
+    "bytes32"
+  ],
+  "kindIds": {
+    "verdict": 0,
+    "forecast": 1,
+    "harness_private": 2
+  },
+  "items": [
+    {
+      "id": "verdict:4663:1",
+      "kind": "verdict",
+      "hash": "0x6b7a61582f673b1aca24683cbeb059717c0dc3d29cf906df6ff9498973a2db2f",
+      "itemId": "0xed4d7f4d1af9a4dff978a06febf9e3b10c7c0f7dc1b61de296de4b1766f05a27",
+      "leaf": "0x3f7c258681bf190099d21d8fee69145f0adeca66800bf597b96f9d0ca08e1d15"
+    },
+    {
+      "id": "forecast:4663:2",
+      "kind": "forecast",
+      "hash": "0xb79ad406fd343735441adda5fcaa982ba7e339f1bc8d48d92c6f0af1710a89ad",
+      "itemId": "0xf50d4bdb668c44b3cba8ceebc4eca13118f87e1db1aeea8c8687cc9cecbd1798",
+      "leaf": "0x6cb43a7e5efa71fe0d2de263b4c2b900a7d3bbb3844a07ece24be61137274176"
+    },
+    {
+      "id": "journal:private:3",
+      "kind": "harness_private",
+      "hash": "0x371771552686dd8653d4cba80ac22c1ef1657a0993b3ccd5892bdf1d0958612e",
+      "itemId": "0x026d6c48f27e1476699655e2e1efa71d49010db0933409bdedd1b0e2ece79075",
+      "leaf": "0x2155e3aec08ecc8dbbd9d7002156f6f1d60546c8d7b7aed67b8b92fcad595bae"
+    }
+  ],
+  "root": "0x1b9d5c343bd5426d02a08f644dde5becee2185cd0ebe42a180434aab1e5d1859",
+  "proofs": [
+    [
+      "0x2155e3aec08ecc8dbbd9d7002156f6f1d60546c8d7b7aed67b8b92fcad595bae",
+      "0x6cb43a7e5efa71fe0d2de263b4c2b900a7d3bbb3844a07ece24be61137274176"
+    ],
+    [
+      "0xba7b0c71c8cc5ca9fcb27bc633754bd69bfa2b9831c3b56be701431da797449c"
+    ],
+    [
+      "0x3f7c258681bf190099d21d8fee69145f0adeca66800bf597b96f9d0ca08e1d15",
+      "0x6cb43a7e5efa71fe0d2de263b4c2b900a7d3bbb3844a07ece24be61137274176"
+    ]
+  ]
+}
