@@ -1,0 +1,36 @@
+# Elysium (Kinetiq's Arbitrum Orbit L2 on HyperEVM), chain 99901.
+# Every address has a source and the check `pnpm --filter @eko/chain verify:elysium` runs against it.
+# Checked live on 2026-11-10: contract code present at every entry, token symbol/decimals, Montra registry names.
+chainId: 99901
+uniswapV4:   # https://developers.uniswap.org/docs/protocols/v4/deployments.md ("Elysium: 99901")
+  poolManager:          { address: "0xE2e105d3F7209A9DA11f83cCf3E7398a753823F1", verified: 2026-11-10, check: code, source: uniswap-deployments }
+  positionManager:      { address: "0x1d1C51b9d07fD27d36412A2b66CC23D19Eb3E518", verified: 2026-11-10, check: code, source: uniswap-deployments }
+  stateView:            { address: "0x27eD73aE0652fdCf71d6793412A7525f32bE9dfE", verified: 2026-11-10, check: code, source: uniswap-deployments }
+  v4Quoter:             { address: "0x379F556c5a748BD7Cc9baF0F7A344094Ac1814f5", verified: 2026-11-10, check: code, source: uniswap-deployments }
+  universalRouter:      { address: "0x1B341FDD55d56F8E08409A2C25DDFad93Eb03C1a", verified: 2026-11-10, check: code, source: "uniswap-deployments (2.2.0)" }
+  universalRouter212:   { address: "0xA13f7611115752DEB2B13813BDDE16A5073e4b45", verified: 2026-11-10, check: code, source: "uniswap-deployments (2.1.2); the router Montra's registry names" }
+  permit2:              { address: "0x000000000022D473030F116dDEE9F6B43aC78BA3", verified: 2026-11-10, check: code, source: uniswap-deployments }
+tokens:      # https://elysium.kinetiq.xyz/docs/contract-addresses
+  WHYPE: { address: "0xbA876237B0F021A6c6D852d6c26E107997cC5E81", decimals: 18, symbol: WHYPE, verified: 2026-11-10, check: token, source: elysium-docs }
+  USDC:  { address: "0xb47c4C8F73F009CC0C0d3f92B388d13E293F0B65", decimals: 6, symbol: USDC, verified: 2026-11-10, check: token, source: "elysium-docs (look-alikes exist)" }
+multicall3:  { address: "0xcA11bde05977b3631167028862bE2a173976CA11", verified: 2026-11-10, check: code, source: elysium-docs }
+montra:      # https://montramarkets.xyz/docs/contracts; the registry names every other Montra address
+  registry: { address: "0xF1E2FA75422F889e565F3142bdbf60B28dce2aa7", verified: 2026-11-10, check: code, source: montra-docs }
+  factory:  { address: "0x38D3ef3A06D18fA3286Fb5dEAfe611be725fcD15", verified: 2026-11-10, check: montra_registry, source: 'registry get("factory")' }
+  hook:     { address: "0x6b1216A40B65c83e9c9e18a562C446697B8cf8EC", verified: 2026-11-10, check: montra_registry, source: "registry hooks() / isKnownHook" }
+  lens:     { address: "0xb4c202910C40C3A83F6C55683460790AaEc487d4", verified: 2026-11-10, check: montra_registry, source: 'registry get("lens")' }
+  router:   { address: "0xc6E9a8E1a99023B67067B8A3605403b8d7B3A157", verified: 2026-11-10, check: montra_registry, source: 'registry get("router")' }
+  quoteRegistry: { address: "0x91756E3174d58482FbE59E1162573A69519c60Eb", verified: 2026-11-10, check: montra_registry, source: 'registry get("quoteRegistry")' }
+  token:    { address: "0x063F7Cc5339f92a5FD7BaF3D22233044FdA1F327", verified: 2026-11-10, check: montra_registry, source: 'registry get("montra"): the MONTRA token' }
+unbrandedLauncher:   # brand unknown; one deployer built this stack; ~33% of launches on 2026-11-10
+  poolManager: { address: "0x06C63714fBf1F5753017123E2FcfdEde4540B2c4", verified: 2026-11-10, check: code, source: "on-chain scan; NOT Uniswap's official PoolManager" }
+  hook:        { address: "0xB3E25CDf4a2f42e7f37aB3aE43Bfb90EE8052AcC", verified: 2026-11-10, check: code, source: "on-chain scan (Initialize on poolManager above)" }
+  launcher:    { address: "0xa9F082af704A8B2e0087CCa2eDB41E3EBF665E42", verified: 2026-11-10, check: code, source: "on-chain scan (tx target of token creation); hook.launcher()" }
+otherLaunchpads:     # small share; mapped by verified source or NatSpec
+  taxLaunchHook:     { address: "0x3eA9581a32a396F69b177B65b91149Cf887BEACC", verified: 2026-11-10, check: code, source: "explorer: verified TaxLaunchHook" }
+  bloomCoreProxy:    { address: "0x42ba1aFdaac55Bc4b07CC556A50C114B8f5c1911", verified: 2026-11-10, check: code, source: "explorer: BloomLaunch CoreProxy NatSpec" }
+  imortalHyperForge: { address: "0xd5f89BaB3886A72e93D02771352C9E8B2D120c13", verified: 2026-11-10, check: code, source: "explorer: verified HyperForge (IMORTAL)" }
+  taxLaunchFactory:  { address: "0xcA111dcdd2cE924c3378d6514fDCbC46217bcA16", verified: 2026-11-11, check: code, source: "explorer: verified TaxRWAERC20LaunchpadFactory (emits Launched)" }
+flaunchFork:         # a Flaunch-style launchpad on Uniswap's PoolManager (unverified; the most-traded launches on 2026-11-11)
+  hook:        { address: "0x3aB88DDc3CF2A012af88B60828edb4553697E5dC", verified: 2026-11-11, check: code, source: "on-chain scan: PoolCreated and PoolSwap emitter, hook of its pools" }
+  creatorNft:  { address: "0xac466Ee5CEdD012eB750DBDA0B935F8B997402c7", verified: 2026-11-11, check: code, source: "on-chain scan: NFT minted to each creator (holder earns creator fees)" }
