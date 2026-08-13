@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "klik-support-1",
+  "id": "klik",
+  "chainId": 4663,
+  "status": "unsupported",
+  "reason": "Factory, emitter roles and event ABI could not be verified from the permitted public sources.",
+  "registryKeys": [],
+  "addresses": [],
+  "eventAbi": [],
+  "supportedEvents": [],
+  "capabilities": {
+    "launch": false,
+    "trade": false,
+    "migration": false,
+    "curveState": false,
+    "antiSnipe": false,
+    "quoteBuy": false,
+    "quoteSell": false,
+    "buildBuy": false,
+    "buildSell": false,
+    "control": false,
+    "custody": false
+  },
+  "recentBackfill": {
+    "stream": "logs:klik",
+    "status": "unsupported",
+    "filters": [],
+    "coverageComplete": false
+  },
+  "provenance": "packages/chain/test/fixtures/4663/klik-provenance.json",
+  "requiredEvidence": [
+    "Official Klik deployment address on chain 4663",
+    "Verified event ABI and emitter roles",
+    "Pinned launch, trade and migration receipts",
+    "Runtime code hashes at a pinned block"
+  ]
+}
