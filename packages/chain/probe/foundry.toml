@@ -1,0 +1,13 @@
+[profile.default]
+src = "."
+test = "test"
+solc_version = "0.8.26"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 10000
+via_ir = false
+bytecode_hash = "ipfs"
+cbor_metadata = true
+offline = true
+out = "out"
+cache_path = "cache"
