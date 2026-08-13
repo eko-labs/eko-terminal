@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "flap",
+  "chainId": 4663,
+  "status": "unsupported",
+  "reason": "portal_launch_abi_unverified",
+  "capabilities": {
+    "launch": false,
+    "trade": false,
+    "migration": false,
+    "recentBackfill": false,
+    "curveState": false,
+    "antiSnipe": false,
+    "quoteBuy": false,
+    "quoteSell": false,
+    "buildBuy": false,
+    "buildSell": false,
+    "control": false,
+    "custody": false
+  },
+  "registryEntries": [],
+  "eventFragments": [],
+  "provenance": "packages/chain/test/fixtures/flap/provenance.json",
+  "requiredEvidence": [
+    "Verified chain-4663 Portal implementation ABI including TokenCreated types and indexed flags, bound to pinned runtime code.",
+    "Pinned launch transaction and receipt, token-template binding, quote asset and optional launch configuration.",
+    "Canonical launch/trade/migration fixtures and indexer ordering, deduplication and reorg tests before enabling leased recent backfill."
+  ],
+  "liveApproved": false
+}
