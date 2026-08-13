@@ -1,0 +1,19 @@
+{
+  "evidence": "docs/guard/research/pons-executable-notes.md",
+  "chainId": 4663,
+  "functions": [
+    { "signature": "buy(uint256,uint256,address)", "selector": "0x59a87bc1" },
+    { "signature": "sell(uint256,uint256,address)", "selector": "0xd04c6983" },
+    { "signature": "currentSnipeTaxBps(address)", "selector": "0xd7e1ef39" },
+    { "signature": "creatorTaxBps()", "selector": "0xc1bb8901" },
+    { "signature": "feeBps()", "selector": "0x24a9d853" },
+    { "signature": "getReserves()", "selector": "0x0902f1ac" },
+    { "signature": "sellableTokens()", "selector": "0x808bcddc" },
+    { "signature": "realQuoteReserve()", "selector": "0x4f1f58fd" },
+    { "signature": "graduationThreshold()", "selector": "0x8b0bc501" },
+    { "signature": "readyToGraduate()", "selector": "0xc68360a5" }
+  ],
+  "quoteMethod": "local-output-floor-040",
+  "quoteFunctionSelectors": [],
+  "pending": ["active-snipe-tax", "refund-rounding", "metered-recipient-deltas", "actual-account-revalidation-052"]
+}

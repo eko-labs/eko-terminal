@@ -1,0 +1,22 @@
+{
+  "_source": "Verified on-chain 2026-10-01 against Robinhood Chain (4663): topic hashes found in deployed bytecode and real logs decoded. See docs/tasks/VERIFIED-pons-2026-10-01.md. FeesSwept and Initialized are matched by hash; their parameter names are unknown.",
+  "factory": [
+    "event TokenLaunched(address indexed token, address indexed curve, address indexed deployer, address pairToken, uint256 launchConfigId, uint256 graduationThreshold)"
+  ],
+  "curve": [
+    "event CurveBuy(address indexed buyer, address indexed recipient, uint256 quoteIn, uint256 tokensOut, uint256 fee, uint256 tax)",
+    "event CurveSell(address indexed seller, address indexed recipient, uint256 tokensIn, uint256 quoteOut, uint256 fee, uint256 tax)",
+    "event SnipeTaxExempted(address indexed account)",
+    "event FeesSwept(uint256 a, uint256 b, uint256 c)",
+    "event Initialized(address a)",
+    "function currentSnipeTaxBps(address token) view returns (uint256)",
+    "function feeBps() view returns (uint256)",
+    "function creatorTaxBps() view returns (uint256)",
+    "function launchedAt() view returns (uint256)",
+    "function graduated() view returns (bool)"
+  ],
+  "unverified": {
+    "graduation": ["CurveCompleted", "PoolGraduated", "LaunchSwept"],
+    "routerEvent": "0xdcacba5e… emitted by router 0xe33E9E479dF8802cb0866d5d05258bEc4cF62948 with launches; unidentified"
+  }
+}
