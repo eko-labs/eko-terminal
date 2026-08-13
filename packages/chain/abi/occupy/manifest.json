@@ -1,0 +1,23 @@
+{
+  "manifestVersion": 1,
+  "id": "occupy",
+  "chainId": 4663,
+  "status": "unsupported",
+  "reason": "Factory, template, event ABI and quote evidence could not be verified from approved public sources.",
+  "registryKeys": ["virtuals.bondingCurve", "virtuals.VIRTUAL"],
+  "verifiedAddresses": [],
+  "verifiedCodeHashes": [],
+  "supportedEvents": [],
+  "supportedCalls": [],
+  "coverage": { "launch": false, "trade": false, "migration": false, "curveState": false, "quotes": false, "control": false, "custody": false, "execution": false },
+  "backfill": { "enabled": false, "phase": "B", "recentDays": 30, "maxLogRangeBlocks": 10000, "reason": "No verified emitter or event topic; do not seed or complete Occupy ranges." },
+  "gaps": ["factory", "template", "event_abi", "launch", "trade", "quote_asset", "migration", "curve_state", "quotes", "control", "custody", "execution"],
+  "activationEvidence": [
+    "Full factory, curve/template and quote-asset addresses from Occupy official docs or explorer verified source on chain 4663",
+    "Pinned block hash, deployed code hashes and verified ABI/source linkage, including any proxy implementation",
+    "Canonical launch, buy, sell and migration transactions, receipts and logs proving emitters, indexed fields and amounts",
+    "Verified quote functions and pinned call results proving quote-asset units; never map VIRTUAL amounts to ETH",
+    "Bounded recent backfill with indexer-owned natural keys, replay and reorg validation before enabling coverage"
+  ],
+  "provenance": "packages/chain/test/fixtures/4663/occupy/provenance.json"
+}
