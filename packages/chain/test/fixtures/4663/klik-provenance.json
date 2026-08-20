@@ -1,0 +1,111 @@
+{
+  "schemaVersion": "klik-provenance-1",
+  "launchpad": "klik",
+  "evidenceKind": "live-verification-attempt",
+  "capturedAt": "2026-10-03T17:17:06.186828+00:00",
+  "chainId": 4663,
+  "pinnedBlock": {
+    "number": "79253000",
+    "hash": "0x36768df49523d0570850da84e8346f154ce38928fefc56f54f4c697834657a3d",
+    "parentHash": "0x4181cb08b764218c69045c43ab9fe6a2ef65519a8d608bbc7d109cf2876c2ae5",
+    "timestampSec": "1791047663"
+  },
+  "requests": [
+    {
+      "url": "https://rpc.mainnet.chain.robinhood.com",
+      "method": "eth_chainId",
+      "params": [],
+      "httpStatus": 200,
+      "blockNumber": null,
+      "transactionHash": null,
+      "codeHash": null,
+      "result": "0x1237"
+    },
+    {
+      "url": "https://rpc.mainnet.chain.robinhood.com",
+      "method": "eth_blockNumber",
+      "params": [],
+      "httpStatus": 200,
+      "blockNumber": "79253000",
+      "transactionHash": null,
+      "codeHash": null,
+      "result": "0x4b94e08"
+    },
+    {
+      "url": "https://robinhoodchain.blockscout.com/api/v2/search?q=Klik",
+      "method": "GET",
+      "params": null,
+      "httpStatus": 403,
+      "blockNumber": null,
+      "transactionHash": null,
+      "codeHash": null,
+      "result": "HTTP 403 Forbidden; no results acquired"
+    },
+    {
+      "url": "https://robinhoodchain.blockscout.com",
+      "method": "GET",
+      "params": null,
+      "httpStatus": 200,
+      "blockNumber": null,
+      "transactionHash": null,
+      "codeHash": null,
+      "result": "Public explorer HTML; no Klik deployment evidence"
+    },
+    {
+      "url": "https://rpc.mainnet.chain.robinhood.com",
+      "method": "eth_getBlockByNumber",
+      "params": [
+        "0x4b94e08",
+        false
+      ],
+      "httpStatus": 200,
+      "blockNumber": "79253000",
+      "transactionHash": null,
+      "codeHash": null,
+      "result": {
+        "number": "79253000",
+        "hash": "0x36768df49523d0570850da84e8346f154ce38928fefc56f54f4c697834657a3d",
+        "parentHash": "0x4181cb08b764218c69045c43ab9fe6a2ef65519a8d608bbc7d109cf2876c2ae5",
+        "timestampSec": "1791047663"
+      }
+    },
+    {
+      "url": "https://robinhoodchain.blockscout.com/search-results?q=Klik",
+      "method": "GET",
+      "params": null,
+      "httpStatus": 200,
+      "blockNumber": null,
+      "transactionHash": null,
+      "codeHash": null,
+      "result": "Search-page HTML; server-rendered apiData is null; no deployment evidence"
+    }
+  ],
+  "requestCounts": {
+    "rpc": 3,
+    "web": 3
+  },
+  "limits": {
+    "rpc": 300,
+    "web": 60,
+    "maxLogRangeBlocks": 10000
+  },
+  "deployment": {
+    "factory": null,
+    "transactionHash": null,
+    "codeHash": null,
+    "abiSource": null,
+    "eventLogs": []
+  },
+  "conclusion": "unsupported",
+  "missingEvidence": [
+    "Official Klik deployment address on chain 4663",
+    "Verified event ABI and emitter roles",
+    "Pinned launch, trade and migration receipts",
+    "Runtime code hashes at a pinned block"
+  ],
+  "notes": [
+    "No trusted Klik documentation URL was present in the packet or repository.",
+    "No code, transaction or log requests were made without a verified deployment address.",
+    "Only selected public block-header fields are retained; no owner identities or raw explorer HTML are stored."
+  ]
+}
