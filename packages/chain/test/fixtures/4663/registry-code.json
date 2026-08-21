@@ -1,0 +1,95 @@
+{
+ "atBlock": "77438572",
+ "chainId": 4663,
+ "codes": {
+  "uniswapV3Factory": {
+   "address": "0x1f7d7550B1b028f7571E69A784071F0205FD2EfA",
+   "bytes": 24535,
+   "codeHash": "0xec72b1abd1f2faee020cfea9c646bd8994f9fb389054f6e574f103a895091739"
+  },
+  "quoterV2": {
+   "address": "0x33e885eD0Ec9bF04EcfB19341582aADCb4c8A9E7",
+   "bytes": 8273,
+   "codeHash": "0x3db0868d945e9304c9bc6a8b2181948109ea617647142f3c4083e14393496a28"
+  },
+  "swapRouter02": {
+   "address": "0xCaf681a66D020601342297493863E78C959E5cb2",
+   "bytes": 24497,
+   "codeHash": "0x6f36c378e272c6324c48f045182bcb54bd8ad654cf9ebd42e8893d52c4cb25dc"
+  },
+  "WETH": {
+   "address": "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
+   "bytes": 2202,
+   "codeHash": "0x5706be52f64875fee65a2cec0d80e47a23d8793cbe85d214b48445e2d05f5353"
+  },
+  "USDG": {
+   "address": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+   "bytes": 170,
+   "codeHash": "0x864cc9ad53b338b82da1f7cab85ab0b3d5c8861acb422b6fec63cf36234f36a6"
+  },
+  "multicall3": {
+   "address": "0xcA11bde05977b3631167028862bE2a173976CA11",
+   "bytes": 3808,
+   "codeHash": "0xd5c15df687b16f2ff992fc8d767b4216323184a2bbc6ee2f9c398c318e770891"
+  },
+  "poolManager": {
+   "address": "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+   "bytes": 24009,
+   "codeHash": "0xbd3881180b547f5fe817545743cfb4343e96b1bc6640dcd70c106b0066e95626"
+  },
+  "v4Quoter": {
+   "address": "0x8dc178efb8111bb0973dd9d722ebeff267c98f94",
+   "bytes": 6118,
+   "codeHash": "0xd707b1da8cb165e5ea35a3b4450d971eb562ec171e23492aa117036b78a868f6"
+  },
+  "universalRouter": {
+   "address": "0x204FAca1764B154221e35c0d20aBb3c525710498",
+   "bytes": 24380,
+   "codeHash": "0x76b92a5bba2dd32019a64eb421f1750e78c6ba044dbfa6840b722eb5ac63d296"
+  },
+  "permit2": {
+   "address": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+   "bytes": 9152,
+   "codeHash": "0x5208783f52488f7d3493e5e38311ab707c1d75457fe472a19b0b4d57d66a7fca"
+  },
+  "erc8004Identity": {
+   "address": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+   "bytes": 130,
+   "codeHash": "0xd0e45b1d89fa9b6cc7e97c1f155d64180e5c232aaccf9900ef9d4fd738c02b41"
+  },
+  "ponsFactory": {
+   "address": "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e",
+   "bytes": 24177,
+   "codeHash": "0x89a27da6f703e0a7cdd4f233e7cb57604ff75b164530962d3ff7cf8483a67d84"
+  },
+  "ponsHook": {
+   "address": "0xE5e702641Ea86F4ae6cC3cDaeD2B886f976Be044",
+   "bytes": 15167,
+   "codeHash": "0xc21b1e6c1b45403e81a581f22ed6d9c747997af1cfdac1b1dc9f4b1d346a10db"
+  },
+  "ponsRouter": {
+   "address": "0xe33E9E479dF8802cb0866d5d05258bEc4cF62948",
+   "bytes": 4416,
+   "codeHash": "0xed9065184519eaa24a22c2556403d5d8bbb230ff94dbc5c414cf5028e20e52e7"
+  },
+  "entryPointV06": {
+   "address": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
+   "bytes": 23689,
+   "codeHash": "0xc93c806e738300b5357ecdc2e971d6438d34d8e4e17b99b758b1f9cac91c8e70"
+  },
+  "entryPointV07": {
+   "address": "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+   "bytes": 16035,
+   "codeHash": "0x8db5ff695839d655407cc8490bb7a5d82337a86a6b39c3f0258aa6c3b582fc58"
+  },
+  "entryPointV08": {
+   "address": "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108",
+   "bytes": 21738,
+   "codeHash": "0xa4b1c865a4a45b99ebaaf4bd06e0036ad489eb521786f59765e4e6a3c0524b03"
+  }
+ },
+ "swapRouter02": {
+  "factory": "0x1f7d7550B1b028f7571E69A784071F0205FD2EfA",
+  "WETH9": "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73"
+ }
+}
