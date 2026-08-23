@@ -1,0 +1,258 @@
+{
+  "version": 1,
+  "launchpad": "flap",
+  "chainId": 4663,
+  "origin": "live-public-read-only",
+  "capturedAt": "2026-10-03T17:16:16Z",
+  "candidateBaseRevision": "39420c40c9b48742ca12ddcee3a5280297b9fc8c",
+  "pin": {
+    "blockNumber": "79253769",
+    "blockHash": "0xaf3adac9077c36ba3bf844c09bbe6c0d431ba89162e843d348220ff148ca25c6",
+    "timestamp": "1791047741"
+  },
+  "budget": {
+    "rpcRequests": 8,
+    "webRequests": 13,
+    "rpcLimit": 300,
+    "webLimit": 60,
+    "paidRequests": 0,
+    "costUsd": 0
+  },
+  "sources": [
+    {
+      "url": "https://docs.flap.sh",
+      "status": 307,
+      "responseSha256": "0x7c040f8633b8823d72ed63da9b3b2dfe9846e912c66a64c9433ec9c4815d76c2"
+    },
+    {
+      "url": "https://docs.flap.sh/flap/",
+      "status": 302,
+      "responseSha256": "0x7c040f8633b8823d72ed63da9b3b2dfe9846e912c66a64c9433ec9c4815d76c2"
+    },
+    {
+      "url": "https://docs.flap.sh/flap",
+      "status": 200,
+      "responseSha256": "0x7434a555567b5a31ddb469b2c2adb06ea11aa98d2c203ae0a287742484c0e75c"
+    },
+    {
+      "url": "https://docs.flap.sh/flap/llms.txt",
+      "status": 200,
+      "responseSha256": "0xc611450b0655c44b94bd79ea2f1c44d108570ba2c5a459d4d97e495eb5e531bd"
+    },
+    {
+      "url": "https://docs.flap.sh/flap/developers",
+      "status": 200,
+      "responseSha256": "0x934f4b7431be4fa6b746e7fb919e02d7d8e5202c6397118113d554ee82c67ec5"
+    },
+    {
+      "url": "https://docs.flap.sh/flap/developers/deployed-contract-addresses.md",
+      "status": 403,
+      "responseSha256": null
+    },
+    {
+      "url": "https://docs.flap.sh/flap/developers/deployed-contract-addresses.md",
+      "status": 200,
+      "responseSha256": "0x411483480c2d50a33df0bd0c83175270936c88bf13174af119b426e5089156b4"
+    },
+    {
+      "url": "https://docs.flap.sh/flap/developers/token-launcher-developers/robinhood-integration-guide.md",
+      "status": 200,
+      "responseSha256": "0x4fe536a13af60179d7e2f72169edf3d8c797c3f83955712eaa8516b9b75bfa24"
+    },
+    {
+      "url": "https://docs.flap.sh/flap/developers/wallet-and-terminal-and-bot-developers/index-token-created-events.md",
+      "status": 200,
+      "responseSha256": "0x3f9b176a16e494cf5b63dd6c12f58f1952e122c933ff470a494e2e3fb91a20f0"
+    },
+    {
+      "url": "https://docs.flap.sh/flap/developers/wallet-and-terminal-and-bot-developers/trade-tokens.md",
+      "status": 200,
+      "responseSha256": "0xc6e69bbd60fce2201a7e7fcc4fd69ad1c65856f28fc01b5f4163b39d9399ce08"
+    },
+    {
+      "url": "https://docs.flap.sh/flap/developers/wallet-and-terminal-and-bot-developers/token-migration.md",
+      "status": 200,
+      "responseSha256": "0x3a0d3f08dbc112cb4d026d83d6f101fef6dbd277de9f3836140da9762e78fabd"
+    },
+    {
+      "url": "https://robinhoodchain.blockscout.com/api/v2/smart-contracts/0x26605f322f7fF986f381bB9A6e3f5DAb0bEaEb09",
+      "status": 403,
+      "responseSha256": "0x83f4c91556b12414ed9d887b2e5fbae50ba5c980bc9601ed7ef05eb90bc72dc7"
+    },
+    {
+      "url": "https://docs.flap.sh/flap/developers/wallet-and-terminal-and-bot-developers/a-quick-start-for-wallet-terminal-bot-developers.md",
+      "status": 200,
+      "responseSha256": "0xea870d8a5c980014e925aabe9799bea479b5f0d21c7c1c8fe7344472d8b6bd51"
+    }
+  ],
+  "rpc": {
+    "url": "https://rpc.mainnet.chain.robinhood.com",
+    "requests": [
+      {
+        "method": "eth_chainId",
+        "params": [],
+        "result": "0x1237"
+      },
+      {
+        "method": "eth_blockNumber",
+        "params": [],
+        "result": "0x4b95109",
+        "responseSha256": "0xdcc6c4c9cd28955c97d9c345332818ab020a6f7a07b88a1269e8e5a61742e052"
+      },
+      {
+        "method": "eth_getCode",
+        "params": [
+          "0x26605f322f7fF986f381bB9A6e3f5DAb0bEaEb09",
+          "0x4b95109"
+        ],
+        "responseSha256": "0xce93170fc4ba4197e05fc6855709ff15a9cc72122d1ee2467e3356aad2c457fb"
+      },
+      {
+        "method": "eth_getCode",
+        "params": [
+          "0x88882688a067FE97E11C2185b996286e53132222",
+          "0x4b95109"
+        ],
+        "responseSha256": "0xd0c99bb939c2ad52767ad14533ea6e0d0be97815d651ec16877e5608fda351e5"
+      },
+      {
+        "method": "eth_getCode",
+        "params": [
+          "0x7777C8743C88B3aff3cf262135beF2c8b2e83333",
+          "0x4b95109"
+        ],
+        "responseSha256": "0xc2bc5ed35043f95a265a295661035052e4aa930401daee11122df4de775c83b3"
+      },
+      {
+        "method": "eth_getCode",
+        "params": [
+          "0xe9F7AB7DE8FB8756acbB6a1cd13316a43308197B",
+          "0x4b95109"
+        ],
+        "responseSha256": "0x0e0631f93041cf05cb0cd0f11d40eff17f174bc37d859783d2686e6fb08f2459"
+      },
+      {
+        "method": "eth_getBlockByNumber",
+        "params": [
+          "0x4b95109",
+          false
+        ],
+        "responseSha256": "0x739527ab2176ee5793c30f91593113fa43b8fdaca2f916148fff088541522220"
+      },
+      {
+        "method": "eth_getLogs",
+        "params": [
+          {
+            "address": "0x26605f322f7fF986f381bB9A6e3f5DAb0bEaEb09",
+            "fromBlock": "0x4b929fa",
+            "toBlock": "0x4b95109"
+          }
+        ],
+        "logCount": 718,
+        "responseSha256": "0x3b33ad3a4e8e9d1846034f3b18831530a16ec8d54d30118ac08dd4cccfcf97ae"
+      }
+    ]
+  },
+  "deployments": [
+    {
+      "role": "portalProxy",
+      "address": "0x26605f322f7fF986f381bB9A6e3f5DAb0bEaEb09",
+      "blockNumber": "79253769",
+      "blockHash": "0xaf3adac9077c36ba3bf844c09bbe6c0d431ba89162e843d348220ff148ca25c6",
+      "codeBytes": 2840,
+      "codeHash": "0xcecb292d9c022858199c9348abf0d5836f9ea4dab5cf03710e1dcf41fd9a4c35",
+      "codeHashAlgorithm": "keccak256",
+      "responseSha256": "0xce93170fc4ba4197e05fc6855709ff15a9cc72122d1ee2467e3356aad2c457fb",
+      "status": "code-present-only"
+    },
+    {
+      "role": "standardTokenTemplate",
+      "address": "0x88882688a067FE97E11C2185b996286e53132222",
+      "blockNumber": "79253769",
+      "blockHash": "0xaf3adac9077c36ba3bf844c09bbe6c0d431ba89162e843d348220ff148ca25c6",
+      "codeBytes": 10243,
+      "codeHash": "0x40c79e4f08bc0f8da02b1314b2a7987111b6898adcdcef691579dda6f2fcabf2",
+      "codeHashAlgorithm": "keccak256",
+      "responseSha256": "0xd0c99bb939c2ad52767ad14533ea6e0d0be97815d651ec16877e5608fda351e5",
+      "status": "code-present-only"
+    },
+    {
+      "role": "taxTokenV3Template",
+      "address": "0x7777C8743C88B3aff3cf262135beF2c8b2e83333",
+      "blockNumber": "79253769",
+      "blockHash": "0xaf3adac9077c36ba3bf844c09bbe6c0d431ba89162e843d348220ff148ca25c6",
+      "codeBytes": 19020,
+      "codeHash": "0xa73abf611d52de6364ec684feed2ef3e9aec9706a02b808523e75a6d8438b164",
+      "codeHashAlgorithm": "keccak256",
+      "responseSha256": "0xc2bc5ed35043f95a265a295661035052e4aa930401daee11122df4de775c83b3",
+      "status": "code-present-only"
+    },
+    {
+      "role": "vaultPortalProxy",
+      "address": "0xe9F7AB7DE8FB8756acbB6a1cd13316a43308197B",
+      "blockNumber": "79253769",
+      "blockHash": "0xaf3adac9077c36ba3bf844c09bbe6c0d431ba89162e843d348220ff148ca25c6",
+      "codeBytes": 2840,
+      "codeHash": "0xe7109718479fd7c6d05b829ffc6a1469e4c949ae282497c15d179b2af4e5e3a9",
+      "codeHashAlgorithm": "keccak256",
+      "responseSha256": "0x0e0631f93041cf05cb0cd0f11d40eff17f174bc37d859783d2686e6fb08f2459",
+      "status": "code-present-only"
+    }
+  ],
+  "observations": [
+    {
+      "documentedEvent": "TokenBought",
+      "topic": "0xa800a2038683844fac66747f771bfdfae862eb28b16bcfa387afa9fbacce8ff7",
+      "observedCount": 57,
+      "sample": {
+        "blockNumber": "79243838",
+        "blockHash": "0xc674c0b8fc68116e9977b5087eff07e659330d0f8196224c1b5b02445d2b0a3e",
+        "txHash": "0x6a7cedd524a52f84f6831fc2f397d8b85a135da4521e3511b911931646aee7b7",
+        "logIndex": "28",
+        "topicCount": 1,
+        "dataBytes": 224,
+        "dataSha256": "0xdb4b2698526efe3c0452bf1eddd13748f81c3dd341870c2df2d94112142c5e48"
+      },
+      "status": "topic-and-layout-corroborated-only"
+    },
+    {
+      "documentedEvent": "TokenSold",
+      "topic": "0x03a4693e592f5e75dc7c136acb39b146d2b4966c0e509c34f362dee02b3b861a",
+      "observedCount": 7,
+      "sample": {
+        "blockNumber": "79245857",
+        "blockHash": "0xb7334941c7176672494e8cf1467f74347a7a03d5a8202caa5b339e7db1b23ad0",
+        "txHash": "0xcb133d1cebfaee68ec6c1883ab2f0045d910edbff0a2855bbac0370eb3ea65d1",
+        "logIndex": "53",
+        "topicCount": 1,
+        "dataBytes": 224,
+        "dataSha256": "0xad6da6c8ca15daadd76b4a7a862e484e45ca09afead92bee57425b46b2cf5af0"
+      },
+      "status": "topic-and-layout-corroborated-only"
+    },
+    {
+      "documentedEvent": "LaunchedToDEX",
+      "topic": "0x6e4f47630b8745b8cacbd44f42a8a33e7eea7cc08ef22fc7630f4f385784ff7d",
+      "observedCount": 1,
+      "sample": {
+        "blockNumber": "79244911",
+        "blockHash": "0x50bdff41aec5bc458d28b404fad26889ca3e1fe284c967fd2d33b24b43897ff4",
+        "txHash": "0x494b52fafd02ecc31e179fcf8f07dec3c3180aeb760c1cabdf22bdca980b053d",
+        "logIndex": "36",
+        "topicCount": 1,
+        "dataBytes": 128,
+        "dataSha256": "0xe03320ed8732db40f3b95b80ffb35b3df5e806c2b44702f5be816ad196f6d09a"
+      },
+      "status": "topic-and-layout-corroborated-only"
+    }
+  ],
+  "limitations": [
+    "No verified Portal implementation ABI acquired: explorer returned HTTP 403 Cloudflare challenge.",
+    "TokenCreated docs omit ABI types and indexed flags. No launch selector inferred.",
+    "Documented proxies: implementation identity and ABI-to-runtime binding remain unverified.",
+    "Template code presence does not establish reviewed control or custody behavior.",
+    "One 10000-block Portal window only; no history completeness or canonical receipt replay.",
+    "Trade/migration topic corroboration is retained as evidence, not enabled decoders.",
+    "Only response digests and neutral summaries retained; token text, participant identities and raw third-party source content are not copied."
+  ]
+}
