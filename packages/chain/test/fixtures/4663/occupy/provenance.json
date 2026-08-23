@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "venue": "occupy",
+  "requestedChainId": 4663,
+  "capturedDate": "2026-10-03",
+  "status": "unsupported",
+  "liveEvidence": { "chainIdVerified": false, "blockNumber": null, "blockHash": null, "transactionHashes": [], "codeHashes": [], "abi": null, "logs": [] },
+  "requests": { "rpc": 1, "web": 4, "rpcLimit": 300, "webLimit": 60, "paidCost": 0, "logRanges": [] },
+  "sources": [
+    { "url": "https://rpc.mainnet.chain.robinhood.com", "method": "eth_chainId", "params": [], "transport": "urllib", "result": "HTTP 403 Forbidden", "blockNumber": null, "transactionHash": null, "codeHash": null },
+    { "url": "https://robinhoodchain.blockscout.com", "method": "GET", "transport": "urllib", "result": "HTTP 403 Forbidden", "blockNumber": null, "transactionHash": null, "codeHash": null },
+    { "url": "https://robinhoodchain.blockscout.com/api/v2/search?q=Occupy", "method": "GET", "transport": "urllib", "result": "HTTP 403 Forbidden", "blockNumber": null, "transactionHash": null, "codeHash": null },
+    { "url": "https://robinhoodchain.blockscout.com", "method": "GET", "transport": "web.open", "result": "Explorer title only; zero content lines, no address or verified source", "blockNumber": null, "transactionHash": null, "codeHash": null },
+    { "url": "https://robinhoodchain.blockscout.com/api/v2/search?q=Occupy", "method": "GET", "transport": "web.open", "result": "URL inaccessible via tool", "blockNumber": null, "transactionHash": null, "codeHash": null }
+  ],
+  "localSources": [
+    { "path": "docs/tasks/130-occupy-adapter.md", "use": "Unsupported fallback and evidence requirements" },
+    { "path": "docs/eko/04-BACKEND.md", "sections": ["4.3", "4.4", "4.5", "4.6"], "use": "Phase B and interface; abbreviated hints are not deployed-address evidence" },
+    { "path": "docs/eko/01-OVERVIEW.md", "sections": ["06"], "use": "Required T venue coverage" },
+    { "path": "packages/chain/addresses.4663.yaml", "use": "Both virtuals entries remain TODO" }
+  ],
+  "fixtureEvidence": { "origin": "synthetic", "files": ["packages/chain/test/occupy.test.ts", "apps/engines/test/occupy-partial.test.ts"], "use": "Unavailable decoder and partial-card replay/reorg behavior only; no Occupy ABI or deployed venue validation", "blockNumber": null, "transactionHash": null, "codeHash": null },
+  "limitations": ["No official Occupy documentation URL established by the allowed sources", "No full factory/template/quote address verified", "No ABI, canonical transaction or block pin acquired", "Absence of verification remains an unresolved T ingestion gap"]
+}
