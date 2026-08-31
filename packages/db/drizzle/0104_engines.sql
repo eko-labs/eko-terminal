@@ -1,0 +1,15 @@
+CREATE TABLE engine_cursors (stream text PRIMARY KEY, block bigint NOT NULL, hash bytea);
+CREATE TABLE engine_schedule (coin bytea PRIMARY KEY, last_block bigint NOT NULL, last_sec bigint NOT NULL, price double precision);
+CREATE TABLE engine_runs (coin bytea NOT NULL, block bigint NOT NULL, sec bigint NOT NULL, price double precision, signal jsonb, PRIMARY KEY(coin,block));
+CREATE TABLE engine_reads (coin bytea NOT NULL, block bigint NOT NULL, block_hash bytea NOT NULL, profile jsonb, PRIMARY KEY(coin,block));
+CREATE TABLE code_templates (codehash text PRIMARY KEY, template text NOT NULL, profile jsonb NOT NULL, first_block bigint NOT NULL);
+CREATE TABLE owner_powers (coin bytea NOT NULL, valid_from_block bigint NOT NULL, data jsonb NOT NULL, PRIMARY KEY(coin,valid_from_block));
+CREATE TABLE playbook_matches (coin bytea NOT NULL, valid_from_block bigint NOT NULL, rules_version text NOT NULL, playbook_id text NOT NULL, data jsonb NOT NULL, PRIMARY KEY(coin,valid_from_block,rules_version,playbook_id));
+CREATE TABLE verdicts (id text PRIMARY KEY, coin bytea NOT NULL, valid_from_block bigint NOT NULL, rules_version text NOT NULL, signature text NOT NULL, data jsonb NOT NULL, UNIQUE(coin,valid_from_block,rules_version));
+CREATE INDEX verdicts_coin_block ON verdicts(coin,valid_from_block DESC);
+CREATE TABLE verdict_events (id text PRIMARY KEY, verdict_id text NOT NULL REFERENCES verdicts(id), kind text NOT NULL CHECK(kind IN ('created','superseded','corrected','orphaned')), block bigint NOT NULL, data jsonb NOT NULL);
+CREATE TABLE outcomes (coin bytea NOT NULL, horizon text NOT NULL CHECK(horizon IN ('1h','24h','7d')), valid_from_block bigint NOT NULL, outcome text NOT NULL CHECK(outcome IN ('rugged','honeypot','dumped','survived')), data jsonb NOT NULL, PRIMARY KEY(coin,horizon));
+CREATE TABLE deployer_stats (deployer bytea NOT NULL, coin bytea NOT NULL, valid_from_block bigint NOT NULL, data jsonb NOT NULL, PRIMARY KEY(deployer,coin,valid_from_block));
+CREATE TABLE coin_cards (id text PRIMARY KEY, coin bytea NOT NULL, valid_from_block bigint NOT NULL, hash text NOT NULL, data jsonb NOT NULL, UNIQUE(coin,valid_from_block));
+CREATE INDEX coin_cards_coin_block ON coin_cards(coin,valid_from_block DESC);
+CREATE TABLE coin_card_latest (coin bytea PRIMARY KEY, card_id text NOT NULL REFERENCES coin_cards(id), as_of_block bigint NOT NULL, data jsonb NOT NULL);
