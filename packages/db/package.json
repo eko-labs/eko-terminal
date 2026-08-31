@@ -1,0 +1,7 @@
+{
+  "name": "@eko/db", "version": "0.1.0", "private": true, "type": "module",
+  "main": "./src/index.ts", "types": "./src/index.ts", "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc -p tsconfig.json", "test": "vitest run --passWithNoTests --testTimeout=30000 --hookTimeout=30000", "raw-history:seal": "node --env-file-if-exists=.env --import tsx ../../apps/server/src/db/raw-history-repartition-seal-cli.ts", "migrate": "node --env-file-if-exists=.env --import tsx src/migrate-cli.ts" },
+  "dependencies": { "@eko/shared": "workspace:*", "@eko/untrusted": "workspace:*", "@eko/policy": "workspace:*", "viem": "2.56.9", "@electric-sql/pglite": "^0.5.8", "drizzle-orm": "^0.45.3", "pg": "^8.23.0" },
+  "devDependencies": { "@types/node": "^26.6.3", "@types/pg": "^8.23.1", "tsx": "^4.23.15" }
+}
