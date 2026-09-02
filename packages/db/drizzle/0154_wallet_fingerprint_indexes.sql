@@ -1,0 +1,3 @@
+CREATE INDEX wallet_protocol_coverage_tx_block ON wallet_protocol_coverage(chain_id,tx_hash,block);
+CREATE INDEX wallet_label_fingerprint_dependencies_run ON wallet_label_fingerprint_dependencies(run_id);
+CREATE INDEX wallet_fingerprint_dependencies_block ON wallet_fingerprint_dependencies(block,block_hash);
