@@ -1,0 +1,4 @@
+[aderyn]
+root = "."
+src = "src"
+include = ["ReceiptsRegistry.sol"]
