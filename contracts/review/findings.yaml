@@ -1,0 +1,32 @@
+# §14.0 findings schema. reviewer uses an anonymous role, never a personal identifier.
+# Required fields: id, reviewer, severity (Critical|High|Medium|Low|Info), location,
+# title, status (open|fixed|accepted|invalid), fix_commit, recheck.
+# Accepted/invalid findings require a reason; fixed findings require a commit and fresh recheck.
+findings:
+  - id: RR-001
+    reviewer: implementation-review
+    severity: Low
+    location: src/ReceiptsRegistry.sol::constructor,setCommitter
+    title: Zero committer disables commits until the owner rotates again
+    status: open
+    fix_commit: null
+    recheck: null
+    reason: The exact §14.2 contract permits zero; the deploy script rejects it. Review operational rotation procedures.
+  - id: RR-002
+    reviewer: implementation-review
+    severity: Low
+    location: src/ReceiptsRegistry.sol::inherited renounceOwnership
+    title: Renouncing ownership permanently removes committer rotation
+    status: open
+    fix_commit: null
+    recheck: null
+    reason: Preserved from Ownable2Step as required by §14.2. The owner also has ownership transfer powers despite the rotation-only NatSpec.
+  - id: RR-003
+    reviewer: implementation-review
+    severity: Info
+    location: src/ReceiptsRegistry.sol::commit,verify
+    title: Verification proves membership only and does not validate batch metadata or authenticity
+    status: open
+    fix_commit: null
+    recheck: null
+    reason: leafCount is declared by the committer. Per §13 consumers must bind proofs to their item's batchId and txHash; leaked-key junk roots remain verifiable.
