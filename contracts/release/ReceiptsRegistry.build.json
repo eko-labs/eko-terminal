@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "contract": "src/ReceiptsRegistry.sol:ReceiptsRegistry",
+  "compiler": "0.8.26+commit.8a97fa7a",
+  "settings": {
+    "optimizer": {
+      "enabled": true,
+      "runs": 10000
+    },
+    "viaIR": false,
+    "evmVersion": "cancun",
+    "metadata": {
+      "bytecodeHash": "ipfs",
+      "appendCBOR": true
+    },
+    "libraries": {},
+    "remappings": [
+      ":@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+      ":forge-std/=lib/forge-std/src/"
+    ]
+  },
+  "creationCodeHash": "0xb1e3dbfae90858ce41ca7d38fc90895d299804a52ad132cbde02e7d4e3210bcd",
+  "runtimeCodeHash": "0xf8808eb567bdd8ccb7e9496bda143440e32d5636dd687700e2807ee429fb1fd9",
+  "immutableReferences": {},
+  "constructor": {
+    "arguments": [
+      "address owner_",
+      "address committer_"
+    ],
+    "creationCodeHash": "Hashes creation bytecode only. Deployment init code appends ABI-encoded constructor arguments and has a different hash.",
+    "runtimeCodeHash": "No immutables or linked libraries. Constructor arguments set storage only; runtime code hash is independent of owner and committer."
+  }
+}
