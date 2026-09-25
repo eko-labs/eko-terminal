@@ -1,0 +1,270 @@
+{
+  "version": 1,
+  "chainId": 4663,
+  "origin": "fixture",
+  "capturedAt": "2026-10-02T00:00:00.000Z",
+  "plan": {
+    "version": 1,
+    "chainId": 4663,
+    "candidateRevision": "33e65459bce4dee430912eaf7657f5a31516b20e",
+    "head": {
+      "block": "90",
+      "hash": "0x000000000000000000000000000000000000000000000000000000000000005a",
+      "timestamp": "2026-10-01T00:00:00.000Z"
+    },
+    "recent": {
+      "block": "60",
+      "hash": "0x000000000000000000000000000000000000000000000000000000000000003c",
+      "timestamp": "2026-09-01T00:00:00.000Z",
+      "previous": {
+        "block": "59",
+        "hash": "0x000000000000000000000000000000000000000000000000000000000000003b",
+        "timestamp": "2026-08-31T23:59:59.000Z"
+      }
+    },
+    "sevenDay": {
+      "block": "83",
+      "hash": "0x0000000000000000000000000000000000000000000000000000000000000053",
+      "timestamp": "2026-09-24T00:00:00.000Z",
+      "previous": {
+        "block": "82",
+        "hash": "0x0000000000000000000000000000000000000000000000000000000000000052",
+        "timestamp": "2026-09-23T23:59:59.000Z"
+      }
+    },
+    "phaseC": "sevenDayCandidates",
+    "streams": {
+      "ponsFactory": "logs:pons_factory",
+      "ponsCurves": "logs:pons_curves",
+      "identityRegistry": "logs:identity_registry",
+      "pools": "logs:pools",
+      "swaps": "logs:pair_swaps:fixture-set",
+      "holders": "logs:holders:fixture-set",
+      "occupy": "logs:occupy",
+      "flap": "logs:flap",
+      "klik": "logs:klik",
+      "weth": "logs:weth",
+      "entryPoints": "logs:entry_points",
+      "fullBlocks": "blocks:full",
+      "candidateFunding": "funders:fixture-candidates"
+    },
+    "tokens": [
+      "0x1111111111111111111111111111111111111111"
+    ],
+    "maxRows": 10000
+  },
+  "ranges": [
+    {
+      "stream": "logs:pons_factory",
+      "from": "0",
+      "to": "90",
+      "status": "done",
+      "leaseOwner": null,
+      "leaseUntil": null,
+      "attempts": 1
+    },
+    {
+      "stream": "logs:pons_curves",
+      "from": "0",
+      "to": "90",
+      "status": "done",
+      "leaseOwner": null,
+      "leaseUntil": null,
+      "attempts": 1
+    },
+    {
+      "stream": "logs:identity_registry",
+      "from": "0",
+      "to": "90",
+      "status": "done",
+      "leaseOwner": null,
+      "leaseUntil": null,
+      "attempts": 1
+    },
+    {
+      "stream": "logs:pools",
+      "from": "60",
+      "to": "90",
+      "status": "done",
+      "leaseOwner": null,
+      "leaseUntil": null,
+      "attempts": 1
+    },
+    {
+      "stream": "logs:pair_swaps:fixture-set",
+      "from": "60",
+      "to": "90",
+      "status": "done",
+      "leaseOwner": null,
+      "leaseUntil": null,
+      "attempts": 1
+    },
+    {
+      "stream": "logs:holders:fixture-set",
+      "from": "0",
+      "to": "90",
+      "status": "done",
+      "leaseOwner": null,
+      "leaseUntil": null,
+      "attempts": 1
+    },
+    {
+      "stream": "logs:occupy",
+      "from": "60",
+      "to": "90",
+      "status": "done",
+      "leaseOwner": null,
+      "leaseUntil": null,
+      "attempts": 1
+    },
+    {
+      "stream": "logs:flap",
+      "from": "60",
+      "to": "90",
+      "status": "done",
+      "leaseOwner": null,
+      "leaseUntil": null,
+      "attempts": 1
+    },
+    {
+      "stream": "logs:klik",
+      "from": "60",
+      "to": "90",
+      "status": "done",
+      "leaseOwner": null,
+      "leaseUntil": null,
+      "attempts": 1
+    },
+    {
+      "stream": "logs:weth",
+      "from": "60",
+      "to": "90",
+      "status": "done",
+      "leaseOwner": null,
+      "leaseUntil": null,
+      "attempts": 1
+    },
+    {
+      "stream": "logs:entry_points",
+      "from": "60",
+      "to": "90",
+      "status": "done",
+      "leaseOwner": null,
+      "leaseUntil": null,
+      "attempts": 1
+    },
+    {
+      "stream": "blocks:full",
+      "from": "83",
+      "to": "90",
+      "status": "done",
+      "leaseOwner": null,
+      "leaseUntil": null,
+      "attempts": 1
+    },
+    {
+      "stream": "funders:fixture-candidates",
+      "from": "83",
+      "to": "90",
+      "status": "done",
+      "leaseOwner": null,
+      "leaseUntil": null,
+      "attempts": 1
+    }
+  ],
+  "checkpoints": [
+    {
+      "stream": "head",
+      "block": "90",
+      "hash": "0x000000000000000000000000000000000000000000000000000000000000005a",
+      "canonicalHash": "0x000000000000000000000000000000000000000000000000000000000000005a"
+    }
+  ],
+  "headers": [
+    {
+      "block": "90",
+      "hash": "0x000000000000000000000000000000000000000000000000000000000000005a",
+      "timestamp": "2026-10-01T00:00:00.000Z"
+    },
+    {
+      "block": "60",
+      "hash": "0x000000000000000000000000000000000000000000000000000000000000003c",
+      "timestamp": "2026-09-01T00:00:00.000Z"
+    },
+    {
+      "block": "59",
+      "hash": "0x000000000000000000000000000000000000000000000000000000000000003b",
+      "timestamp": "2026-08-31T23:59:59.000Z"
+    },
+    {
+      "block": "83",
+      "hash": "0x0000000000000000000000000000000000000000000000000000000000000053",
+      "timestamp": "2026-09-24T00:00:00.000Z"
+    },
+    {
+      "block": "82",
+      "hash": "0x0000000000000000000000000000000000000000000000000000000000000052",
+      "timestamp": "2026-09-23T23:59:59.000Z"
+    }
+  ],
+  "inventories": [
+    {
+      "table": "pons_events",
+      "rows": "1",
+      "duplicates": "0"
+    },
+    {
+      "table": "pools",
+      "rows": "1",
+      "duplicates": "0"
+    },
+    {
+      "table": "swaps",
+      "rows": "1",
+      "duplicates": "0"
+    },
+    {
+      "table": "token_transfers",
+      "rows": "1",
+      "duplicates": "0"
+    },
+    {
+      "table": "balances",
+      "rows": "1",
+      "duplicates": "0"
+    },
+    {
+      "table": "bars_1m",
+      "rows": "1",
+      "duplicates": "0"
+    }
+  ],
+  "supplies": [
+    {
+      "token": "0x1111111111111111111111111111111111111111",
+      "firstBlock": "0",
+      "to": "90",
+      "minted": "1000000000000000000000000000001",
+      "burned": "1",
+      "held": "1000000000000000000000000000000",
+      "negativeHolders": "0",
+      "mismatchedHolders": "0",
+      "totalSupply": "1000000000000000000000000000000",
+      "supplyBlock": "90",
+      "transferRows": "3"
+    }
+  ],
+  "candles": {
+    "expected": "1",
+    "actual": "1",
+    "mismatches": "0",
+    "unpricedSwaps": "0"
+  },
+  "follower": null,
+  "cost": {
+    "paidUnits": 0,
+    "costUsd": 0
+  },
+  "checkpoint": "fixture-086-v1",
+  "guardSources": []
+}
