@@ -1,0 +1,7 @@
+{
+  "name": "@eko/engines", "version": "0.1.0", "private": true, "type": "module",
+  "scripts": { "typecheck": "tsc -p tsconfig.json", "test": "vitest run --testTimeout=30000 --hookTimeout=30000", "start": "node --env-file-if-exists=.env --import tsx src/cli.ts" },
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": { "@eko/db": "workspace:*", "@eko/chain": "workspace:*", "@eko/shared": "workspace:*", "@eko/playbooks": "workspace:*", "@eko/signal": "workspace:*", "@eko/untrusted": "workspace:*", "@eko/policy": "workspace:*", "viem": "2.56.9", "zod": "^4.6.5" },
+  "devDependencies": { "@types/node": "^26.6.3", "tsx": "^4.23.15" }
+}
