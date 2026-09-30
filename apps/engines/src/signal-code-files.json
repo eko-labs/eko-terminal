@@ -1,0 +1,12 @@
+[
+  "packages/signal/src/index.ts",
+  "packages/signal/src/types.ts",
+  "packages/signal/src/readings.ts",
+  "packages/signal/src/v2.ts",
+  "apps/engines/src/signal-v2.ts",
+  "packages/shared/src/contracts/coin.ts",
+  "packages/shared/src/contracts/guard-v2.ts",
+  "packages/shared/src/contracts/guard-ids.ts",
+  "packages/shared/src/contracts/guard-storage.ts",
+  "apps/engines/src/signal-code-files.json"
+]
