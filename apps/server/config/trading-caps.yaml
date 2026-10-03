@@ -1,0 +1,7 @@
+# BACKEND §12.4. Config release only: hold $250 until clean 72-hour evidence is accepted.
+beta:
+  defaultCapUsd: { team: 25, beta_user: 100 }
+public:
+  - { afterHours: 0, perTradeUsd: 250 }
+# Release action after zero honeypot fills and no Sev 1: add the 72-hour $1,000 step.
+dailyPerWalletUsd: null
