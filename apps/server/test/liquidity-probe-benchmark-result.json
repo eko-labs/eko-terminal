@@ -1,0 +1,916 @@
+{
+  "runtime": "PGlite (offline, one process, warm medians of three EXPLAIN ANALYZE runs)",
+  "coins": 30000,
+  "pools": 75000,
+  "swaps": 175000,
+  "engineRuns": 60000,
+  "keys": 100,
+  "defaultStatements": [
+    100,
+    100
+  ],
+  "liquidity": {
+    "before": {
+      "medianMs": 123.568,
+      "samplesMs": [
+        127.43,
+        123.568,
+        121.054
+      ],
+      "nodes": [
+        {
+          "node": "Nested Loop",
+          "rows": 100,
+          "loops": 1
+        },
+        {
+          "node": "Function Scan",
+          "rows": 100,
+          "loops": 1
+        },
+        {
+          "node": "Subquery Scan",
+          "rows": 1,
+          "loops": 100
+        },
+        {
+          "node": "Limit",
+          "rows": 1,
+          "loops": 100
+        },
+        {
+          "node": "Subquery Scan",
+          "rows": 1,
+          "loops": 100,
+          "removed": 600
+        },
+        {
+          "node": "Sort",
+          "rows": 601.4,
+          "loops": 100
+        },
+        {
+          "node": "Append",
+          "rows": 1003,
+          "loops": 100
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_10",
+          "rows": 0,
+          "loops": 100,
+          "removed": 0
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_11",
+          "rows": 0,
+          "loops": 100,
+          "removed": 0
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_12",
+          "rows": 0,
+          "loops": 100,
+          "removed": 0
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_13",
+          "rows": 0,
+          "loops": 100,
+          "removed": 0
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_14",
+          "rows": 0,
+          "loops": 100,
+          "removed": 0
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_15",
+          "rows": 0,
+          "loops": 100,
+          "removed": 0
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_16",
+          "rows": 0,
+          "loops": 100,
+          "removed": 0
+        },
+        {
+          "node": "Index Only Scan",
+          "relation": "swaps_d2026_10_17",
+          "index": "swaps_d2026_10_17_coin_block_log_index_tx_hash_pool_id_amou_idx",
+          "condition": "(coin = decode(SUBSTRING((k.value ->> 'coin'::text) FROM 3), 'hex'::text))",
+          "rows": 1003,
+          "loops": 100
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_18",
+          "rows": 0,
+          "loops": 100,
+          "removed": 0
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_19",
+          "rows": 0,
+          "loops": 100,
+          "removed": 0
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_20",
+          "rows": 0,
+          "loops": 100,
+          "removed": 0
+        }
+      ]
+    },
+    "after": {
+      "medianMs": 1.174,
+      "samplesMs": [
+        1.174,
+        1.193,
+        1.136
+      ],
+      "nodes": [
+        {
+          "node": "Nested Loop",
+          "rows": 100,
+          "loops": 1
+        },
+        {
+          "node": "Nested Loop",
+          "rows": 100,
+          "loops": 1
+        },
+        {
+          "node": "Nested Loop",
+          "rows": 100,
+          "loops": 1
+        },
+        {
+          "node": "Function Scan",
+          "rows": 100,
+          "loops": 1
+        },
+        {
+          "node": "Index Scan",
+          "relation": "coin_pool_prices",
+          "index": "coin_pool_prices_pkey",
+          "condition": "((coin = decode(SUBSTRING((k.value ->> 'coin'::text) FROM 3), 'hex'::text)) AND (pool_id = COALESCE(decode(SUBSTRING((k.value ->> 'pool'::text) FROM 3), 'hex'::text), '\\x'::bytea)))",
+          "rows": 1,
+          "loops": 100,
+          "removed": 0
+        },
+        {
+          "node": "Limit",
+          "rows": 0,
+          "loops": 100
+        },
+        {
+          "node": "Subquery Scan",
+          "rows": 0,
+          "loops": 100,
+          "removed": 0
+        },
+        {
+          "node": "Limit",
+          "rows": 0,
+          "loops": 100
+        },
+        {
+          "node": "Sort",
+          "rows": 0,
+          "loops": 100
+        },
+        {
+          "node": "Append",
+          "rows": 0,
+          "loops": 100
+        },
+        {
+          "node": "Result",
+          "rows": 0,
+          "loops": 100
+        },
+        {
+          "node": "Result",
+          "rows": 0,
+          "loops": 100
+        },
+        {
+          "node": "Result",
+          "rows": 0,
+          "loops": 100
+        },
+        {
+          "node": "Result",
+          "rows": 0,
+          "loops": 100
+        },
+        {
+          "node": "Result",
+          "rows": 0,
+          "loops": 100
+        },
+        {
+          "node": "Result",
+          "rows": 0,
+          "loops": 100
+        },
+        {
+          "node": "Result",
+          "rows": 0,
+          "loops": 100
+        },
+        {
+          "node": "Result",
+          "rows": 0,
+          "loops": 100
+        },
+        {
+          "node": "Result",
+          "rows": 0,
+          "loops": 100
+        },
+        {
+          "node": "Result",
+          "rows": 0,
+          "loops": 100
+        },
+        {
+          "node": "Result",
+          "rows": 0,
+          "loops": 100
+        },
+        {
+          "node": "Result",
+          "rows": 1,
+          "loops": 100
+        }
+      ]
+    },
+    "coldFallback": {
+      "medianMs": 1.431,
+      "samplesMs": [
+        1.289,
+        1.451,
+        1.431
+      ],
+      "nodes": [
+        {
+          "node": "Nested Loop",
+          "rows": 1,
+          "loops": 1
+        },
+        {
+          "node": "Nested Loop",
+          "rows": 1,
+          "loops": 1
+        },
+        {
+          "node": "Nested Loop",
+          "rows": 1,
+          "loops": 1
+        },
+        {
+          "node": "Function Scan",
+          "rows": 1,
+          "loops": 1
+        },
+        {
+          "node": "Index Scan",
+          "relation": "coin_pool_prices",
+          "index": "coin_pool_prices_pkey",
+          "condition": "((coin = decode(SUBSTRING((k.value ->> 'coin'::text) FROM 3), 'hex'::text)) AND (pool_id = COALESCE(decode(SUBSTRING((k.value ->> 'pool'::text) FROM 3), 'hex'::text), '\\x'::bytea)))",
+          "rows": 0,
+          "loops": 1,
+          "removed": 0
+        },
+        {
+          "node": "Limit",
+          "rows": 0,
+          "loops": 1
+        },
+        {
+          "node": "Subquery Scan",
+          "rows": 0,
+          "loops": 1,
+          "removed": 200
+        },
+        {
+          "node": "Limit",
+          "rows": 200,
+          "loops": 1
+        },
+        {
+          "node": "Sort",
+          "rows": 200,
+          "loops": 1
+        },
+        {
+          "node": "Append",
+          "rows": 1002,
+          "loops": 1
+        },
+        {
+          "node": "Result",
+          "rows": 0,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_10",
+          "rows": 0,
+          "loops": 1,
+          "removed": 0
+        },
+        {
+          "node": "Result",
+          "rows": 0,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_11",
+          "rows": 0,
+          "loops": 1,
+          "removed": 0
+        },
+        {
+          "node": "Result",
+          "rows": 0,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_12",
+          "rows": 0,
+          "loops": 1,
+          "removed": 0
+        },
+        {
+          "node": "Result",
+          "rows": 0,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_13",
+          "rows": 0,
+          "loops": 1,
+          "removed": 0
+        },
+        {
+          "node": "Result",
+          "rows": 0,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_14",
+          "rows": 0,
+          "loops": 1,
+          "removed": 0
+        },
+        {
+          "node": "Result",
+          "rows": 0,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_15",
+          "rows": 0,
+          "loops": 1,
+          "removed": 0
+        },
+        {
+          "node": "Result",
+          "rows": 0,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_16",
+          "rows": 0,
+          "loops": 1,
+          "removed": 0
+        },
+        {
+          "node": "Result",
+          "rows": 1002,
+          "loops": 1
+        },
+        {
+          "node": "Index Only Scan",
+          "relation": "swaps_d2026_10_17",
+          "index": "swaps_d2026_10_17_coin_block_log_index_tx_hash_pool_id_amou_idx",
+          "condition": "(coin = decode(SUBSTRING((k.value ->> 'coin'::text) FROM 3), 'hex'::text))",
+          "rows": 1002,
+          "loops": 1
+        },
+        {
+          "node": "Result",
+          "rows": 0,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_18",
+          "rows": 0,
+          "loops": 1,
+          "removed": 0
+        },
+        {
+          "node": "Result",
+          "rows": 0,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_19",
+          "rows": 0,
+          "loops": 1,
+          "removed": 0
+        },
+        {
+          "node": "Result",
+          "rows": 0,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_20",
+          "rows": 0,
+          "loops": 1,
+          "removed": 0
+        },
+        {
+          "node": "Result",
+          "rows": 1,
+          "loops": 1
+        }
+      ]
+    }
+  },
+  "header": {
+    "before": {
+      "medianMs": 97.869,
+      "samplesMs": [
+        97.709,
+        97.869,
+        101.68
+      ],
+      "nodes": [
+        {
+          "node": "Aggregate",
+          "rows": 1,
+          "loops": 1
+        },
+        {
+          "node": "Hash Join",
+          "rows": 30000,
+          "loops": 1
+        },
+        {
+          "node": "Hash Join",
+          "rows": 30000,
+          "loops": 1
+        },
+        {
+          "node": "Hash Join",
+          "rows": 30000,
+          "loops": 1,
+          "removed": 0
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "tokens",
+          "rows": 30000,
+          "loops": 1
+        },
+        {
+          "node": "Hash",
+          "rows": 24000,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "read_coins",
+          "rows": 24000,
+          "loops": 1
+        },
+        {
+          "node": "Append",
+          "rows": 1,
+          "loops": 6000
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_10",
+          "rows": 0,
+          "loops": 6000,
+          "removed": 0
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_11",
+          "rows": 0,
+          "loops": 6000,
+          "removed": 0
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_12",
+          "rows": 0,
+          "loops": 6000,
+          "removed": 0
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_13",
+          "rows": 0,
+          "loops": 6000,
+          "removed": 0
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_14",
+          "rows": 0,
+          "loops": 6000,
+          "removed": 0
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_15",
+          "rows": 0,
+          "loops": 6000,
+          "removed": 0
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "swaps_d2026_10_16",
+          "rows": 0,
+          "loops": 6000,
+          "removed": 0
+        },
+        {
+          "node": "Index Only Scan",
+          "relation": "swaps_d2026_10_17",
+          "index": "swaps_d2026_10_17_coin_block_log_index_tx_hash_ts_idx",
+          "condition": "((coin = t.address) AND (ts > '2026-10-10 07:00:00-05'::timestamp with time zone))",
+          "rows": 1,
+          "loops": 6000
+        },
+        {
+          "node": "Hash",
+          "rows": 20000,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "coin_card_latest",
+          "rows": 20000,
+          "loops": 1
+        },
+        {
+          "node": "Hash",
+          "rows": 24000,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "read_coins",
+          "rows": 24000,
+          "loops": 1
+        }
+      ]
+    },
+    "after": {
+      "medianMs": 46.707,
+      "samplesMs": [
+        45.662,
+        46.707,
+        46.901
+      ],
+      "nodes": [
+        {
+          "node": "Aggregate",
+          "rows": 1,
+          "loops": 1
+        },
+        {
+          "node": "Append",
+          "rows": 28000,
+          "loops": 1
+        },
+        {
+          "node": "Subquery Scan",
+          "rows": 24000,
+          "loops": 1
+        },
+        {
+          "node": "Hash Join",
+          "rows": 24000,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "read_coins",
+          "rows": 24000,
+          "loops": 1,
+          "removed": 0
+        },
+        {
+          "node": "Hash",
+          "rows": 20000,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "coin_card_latest",
+          "rows": 20000,
+          "loops": 1
+        },
+        {
+          "node": "Hash Join",
+          "rows": 4000,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "coin_card_latest",
+          "rows": 20000,
+          "loops": 1
+        },
+        {
+          "node": "Hash",
+          "rows": 24000,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "read_coins",
+          "rows": 24000,
+          "loops": 1
+        }
+      ]
+    },
+    "today": {
+      "medianMs": 89.364,
+      "samplesMs": [
+        89.364,
+        89.429,
+        86.006
+      ],
+      "nodes": [
+        {
+          "node": "Aggregate",
+          "rows": 1,
+          "loops": 1
+        },
+        {
+          "node": "Merge Join",
+          "rows": 30500,
+          "loops": 1
+        },
+        {
+          "node": "Sort",
+          "rows": 28000,
+          "loops": 1
+        },
+        {
+          "node": "Append",
+          "rows": 28000,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "read_coins",
+          "rows": 24000,
+          "loops": 1,
+          "removed": 0
+        },
+        {
+          "node": "Hash Join",
+          "rows": 4000,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "coin_card_latest",
+          "rows": 20000,
+          "loops": 1
+        },
+        {
+          "node": "Hash",
+          "rows": 24000,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "read_coins",
+          "rows": 24000,
+          "loops": 1
+        },
+        {
+          "node": "Sort",
+          "rows": 32499,
+          "loops": 1
+        },
+        {
+          "node": "Append",
+          "rows": 32500,
+          "loops": 1
+        },
+        {
+          "node": "Subquery Scan",
+          "rows": 32500,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "engine_runs",
+          "rows": 32500,
+          "loops": 1,
+          "removed": 27500
+        },
+        {
+          "node": "Subquery Scan",
+          "rows": 0,
+          "loops": 1
+        },
+        {
+          "node": "Index Only Scan",
+          "relation": "engine_runs",
+          "index": "engine_runs_legacy_sec_coin",
+          "rows": 0,
+          "loops": 1,
+          "removed": 0
+        }
+      ]
+    },
+    "hours": {
+      "medianMs": 151.428,
+      "samplesMs": [
+        149.357,
+        151.428,
+        154.012
+      ],
+      "nodes": [
+        {
+          "node": "Sort",
+          "rows": 24,
+          "loops": 1
+        },
+        {
+          "node": "Nested Loop",
+          "rows": 24,
+          "loops": 1
+        },
+        {
+          "node": "Nested Loop",
+          "rows": 24,
+          "loops": 1
+        },
+        {
+          "node": "Function Scan",
+          "rows": 24,
+          "loops": 1
+        },
+        {
+          "node": "Aggregate",
+          "rows": 1,
+          "loops": 24
+        },
+        {
+          "node": "Sort",
+          "rows": 2000,
+          "loops": 24
+        },
+        {
+          "node": "Hash Join",
+          "rows": 2000,
+          "loops": 24
+        },
+        {
+          "node": "Append",
+          "rows": 2500,
+          "loops": 24
+        },
+        {
+          "node": "Subquery Scan",
+          "rows": 2500,
+          "loops": 24
+        },
+        {
+          "node": "Bitmap Heap Scan",
+          "relation": "engine_runs",
+          "rows": 2500,
+          "loops": 24
+        },
+        {
+          "node": "Bitmap Index Scan",
+          "index": "engine_runs_created_at",
+          "condition": "((created_at >= to_timestamp(((1792155600 + (h.h * 3600)))::double precision)) AND (created_at < to_timestamp(((1792155600 + ((h.h + 1) * 3600)))::double precision)))",
+          "rows": 2500,
+          "loops": 24
+        },
+        {
+          "node": "Subquery Scan",
+          "rows": 0,
+          "loops": 24
+        },
+        {
+          "node": "Index Only Scan",
+          "relation": "engine_runs",
+          "index": "engine_runs_legacy_sec_coin",
+          "condition": "((sec >= (1792155600 + (h.h * 3600))) AND (sec < (1792155600 + ((h.h + 1) * 3600))))",
+          "rows": 0,
+          "loops": 24
+        },
+        {
+          "node": "Hash",
+          "rows": 24000,
+          "loops": 1
+        },
+        {
+          "node": "Seq Scan",
+          "relation": "read_coins",
+          "rows": 24000,
+          "loops": 1,
+          "removed": 0
+        },
+        {
+          "node": "Aggregate",
+          "rows": 1,
+          "loops": 24
+        },
+        {
+          "node": "Sort",
+          "rows": 312.5,
+          "loops": 24
+        },
+        {
+          "node": "Hash Join",
+          "rows": 312.5,
+          "loops": 24
+        },
+        {
+          "node": "Append",
+          "rows": 2500,
+          "loops": 24
+        },
+        {
+          "node": "Bitmap Heap Scan",
+          "relation": "engine_runs",
+          "rows": 2500,
+          "loops": 24
+        },
+        {
+          "node": "Bitmap Index Scan",
+          "index": "engine_runs_created_at",
+          "condition": "((created_at >= to_timestamp(((1792155600 + (h.h * 3600)))::double precision)) AND (created_at < to_timestamp(((1792155600 + ((h.h + 1) * 3600)))::double precision)))",
+          "rows": 2500,
+          "loops": 24
+        },
+        {
+          "node": "Index Scan",
+          "relation": "engine_runs",
+          "index": "engine_runs_legacy_sec_coin",
+          "condition": "((sec >= (1792155600 + (h.h * 3600))) AND (sec < (1792155600 + ((h.h + 1) * 3600))))",
+          "rows": 0,
+          "loops": 24
+        },
+        {
+          "node": "Hash",
+          "rows": 7500,
+          "loops": 1
+        },
+        {
+          "node": "Index Only Scan",
+          "relation": "verdicts",
+          "index": "verdicts_danger",
+          "rows": 7500,
+          "loops": 1
+        }
+      ]
+    }
+  },
+  "backfill": {
+    "coins": 30000,
+    "elapsedMs": 2314.2380410000005,
+    "lastCoin": "0x0000000000000000000000000000000000007530"
+  },
+  "extrapolated67000Ms": 5168.464958233335
+}
