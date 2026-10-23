@@ -1,0 +1,23 @@
+{
+  "name": "@eko/og-renderer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "sample": "pnpm --filter @eko/server exec node --import tsx ../og-renderer/src/sample.ts"
+  },
+  "dependencies": {
+    "@eko/shared": "workspace:*",
+    "@eko/untrusted": "workspace:*",
+    "@resvg/resvg-js": "2.6.2",
+    "satori": "0.33.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3"
+  }
+}
