@@ -1,0 +1,8 @@
+/* Bridge styles for the landing on the combined site (see site-bridge.js). */
+.eko-header-ctas{display:flex;align-items:center;gap:34px}
+.eko-veil{position:fixed;z-index:2147483000;background:#000;border:1px solid #cce9f499;box-shadow:0 0 40px -10px #8fcaf066;pointer-events:none}
+.desk-bar{grid-template-columns:auto 1fr auto auto auto}
+.eko-desk-open{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid #2e4455;border-radius:2px;font:13px Helvetica Neue,Helvetica,Arial,sans-serif;color:#d6ecfa;white-space:nowrap;transition:border-color .15s,background .15s}
+.eko-desk-open:hover{border-color:#8fcaf0;background:#8fcaf014}
+@media(max-width:900px){.desk-bar{grid-template-columns:auto 1fr auto auto}.eko-header-ctas{gap:18px}}
+@media(max-width:699px){.desk-bar{grid-template-columns:1fr auto auto}.eko-desk-open{font-size:12px;padding:5px 8px}}

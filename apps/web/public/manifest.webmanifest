@@ -1,0 +1,20 @@
+{
+  "name": "EKO",
+  "short_name": "EKO",
+  "id": "/mission",
+  "scope": "/",
+  "start_url": "/mission?src=pwa",
+  "display": "standalone",
+  "background_color": "#05121c",
+  "theme_color": "#05121c",
+  "icons": [
+    { "src": "/icons/eko-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/eko-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/eko-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Approvals", "url": "/mission/approvals" },
+    { "name": "Scan", "url": "/scan" },
+    { "name": "Radar", "url": "/radar" }
+  ]
+}
