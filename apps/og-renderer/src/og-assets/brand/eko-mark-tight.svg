@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="14 12 92 96" fill="none" stroke="#cfeff7" stroke-width="8" stroke-linecap="butt">
+  <title>EKO</title>
+  <path d="M102 20H62A40 40 0 0 0 62 100H102"/>
+  <path d="M102 40H62A20 20 0 0 0 62 80H102"/>
+  <path d="M62 60H102"/>
+  <circle cx="62" cy="60" r="4" fill="#cfeff7" stroke="none"/>
+</svg>
