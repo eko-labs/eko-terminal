@@ -1,0 +1,39 @@
+{
+  "name": "@eko/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run --testTimeout=30000 --hookTimeout=30000",
+    "e2e": "playwright test",
+    "e2e:fork": "bash e2e/run-fork.sh",
+    "dev:demo": "vite"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
+    "@fontsource/anton": "^5.3.0",
+    "@eko/shared": "workspace:*",
+    "@eko/untrusted": "workspace:*",
+    "@tanstack/react-query": "^5.104.0",
+    "lightweight-charts": "^5.2.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "viem": "^2.56.9",
+    "wagmi": "^3.7.7",
+    "zod": "^4.6.5",
+    "zustand": "^5.0.15",
+    "@eko/receipts-verifier": "workspace:*"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "vite": "^8.3.1"
+  }
+}
