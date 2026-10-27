@@ -1,0 +1,33 @@
+.guarded-trade-panel{min-width:0;font-size:14px}
+.guarded-trade-panel fieldset{min-width:0;border:0;margin:0;padding:0}
+.guarded-trade-panel .tp-side{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.guarded-trade-panel .tp-amounts{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.guarded-trade-panel .tp-amounts input{width:100px;height:32px}
+.guarded-trade-panel .tp-slippage{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:12px 0}
+.guarded-trade-panel .tp-slippage input{width:100px;min-height:32px}
+.guarded-trade-panel .tp-quote{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;padding:12px 0;border-block:1px solid var(--rule);font-size:14px}
+.guarded-trade-panel .tp-quote dt{color:var(--muted)}
+.guarded-trade-panel .tp-quote dd{margin:0;text-align:right;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.guarded-trade-panel .tp-guard{border:1px solid var(--rule2);background:var(--panel)}
+.guarded-trade-panel .tp-guard-head{display:flex;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid var(--rule)}
+.guarded-trade-panel .tp-guard details{padding:10px 12px}
+.guarded-trade-panel .tp-checks{list-style:none;padding:0;margin:0}
+.guarded-trade-panel .tp-checks li{display:grid;grid-template-columns:20px minmax(0,1fr);gap:8px;padding:6px 0}
+.guarded-trade-panel .tp-checks b{display:block;color:var(--ink);font-weight:500}
+.guarded-trade-panel .tp-checks span span{color:var(--muted)}
+.guarded-trade-panel .warn,.guarded-trade-panel .tp-warning{border-color:var(--v-monitor)}
+.guarded-trade-panel .refuse{border-color:var(--v-danger)}
+.guarded-trade-panel .tp-warning{padding:0 12px}
+.guarded-trade-panel .tp-submit{width:100%;white-space:normal;min-height:44px;margin:12px 0}
+.guarded-trade-panel .tp-status{overflow-wrap:anywhere}
+.guarded-trade-panel :is(button,input,summary,a):focus-visible{outline:2px solid var(--brand);outline-offset:3px}
+.guarded-trade-panel :is(button,input,summary){min-height:24px}
+/* No trade-button animation or celebratory motion in either motion preference. */
+.guarded-trade-panel,.guarded-trade-panel *{animation:none;transition:none}
+@media(pointer:coarse){.guarded-trade-panel :is(button,input,summary,a){min-height:44px}}
+.radar-trade-drawer:has(.guarded-trade-panel){overflow-y:auto;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+@media(max-width:700px){
+  .coin-page:has(.guarded-trade-panel){padding-bottom:calc(var(--trade-sheet-clearance, 140px) + 80px + env(safe-area-inset-bottom))}
+  .coin-sheet:has(.guarded-trade-panel){bottom:calc(58px + env(safe-area-inset-bottom));max-height:65dvh;overflow-y:auto}
+  .coin-sheet.expanded:has(.guarded-trade-panel) .panel-body{max-height:calc(65dvh - 52px);overflow-y:auto;padding-bottom:24px}
+}
