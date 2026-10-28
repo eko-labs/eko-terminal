@@ -1,0 +1,16 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`canonical §8 copy > snapshots every exact constant and fee wording 1`] = `
+{
+  "ADVISORY": "Advisory: your agent is told to check with EKO before every order. Robinhood’s own trade approvals, when they’re on, remain the enforced stop.",
+  "APPROVAL_UNAVAILABLE": "This order needs approval, which is available from token day on the Reader tier and above.",
+  "BETA": "Beta · forecasts are graded against all launches",
+  "BUILT_ON": "Built on Elysium",
+  "DYOR": "DYOR · Not financial advice · AI-generated analysis",
+  "ENFORCED_ONCHAIN": "Enforced on-chain by this agent’s session-key policy.",
+  "FEE_CURVE_ZERO": "0% on Pons-curve trades",
+  "NON_AFFILIATION": "Not affiliated with, endorsed by, or officially connected with Kinetiq or Hyperliquid.",
+  "ONCHAIN_ADVISORY": "Advisory for now: on-chain enforcement turns on after its contract review passes.",
+  "REAL_FUNDS": "Real funds · your wallet signs every trade",
+}
+`;
