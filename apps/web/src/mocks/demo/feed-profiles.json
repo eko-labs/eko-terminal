@@ -1,0 +1,991 @@
+[
+  {
+    "id": "demo-feed-0",
+    "ts": -400,
+    "kind": "playbook",
+    "coin": "0xaeab3378df54c91636d5f05c836c01ffbcf04ee9",
+    "symbol": {
+      "text": "HALO",
+      "flags": [],
+      "truncated": false
+    },
+    "level": "danger",
+    "playbookId": "agent_bait",
+    "matchPct": 94
+  },
+  {
+    "id": "demo-feed-1",
+    "ts": -3389.99462890625,
+    "kind": "agent_trade",
+    "coin": "0xdd3c73cf3afe0c413e1496e5a541135ba3aef26d",
+    "symbol": {
+      "text": "REEF",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "human",
+    "sizeUsd": 29,
+    "wallet": "0xe443f84f3b22babe692026ee523101a51c3ca2a0",
+    "side": "buy"
+  },
+  {
+    "id": "demo-feed-2",
+    "ts": -5702.69921875,
+    "kind": "agent_trade",
+    "coin": "0x560fc17ad7549486b0002e69b604b26764e296f6",
+    "symbol": {
+      "text": "BYTE",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "human",
+    "sizeUsd": 68,
+    "wallet": "0x94b9f38c8dbfff5a53810425136b602696310b81",
+    "side": "sell"
+  },
+  {
+    "id": "demo-feed-3",
+    "ts": -7057.87060546875,
+    "kind": "swarm",
+    "coin": "0x79944320f5b9dcf6c0f9dd84ffa668264ea4fae5",
+    "symbol": {
+      "text": "LUMA",
+      "flags": [],
+      "truncated": false
+    },
+    "swarm": {
+      "pass": 6,
+      "of": 9
+    }
+  },
+  {
+    "id": "demo-feed-4",
+    "ts": -8835.988525390625,
+    "kind": "verdict",
+    "coin": "0xaf922fb58c35c189ebe4ef082e356d8a5d9e58b3",
+    "symbol": {
+      "text": "PIXL",
+      "flags": [],
+      "truncated": false
+    },
+    "level": "clear",
+    "firstVerdictMs": 2690
+  },
+  {
+    "id": "demo-feed-5",
+    "ts": -10796.847900390625,
+    "kind": "verdict",
+    "coin": "0x2429b3bdd3bcc816d6c401f59d586a2cf81e6573",
+    "symbol": {
+      "text": "CINDER",
+      "flags": [],
+      "truncated": false
+    },
+    "level": "monitor",
+    "playbookId": "tax_trap",
+    "firstVerdictMs": 3449
+  },
+  {
+    "id": "demo-feed-6",
+    "ts": -13801.332275390625,
+    "kind": "agent_trade",
+    "coin": "0x332502210bd6b7bee4070424109c1a7f8e3a177c",
+    "symbol": {
+      "text": "ORBIT",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "human",
+    "sizeUsd": 607,
+    "wallet": "0x3a3be77aaa87d1e622a5becf7f43d1dc98192bbd",
+    "side": "sell"
+  },
+  {
+    "id": "demo-feed-7",
+    "ts": -14797.199462890625,
+    "kind": "agent_trade",
+    "coin": "0x4d15686a684cf488b51a5d046b9ff600db1a7dea",
+    "symbol": {
+      "text": "ZEST",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "human",
+    "sizeUsd": 41,
+    "wallet": "0x628ca7e7a093ae559e8f4e874981170d5b6e55ed",
+    "side": "sell"
+  },
+  {
+    "id": "demo-feed-8",
+    "ts": -18009.61572265625,
+    "kind": "agent_trade",
+    "coin": "0x4d15686a684cf488b51a5d046b9ff600db1a7dea",
+    "symbol": {
+      "text": "ZEST",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "likely_agent",
+    "sizeUsd": 900,
+    "wallet": "0x01dd9808a5f1e94edd56993051ce90149542e4b4",
+    "side": "buy"
+  },
+  {
+    "id": "demo-feed-9",
+    "ts": -21281.49267578125,
+    "kind": "agent_trade",
+    "coin": "0x6e26ace61ad16bc1197f33a3adf0ab523573f7a4",
+    "symbol": {
+      "text": "MOTH",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "declared_agent",
+    "sizeUsd": 164,
+    "wallet": "0x8e3278ef13e20570f58b3a06b4a9458fc2dab1ec",
+    "side": "buy",
+    "agentName": {
+      "text": "Lumen Desk",
+      "flags": [],
+      "truncated": false
+    }
+  },
+  {
+    "id": "demo-feed-10",
+    "ts": -24526.86083984375,
+    "kind": "agent_trade",
+    "coin": "0xdd3c73cf3afe0c413e1496e5a541135ba3aef26d",
+    "symbol": {
+      "text": "REEF",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "likely_agent",
+    "sizeUsd": 673,
+    "wallet": "0xf44b676d43c252f6b0a07124c4059166735b3890",
+    "side": "buy"
+  },
+  {
+    "id": "demo-feed-11",
+    "ts": -27565.410888671875,
+    "kind": "agent_trade",
+    "coin": "0x79944320f5b9dcf6c0f9dd84ffa668264ea4fae5",
+    "symbol": {
+      "text": "LUMA",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "likely_agent",
+    "sizeUsd": 1022,
+    "wallet": "0x1340c64a5da68dc9eed381aac7121eaf542ec60a",
+    "side": "buy"
+  },
+  {
+    "id": "demo-feed-12",
+    "ts": -30788.070068359375,
+    "kind": "agent_trade",
+    "coin": "0xdd3c73cf3afe0c413e1496e5a541135ba3aef26d",
+    "symbol": {
+      "text": "REEF",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "human",
+    "sizeUsd": 1040,
+    "wallet": "0x342a4dbd3c1514b16fd323e3d04e0c06b1967c9d",
+    "side": "sell"
+  },
+  {
+    "id": "demo-feed-13",
+    "ts": -33412.33056640625,
+    "kind": "crew_trade",
+    "coin": "0x3c18a43f30669ef147d68a869fa71c5440f273b0",
+    "symbol": {
+      "text": "EKOX",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "crew",
+    "sizeUsd": 558,
+    "wallet": "0x032f2651a13bbb9dee422977b50c4cff5d6632ae",
+    "crewId": "crew-13",
+    "side": "sell",
+    "crewName": "Lantern",
+    "crewWallets": 9
+  },
+  {
+    "id": "demo-feed-14",
+    "ts": -36397.464599609375,
+    "kind": "agent_trade",
+    "coin": "0xb197c9a53e496cfaef0f562e3f72c1af1fa8fcb5",
+    "symbol": {
+      "text": "MOSS",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "human",
+    "sizeUsd": 128,
+    "wallet": "0x1b1ad3ff9fd94ac6c2e13104fdef23b1fd539ee0",
+    "side": "buy"
+  },
+  {
+    "id": "demo-feed-15",
+    "ts": -38443.947509765625,
+    "kind": "verdict",
+    "coin": "0x7b94e360deec2b4eeffc29b32b281d93874a3cc7",
+    "symbol": {
+      "text": "NOVA",
+      "flags": [],
+      "truncated": false
+    },
+    "level": "danger",
+    "playbookId": "stuck_at_bonding",
+    "firstVerdictMs": 2102
+  },
+  {
+    "id": "demo-feed-16",
+    "ts": -41236.120361328125,
+    "kind": "agent_trade",
+    "coin": "0x6e26ace61ad16bc1197f33a3adf0ab523573f7a4",
+    "symbol": {
+      "text": "MOTH",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "human",
+    "sizeUsd": 2843,
+    "wallet": "0xf2e8634b444a04edb3ad7ee10fa0dc440e1241d8",
+    "side": "sell"
+  },
+  {
+    "id": "demo-feed-17",
+    "ts": -43585.321044921875,
+    "kind": "agent_trade",
+    "coin": "0x9cf52551f9f2c5d8081963d46100da92b69cd18c",
+    "symbol": {
+      "text": "COMET",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "declared_agent",
+    "sizeUsd": 2226,
+    "wallet": "0x803354c5eccf8f0dcc9afbcfd7a2cb562e83d881",
+    "side": "buy",
+    "agentName": {
+      "text": "Tern",
+      "flags": [],
+      "truncated": false
+    }
+  },
+  {
+    "id": "demo-feed-18",
+    "ts": -44488.315185546875,
+    "kind": "playbook",
+    "coin": "0x9293973fd04bc075ae690997f2d1868260de4915",
+    "symbol": {
+      "text": "DRIP",
+      "flags": [],
+      "truncated": false
+    },
+    "level": "monitor",
+    "playbookId": "tax_trap",
+    "matchPct": 73
+  },
+  {
+    "id": "demo-feed-19",
+    "ts": -47329.4658203125,
+    "kind": "agent_trade",
+    "coin": "0x9cf52551f9f2c5d8081963d46100da92b69cd18c",
+    "symbol": {
+      "text": "COMET",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "human",
+    "sizeUsd": 727,
+    "wallet": "0xf01acde82f890e0c02f7c0ba4c38378eae77a985",
+    "side": "buy"
+  },
+  {
+    "id": "demo-feed-20",
+    "ts": -48966.030029296875,
+    "kind": "swarm",
+    "coin": "0x5505defb51e3730fa8d7176aabfa4c3789319d78",
+    "symbol": {
+      "text": "RUNE",
+      "flags": [],
+      "truncated": false
+    },
+    "swarm": {
+      "pass": 8,
+      "of": 9
+    }
+  },
+  {
+    "id": "demo-feed-21",
+    "ts": -50470.8896484375,
+    "kind": "agent_trade",
+    "coin": "0x332502210bd6b7bee4070424109c1a7f8e3a177c",
+    "symbol": {
+      "text": "ORBIT",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "declared_agent",
+    "sizeUsd": 259,
+    "wallet": "0x8d50730af92039cf1970f74de1e62b9cc6b770c2",
+    "side": "sell",
+    "agentName": {
+      "text": "Sable",
+      "flags": [],
+      "truncated": false
+    }
+  },
+  {
+    "id": "demo-feed-22",
+    "ts": -51670.572998046875,
+    "kind": "clone",
+    "coin": "0x3c18a43f30669ef147d68a869fa71c5440f273b0",
+    "symbol": {
+      "text": "EKOX",
+      "flags": [],
+      "truncated": false
+    },
+    "cloneOf": {
+      "text": "EKO",
+      "flags": [],
+      "truncated": false
+    },
+    "clones7d": 6
+  },
+  {
+    "id": "demo-feed-23",
+    "ts": -54778.484619140625,
+    "kind": "agent_trade",
+    "coin": "0xb312f836bced7e460b9b92aa317d6559e33c015d",
+    "symbol": {
+      "text": "SOLACE",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "declared_agent",
+    "sizeUsd": 2397,
+    "wallet": "0xa1c82b7d87364ee498133f45b78427e65373e900",
+    "side": "sell",
+    "agentName": {
+      "text": "Mako-3",
+      "flags": [],
+      "truncated": false
+    }
+  },
+  {
+    "id": "demo-feed-24",
+    "ts": -56646.007080078125,
+    "kind": "agent_trade",
+    "coin": "0xb312f836bced7e460b9b92aa317d6559e33c015d",
+    "symbol": {
+      "text": "SOLACE",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "human",
+    "sizeUsd": 1581,
+    "wallet": "0x554aeae26531bab18f7de275cab63ec4dd4204f0",
+    "side": "buy"
+  },
+  {
+    "id": "demo-feed-25",
+    "ts": -58168.180419921875,
+    "kind": "agent_trade",
+    "coin": "0xe3b09bc15a8491356104ccd78bafc1b51a78bc4d",
+    "symbol": {
+      "text": "YOLK",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "human",
+    "sizeUsd": 223,
+    "wallet": "0x80bdfcf846aae784ed41db2fd66c0e902150038c",
+    "side": "sell"
+  },
+  {
+    "id": "demo-feed-26",
+    "ts": -60591.6357421875,
+    "kind": "swarm",
+    "coin": "0x9293973fd04bc075ae690997f2d1868260de4915",
+    "symbol": {
+      "text": "DRIP",
+      "flags": [],
+      "truncated": false
+    },
+    "swarm": {
+      "pass": 5,
+      "of": 9
+    }
+  },
+  {
+    "id": "demo-feed-27",
+    "ts": -63219.19580078125,
+    "kind": "wash",
+    "coin": "0x2b41e592c7887205d32f716651eacedb5122bae3",
+    "symbol": {
+      "text": "FROG",
+      "flags": [],
+      "truncated": false
+    }
+  },
+  {
+    "id": "demo-feed-28",
+    "ts": -64967.552001953125,
+    "kind": "agent_trade",
+    "coin": "0x6e26ace61ad16bc1197f33a3adf0ab523573f7a4",
+    "symbol": {
+      "text": "MOTH",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "human",
+    "sizeUsd": 31,
+    "wallet": "0xe744e9bd99ba44a992d2971bb9650dc8c2354d5f",
+    "side": "buy"
+  },
+  {
+    "id": "demo-feed-29",
+    "ts": -67640.40307617188,
+    "kind": "playbook",
+    "coin": "0x9293973fd04bc075ae690997f2d1868260de4915",
+    "symbol": {
+      "text": "DRIP",
+      "flags": [],
+      "truncated": false
+    },
+    "level": "monitor",
+    "playbookId": "tax_trap",
+    "matchPct": 73
+  },
+  {
+    "id": "demo-feed-30",
+    "ts": -68850.50805664062,
+    "kind": "agent_trade",
+    "coin": "0x6e26ace61ad16bc1197f33a3adf0ab523573f7a4",
+    "symbol": {
+      "text": "MOTH",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "human",
+    "sizeUsd": 30,
+    "wallet": "0xc81b927624405d585dd3f99b78036965b15c44ac",
+    "side": "sell"
+  },
+  {
+    "id": "demo-feed-31",
+    "ts": -70972.69897460938,
+    "kind": "agent_trade",
+    "coin": "0xdc6b72da080374f20b1ad4d146d9c305a80b3625",
+    "symbol": {
+      "text": "FERN",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "likely_agent",
+    "sizeUsd": 2449,
+    "wallet": "0xdef067b36e2d2e8daabb881b8f01e61c89727a9c",
+    "side": "buy"
+  },
+  {
+    "id": "demo-feed-32",
+    "ts": -73559.56079101562,
+    "kind": "agent_trade",
+    "coin": "0xb197c9a53e496cfaef0f562e3f72c1af1fa8fcb5",
+    "symbol": {
+      "text": "MOSS",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "human",
+    "sizeUsd": 46,
+    "wallet": "0xc144c36dfad9e66281eae10d7bdb023cff1e86c4",
+    "side": "buy"
+  },
+  {
+    "id": "demo-feed-33",
+    "ts": -75191.43994140625,
+    "kind": "verdict",
+    "coin": "0x7b94e360deec2b4eeffc29b32b281d93874a3cc7",
+    "symbol": {
+      "text": "NOVA",
+      "flags": [],
+      "truncated": false
+    },
+    "level": "danger",
+    "playbookId": "stuck_at_bonding",
+    "firstVerdictMs": 4235
+  },
+  {
+    "id": "demo-feed-34",
+    "ts": -77999.58056640625,
+    "kind": "agent_trade",
+    "coin": "0x1e8df2ea20b00a6e206a97c5beb0417b66f561ed",
+    "symbol": {
+      "text": "TORCH",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "human",
+    "sizeUsd": 1562,
+    "wallet": "0xb24eaf6f3d7fb7cab120c3d55561a990b5dd4c3f",
+    "side": "buy"
+  },
+  {
+    "id": "demo-feed-35",
+    "ts": -80231.05395507812,
+    "kind": "agent_trade",
+    "coin": "0x74c4c656ed73a9a7e4a0ae4c8388acbca7a3cfbb",
+    "symbol": {
+      "text": "SAGE",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "human",
+    "sizeUsd": 2410,
+    "wallet": "0x9a55882b8051e1c7c66113c6d633629056969e39",
+    "side": "sell"
+  },
+  {
+    "id": "demo-feed-36",
+    "ts": -83486.84228515625,
+    "kind": "agent_trade",
+    "coin": "0xcff11e6db9cfdc8c75a23306641b69c00a104d92",
+    "symbol": {
+      "text": "WREN",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "likely_agent",
+    "sizeUsd": 1034,
+    "wallet": "0xd78034ec4d5df174d1676f21b9c06045463ed2b6",
+    "side": "buy"
+  },
+  {
+    "id": "demo-feed-37",
+    "ts": -85754.9072265625,
+    "kind": "playbook",
+    "coin": "0x74c4c656ed73a9a7e4a0ae4c8388acbca7a3cfbb",
+    "symbol": {
+      "text": "SAGE",
+      "flags": [],
+      "truncated": false
+    },
+    "level": "monitor",
+    "playbookId": "tax_trap",
+    "matchPct": 79
+  },
+  {
+    "id": "demo-feed-38",
+    "ts": -88552.1357421875,
+    "kind": "agent_trade",
+    "coin": "0xaeab3378df54c91636d5f05c836c01ffbcf04ee9",
+    "symbol": {
+      "text": "HALO",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "declared_agent",
+    "sizeUsd": 337,
+    "wallet": "0x1add0ea73c4118cda1d1d8dfd1047c7195c36ff4",
+    "side": "sell",
+    "agentName": {
+      "text": "Lumen Desk",
+      "flags": [],
+      "truncated": false
+    }
+  },
+  {
+    "id": "demo-feed-39",
+    "ts": -91230.53466796875,
+    "kind": "wash",
+    "coin": "0x2b41e592c7887205d32f716651eacedb5122bae3",
+    "symbol": {
+      "text": "FROG",
+      "flags": [],
+      "truncated": false
+    }
+  },
+  {
+    "id": "demo-feed-40",
+    "ts": -93618.20678710938,
+    "kind": "agent_trade",
+    "coin": "0x4d15686a684cf488b51a5d046b9ff600db1a7dea",
+    "symbol": {
+      "text": "ZEST",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "likely_agent",
+    "sizeUsd": 611,
+    "wallet": "0xbd39961308434b7b5186a6849e24726a4ae42354",
+    "side": "buy"
+  },
+  {
+    "id": "demo-feed-41",
+    "ts": -96914.1904296875,
+    "kind": "agent_trade",
+    "coin": "0xf141526a51af4b4f3cf85487dbb7cdac80ce8071",
+    "symbol": {
+      "text": "KITE",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "human",
+    "sizeUsd": 1165,
+    "wallet": "0xbb1bf28f54503cb3bec04d4fd7e047c4b9e9b662",
+    "side": "sell"
+  },
+  {
+    "id": "demo-feed-42",
+    "ts": -100045.7978515625,
+    "kind": "agent_trade",
+    "coin": "0xb312f836bced7e460b9b92aa317d6559e33c015d",
+    "symbol": {
+      "text": "SOLACE",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "human",
+    "sizeUsd": 695,
+    "wallet": "0xfa212902642f2db3af1a587e6c2cb69f8033fe32",
+    "side": "buy"
+  },
+  {
+    "id": "demo-feed-43",
+    "ts": -102112.18603515625,
+    "kind": "agent_trade",
+    "coin": "0x1e8df2ea20b00a6e206a97c5beb0417b66f561ed",
+    "symbol": {
+      "text": "TORCH",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "declared_agent",
+    "sizeUsd": 104,
+    "wallet": "0xe11e9a52079021e042e135b56050ff37df0b26e7",
+    "side": "sell",
+    "agentName": {
+      "text": "Northwind",
+      "flags": [],
+      "truncated": false
+    }
+  },
+  {
+    "id": "demo-feed-44",
+    "ts": -103572.46020507812,
+    "kind": "playbook",
+    "coin": "0x79944320f5b9dcf6c0f9dd84ffa668264ea4fae5",
+    "symbol": {
+      "text": "LUMA",
+      "flags": [],
+      "truncated": false
+    },
+    "level": "monitor",
+    "playbookId": "tax_trap",
+    "matchPct": 74
+  },
+  {
+    "id": "demo-feed-45",
+    "ts": -105598.92211914062,
+    "kind": "verdict",
+    "coin": "0xdc6b72da080374f20b1ad4d146d9c305a80b3625",
+    "symbol": {
+      "text": "FERN",
+      "flags": [],
+      "truncated": false
+    },
+    "level": "monitor",
+    "playbookId": "removable_liquidity",
+    "firstVerdictMs": 2048
+  },
+  {
+    "id": "demo-feed-46",
+    "ts": -108431.50463867188,
+    "kind": "agent_trade",
+    "coin": "0xaeab3378df54c91636d5f05c836c01ffbcf04ee9",
+    "symbol": {
+      "text": "HALO",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "likely_agent",
+    "sizeUsd": 27,
+    "wallet": "0xd7c8b09e874fd41edc1c1b459f4702da7064565c",
+    "side": "sell"
+  },
+  {
+    "id": "demo-feed-47",
+    "ts": -110482.11376953125,
+    "kind": "agent_trade",
+    "coin": "0xaeab3378df54c91636d5f05c836c01ffbcf04ee9",
+    "symbol": {
+      "text": "HALO",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "human",
+    "sizeUsd": 1441,
+    "wallet": "0x182682ffcf663199ea179714120647f995f478bd",
+    "side": "sell"
+  },
+  {
+    "id": "demo-feed-48",
+    "ts": -112969.978515625,
+    "kind": "agent_trade",
+    "coin": "0x9293973fd04bc075ae690997f2d1868260de4915",
+    "symbol": {
+      "text": "DRIP",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "likely_agent",
+    "sizeUsd": 2605,
+    "wallet": "0x1c7f9505f7a4199a21fa89018e4e96431d7369e2",
+    "side": "buy"
+  },
+  {
+    "id": "demo-feed-49",
+    "ts": -114008.830078125,
+    "kind": "agent_trade",
+    "coin": "0x79944320f5b9dcf6c0f9dd84ffa668264ea4fae5",
+    "symbol": {
+      "text": "LUMA",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "declared_agent",
+    "sizeUsd": 193,
+    "wallet": "0x037dbb463d0bdd3dc3eae96c887777afaadea603",
+    "side": "sell",
+    "agentName": {
+      "text": "Ledger Owl",
+      "flags": [],
+      "truncated": false
+    }
+  },
+  {
+    "id": "demo-feed-50",
+    "ts": -115316.66455078125,
+    "kind": "playbook",
+    "coin": "0xdd3c73cf3afe0c413e1496e5a541135ba3aef26d",
+    "symbol": {
+      "text": "REEF",
+      "flags": [],
+      "truncated": false
+    },
+    "level": "monitor",
+    "playbookId": "tax_trap",
+    "matchPct": 62
+  },
+  {
+    "id": "demo-feed-51",
+    "ts": -117098.80200195312,
+    "kind": "swarm",
+    "coin": "0xdc6b72da080374f20b1ad4d146d9c305a80b3625",
+    "symbol": {
+      "text": "FERN",
+      "flags": [],
+      "truncated": false
+    },
+    "swarm": {
+      "pass": 7,
+      "of": 9
+    }
+  },
+  {
+    "id": "demo-feed-52",
+    "ts": -119359.02465820312,
+    "kind": "clone",
+    "coin": "0x3c18a43f30669ef147d68a869fa71c5440f273b0",
+    "symbol": {
+      "text": "EKOX",
+      "flags": [],
+      "truncated": false
+    },
+    "cloneOf": {
+      "text": "EKO",
+      "flags": [],
+      "truncated": false
+    },
+    "clones7d": 6
+  },
+  {
+    "id": "demo-feed-53",
+    "ts": -120936.00903320312,
+    "kind": "verdict",
+    "coin": "0xaab3943caf850363143a2b3a2b195141bdf54800",
+    "symbol": {
+      "text": "QUILL",
+      "flags": [],
+      "truncated": false
+    },
+    "level": "danger",
+    "playbookId": "exempt_insiders",
+    "firstVerdictMs": 2861
+  },
+  {
+    "id": "demo-feed-54",
+    "ts": -123499.1806640625,
+    "kind": "swarm",
+    "coin": "0x560fc17ad7549486b0002e69b604b26764e296f6",
+    "symbol": {
+      "text": "BYTE",
+      "flags": [],
+      "truncated": false
+    },
+    "swarm": {
+      "pass": 8,
+      "of": 9
+    }
+  },
+  {
+    "id": "demo-feed-55",
+    "ts": -124501.05297851562,
+    "kind": "clone",
+    "coin": "0x3c18a43f30669ef147d68a869fa71c5440f273b0",
+    "symbol": {
+      "text": "EKOX",
+      "flags": [],
+      "truncated": false
+    },
+    "cloneOf": {
+      "text": "EKO",
+      "flags": [],
+      "truncated": false
+    },
+    "clones7d": 6
+  },
+  {
+    "id": "demo-feed-56",
+    "ts": -126150.4208984375,
+    "kind": "agent_trade",
+    "coin": "0xe9082becaa27f99717e78cf80c3dfb1fdbc6f2b1",
+    "symbol": {
+      "text": "GHOST",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "human",
+    "sizeUsd": 461,
+    "wallet": "0xfe06af33b97b63d33dd73ccebe1d60d5ce33a883",
+    "side": "sell"
+  },
+  {
+    "id": "demo-feed-57",
+    "ts": -127538.10986328125,
+    "kind": "agent_trade",
+    "coin": "0x79944320f5b9dcf6c0f9dd84ffa668264ea4fae5",
+    "symbol": {
+      "text": "LUMA",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "likely_agent",
+    "sizeUsd": 352,
+    "wallet": "0x1f119ff86e2f370c5a2d9aeb4c068aeb806a0405",
+    "side": "buy"
+  },
+  {
+    "id": "demo-feed-58",
+    "ts": -128974.74780273438,
+    "kind": "agent_trade",
+    "coin": "0x2b41e592c7887205d32f716651eacedb5122bae3",
+    "symbol": {
+      "text": "FROG",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "declared_agent",
+    "sizeUsd": 466,
+    "wallet": "0x732892af3016d0d5d494a74db3b41d5515242c6c",
+    "side": "buy",
+    "agentName": {
+      "text": "Wisp Runner",
+      "flags": [],
+      "truncated": false
+    }
+  },
+  {
+    "id": "demo-feed-59",
+    "ts": -130297.42602539062,
+    "kind": "playbook",
+    "coin": "0x1e8df2ea20b00a6e206a97c5beb0417b66f561ed",
+    "symbol": {
+      "text": "TORCH",
+      "flags": [],
+      "truncated": false
+    },
+    "level": "monitor",
+    "playbookId": "removable_liquidity",
+    "matchPct": 64
+  },
+  {
+    "id": "demo-feed-60",
+    "ts": -132575.5146484375,
+    "kind": "verdict",
+    "coin": "0x31a4491e44af7e819c59dffd01b37b19f2ffdbfc",
+    "symbol": {
+      "text": "TIDE",
+      "flags": [],
+      "truncated": false
+    },
+    "level": "clear",
+    "firstVerdictMs": 2544
+  },
+  {
+    "id": "demo-feed-61",
+    "ts": -135811.4365234375,
+    "kind": "agent_trade",
+    "coin": "0xf141526a51af4b4f3cf85487dbb7cdac80ce8071",
+    "symbol": {
+      "text": "KITE",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "declared_agent",
+    "sizeUsd": 85,
+    "wallet": "0xed9d1a5fb2e897c959680eac92ba16118bfa9fe1",
+    "side": "sell",
+    "agentName": {
+      "text": "Quiet Otter",
+      "flags": [],
+      "truncated": false
+    }
+  },
+  {
+    "id": "demo-feed-62",
+    "ts": -137033.1728515625,
+    "kind": "agent_trade",
+    "coin": "0xb312f836bced7e460b9b92aa317d6559e33c015d",
+    "symbol": {
+      "text": "SOLACE",
+      "flags": [],
+      "truncated": false
+    },
+    "label": "human",
+    "sizeUsd": 32,
+    "wallet": "0x01046f5fce20b45bd2473bb3da5e0164d8f8af96",
+    "side": "sell"
+  },
+  {
+    "id": "demo-feed-63",
+    "ts": -140082.75146484375,
+    "kind": "playbook",
+    "coin": "0x4af5d62c165260567a4117899d47853ccf46c528",
+    "symbol": {
+      "text": "VOLT",
+      "flags": [],
+      "truncated": false
+    },
+    "level": "danger",
+    "playbookId": "fee_trap_pool",
+    "matchPct": 80
+  }
+]
