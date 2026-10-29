@@ -1,0 +1,215 @@
+import * as shared from '@eko/shared';
+import seeds from './contracts.json';
+
+// Deterministic, fresh objects for every frozen CA/FACTS shape (BACKEND §23).
+export const createOAuthScope = () => shared.OAuthScopeSchema.parse(structuredClone(seeds.OAuthScope));
+export const createOAuthGrant = () => shared.OAuthGrantSchema.parse(structuredClone(seeds.OAuthGrant));
+export const createOAuthRequest = () => shared.OAuthRequestSchema.parse(structuredClone(seeds.OAuthRequest));
+export const createOAuthConsent = () => shared.OAuthConsentSchema.parse(structuredClone(seeds.OAuthConsent));
+export const createOAuthTokenGrant = () => shared.OAuthTokenGrantSchema.parse(structuredClone(seeds.OAuthTokenGrant));
+export const createOAuthToken = () => shared.OAuthTokenSchema.parse(structuredClone(seeds.OAuthToken));
+export const createPlaybookMatch = () => shared.PlaybookMatchSchema.parse(structuredClone(seeds.PlaybookMatch));
+export const createVerdict = () => shared.VerdictSchema.parse(structuredClone(seeds.Verdict));
+export const createCoinCardFlowExtra = () => shared.CoinCardFlowExtraSchema.parse(structuredClone(seeds.CoinCardFlowExtra));
+export const createCoinCardMeta = () => shared.CoinCardMetaSchema.parse(structuredClone(seeds.CoinCardMeta));
+export const createCoinCard = () => shared.CoinCardSchema.parse(structuredClone(seeds.CoinCard));
+export const createChartMarker = () => shared.ChartMarkerSchema.parse(structuredClone(seeds.ChartMarker));
+export const createLoopBacktest = () => shared.LoopBacktestSchema.parse(structuredClone(seeds.LoopBacktest));
+export const createOperand = () => shared.OperandSchema.parse(structuredClone(seeds.Operand));
+export const createCondition = () => shared.ConditionSchema.parse(structuredClone(seeds.Condition));
+export const createLoopSpec = () => shared.LoopSpecSchema.parse(structuredClone(seeds.LoopSpec));
+export const createBurnWalletInfo = () => shared.BurnWalletInfoSchema.parse(structuredClone(seeds.BurnWalletInfo));
+export const createPonsBuybackStats = () => shared.PonsBuybackStatsSchema.parse(structuredClone(seeds.PonsBuybackStats));
+export const createBurnEngineInfo = () => shared.BurnEngineInfoSchema.parse(structuredClone(seeds.BurnEngineInfo));
+export const createBurnStatsExtra = () => shared.BurnStatsExtraSchema.parse(structuredClone(seeds.BurnStatsExtra));
+export const createBurnEvent = () => shared.BurnEventSchema.parse(structuredClone(seeds.BurnEvent));
+export const createBurnStats = () => shared.BurnStatsSchema.parse(structuredClone(seeds.BurnStats));
+export const createBurnStatsWithExtras = () => shared.BurnStatsWithExtrasSchema.parse(structuredClone(seeds.BurnStatsWithExtras));
+export const createHex = () => shared.HexSchema.parse(structuredClone(seeds.Hex));
+export const createAddress = () => shared.AddressSchema.parse(structuredClone(seeds.Address));
+export const createLevel = () => shared.LevelSchema.parse(structuredClone(seeds.Level));
+export const createWalletLabel = () => shared.WalletLabelSchema.parse(structuredClone(seeds.WalletLabel));
+export const createUntrusted = () => shared.UntrustedSchema.parse(structuredClone(seeds.Untrusted));
+export const createPlaybookId = () => shared.PlaybookIdSchema.parse(structuredClone(seeds.PlaybookId));
+export const createEvidenceRef = () => shared.EvidenceRefSchema.parse(structuredClone(seeds.EvidenceRef));
+export const createPoolRef = () => shared.PoolRefSchema.parse(structuredClone(seeds.PoolRef));
+export const createTf = () => shared.TfSchema.parse(structuredClone(seeds.Tf));
+export const createBusTopic = () => shared.BusTopicSchema.parse(structuredClone(seeds.BusTopic));
+export const createErrorCode = () => shared.ErrorCodeSchema.parse(structuredClone(seeds.ErrorCode));
+export const createApiError = () => shared.ApiErrorSchema.parse(structuredClone(seeds.ApiError));
+export const createPublicConfig = () => shared.PublicConfigSchema.parse(structuredClone(seeds.PublicConfig));
+export const createMe = () => shared.MeSchema.parse(structuredClone(seeds.Me));
+export const createReferrals = () => shared.ReferralsSchema.parse(structuredClone(seeds.Referrals));
+export const createTrialRecap = () => shared.TrialRecapSchema.parse(structuredClone(seeds.TrialRecap));
+export const createCensus = () => shared.CensusSchema.parse(structuredClone(seeds.Census));
+export const createScoreboardKind = () => shared.ScoreboardKindSchema.parse(structuredClone(seeds.ScoreboardKind));
+export const createScoreboardRow = () => shared.ScoreboardRowSchema.parse(structuredClone(seeds.ScoreboardRow));
+export const createPerpContext = () => shared.PerpContextSchema.parse(structuredClone(seeds.PerpContext));
+export const createWatchBody = () => shared.WatchBodySchema.parse(structuredClone(seeds.WatchBody));
+export const createAlertSettings = () => shared.AlertSettingsSchema.parse(structuredClone(seeds.AlertSettings));
+export const createAlert = () => shared.AlertSchema.parse(structuredClone(seeds.Alert));
+export const createEntitlements = () => shared.EntitlementsSchema.parse(structuredClone(seeds.Entitlements));
+export const createWsEventMap = () => shared.WsEventMapSchema.parse(structuredClone(seeds.WsEventMap));
+export const createWsChannelKind = () => shared.WsChannelKindSchema.parse(structuredClone(seeds.WsChannelKind));
+export const createWsChannel = () => shared.WsChannelSchema.parse(structuredClone(seeds.WsChannel));
+export const createWsKind = () => shared.WsKindSchema.parse(structuredClone(seeds.WsKind));
+export const createWsClient = () => shared.WsClientSchema.parse(structuredClone(seeds.WsClient));
+export const createWsEvent = () => shared.WsEventSchema.parse(structuredClone(seeds.WsEvent));
+export const createWsServer = () => shared.WsServerSchema.parse(structuredClone(seeds.WsServer));
+export const createCoinSummary = () => shared.CoinSummarySchema.parse(structuredClone(seeds.CoinSummary));
+export const createRadarRow = () => shared.RadarRowSchema.parse(structuredClone(seeds.RadarRow));
+export const createPairRow = () => shared.PairRowSchema.parse(structuredClone(seeds.PairRow));
+export const createFeedItem = () => shared.FeedItemSchema.parse(structuredClone(seeds.FeedItem));
+export const createBar = () => shared.BarSchema.parse(structuredClone(seeds.Bar));
+export const createTick = () => shared.TickSchema.parse(structuredClone(seeds.Tick));
+export const createScanResult = () => shared.ScanResultSchema.parse(structuredClone(seeds.ScanResult));
+export const createBagReport = () => shared.BagReportSchema.parse(structuredClone(seeds.BagReport));
+export const createGuardCheck = () => shared.GuardCheckSchema.parse(structuredClone(seeds.GuardCheck));
+export const createGuardResult = () => shared.GuardResultSchema.parse(structuredClone(seeds.GuardResult));
+export const createTradeQuoteRequest = () => shared.TradeQuoteRequestSchema.parse(structuredClone(seeds.TradeQuoteRequest));
+export const createTradeQuote = () => shared.TradeQuoteSchema.parse(structuredClone(seeds.TradeQuote));
+export const createTradeOrder = () => shared.TradeOrderSchema.parse(structuredClone(seeds.TradeOrder));
+export const createBacktestAssumptions = () => shared.BacktestAssumptionsSchema.parse(structuredClone(seeds.BacktestAssumptions));
+export const createBacktestTrade = () => shared.BacktestTradeSchema.parse(structuredClone(seeds.BacktestTrade));
+export const createSegmentMetrics = () => shared.SegmentMetricsSchema.parse(structuredClone(seeds.SegmentMetrics));
+export const createBacktestResult = () => shared.BacktestResultSchema.parse(structuredClone(seeds.BacktestResult));
+export const createUnsignedTx = () => shared.UnsignedTxSchema.parse(structuredClone(seeds.UnsignedTx));
+export const createResearchNote = () => shared.ResearchNoteSchema.parse(structuredClone(seeds.ResearchNote));
+export const createResearchJob = () => shared.ResearchJobSchema.parse(structuredClone(seeds.ResearchJob));
+export const createReceiptRef = () => shared.ReceiptRefSchema.parse(structuredClone(seeds.ReceiptRef));
+export const createReceiptProof = () => shared.ReceiptProofSchema.parse(structuredClone(seeds.ReceiptProof));
+export const createReceipt = () => shared.ReceiptSchema.parse(structuredClone(seeds.Receipt));
+export const createPolicy = () => shared.PolicySchema.parse(structuredClone(seeds.Policy));
+export const createPreflightOrderTx = () => shared.PreflightOrderTxSchema.parse(structuredClone(seeds.PreflightOrderTx));
+export const createPreflightAttestation = () => shared.PreflightAttestationSchema.parse(structuredClone(seeds.PreflightAttestation));
+export const createPreflightRequest = () => shared.PreflightRequestSchema.parse(structuredClone(seeds.PreflightRequest));
+export const createPreflightResult = () => shared.PreflightResultSchema.parse(structuredClone(seeds.PreflightResult));
+export const createJournalEntry = () => shared.JournalEntrySchema.parse(structuredClone(seeds.JournalEntry));
+export const createApprovalDetail = () => shared.ApprovalDetailSchema.parse(structuredClone(seeds.ApprovalDetail));
+export const createApproval = () => shared.ApprovalSchema.parse(structuredClone(seeds.Approval));
+export const createAgentGuardrails = () => shared.AgentGuardrailsSchema.parse(structuredClone(seeds.AgentGuardrails));
+export const createAgent = () => shared.AgentSchema.parse(structuredClone(seeds.Agent));
+export const createAgentDetail = () => shared.AgentDetailSchema.parse(structuredClone(seeds.AgentDetail));
+export const createApiKeyCreated = () => shared.ApiKeyCreatedSchema.parse(structuredClone(seeds.ApiKeyCreated));
+export const createApiKeyInfo = () => shared.ApiKeyInfoSchema.parse(structuredClone(seeds.ApiKeyInfo));
+export const createUncheckedOrder = () => shared.UncheckedOrderSchema.parse(structuredClone(seeds.UncheckedOrder));
+export const createHardKill = () => shared.HardKillSchema.parse(structuredClone(seeds.HardKill));
+export const createAgentSummary = () => shared.AgentSummarySchema.parse(structuredClone(seeds.AgentSummary));
+export const createPack = () => shared.PackSchema.parse(structuredClone(seeds.Pack));
+export const createLabelTier = () => shared.LabelTierSchema.parse(structuredClone(seeds.LabelTier));
+export const createLabelConfidence = () => shared.LabelConfidenceSchema.parse(structuredClone(seeds.LabelConfidence));
+export const createFlowEvent = () => shared.FlowEventSchema.parse(structuredClone(seeds.FlowEvent));
+export const createFlow = () => shared.FlowSchema.parse(structuredClone(seeds.Flow));
+export const createReceiptKind = () => shared.ReceiptKindSchema.parse(structuredClone(seeds.ReceiptKind));
+export const createBytes32 = () => shared.Bytes32Schema.parse(structuredClone(seeds.Bytes32));
+export const createReceiptItem = () => shared.ReceiptItemSchema.parse(structuredClone(seeds.ReceiptItem));
+export const createFlags = () => shared.FlagsSchema.parse(structuredClone(seeds.Flags));
+export const createFlagName = () => shared.FlagNameSchema.parse(structuredClone(seeds.FlagName));
+export const createOpsSwitch = () => shared.OpsSwitchSchema.parse(structuredClone(seeds.OpsSwitch));
+
+export const contractFixtures = {
+  OAuthScope: { schema: shared.OAuthScopeSchema, create: createOAuthScope },
+  OAuthGrant: { schema: shared.OAuthGrantSchema, create: createOAuthGrant },
+  OAuthRequest: { schema: shared.OAuthRequestSchema, create: createOAuthRequest },
+  OAuthConsent: { schema: shared.OAuthConsentSchema, create: createOAuthConsent },
+  OAuthTokenGrant: { schema: shared.OAuthTokenGrantSchema, create: createOAuthTokenGrant },
+  OAuthToken: { schema: shared.OAuthTokenSchema, create: createOAuthToken },
+  PlaybookMatch: { schema: shared.PlaybookMatchSchema, create: createPlaybookMatch },
+  Verdict: { schema: shared.VerdictSchema, create: createVerdict },
+  CoinCardFlowExtra: { schema: shared.CoinCardFlowExtraSchema, create: createCoinCardFlowExtra },
+  CoinCardMeta: { schema: shared.CoinCardMetaSchema, create: createCoinCardMeta },
+  CoinCard: { schema: shared.CoinCardSchema, create: createCoinCard },
+  ChartMarker: { schema: shared.ChartMarkerSchema, create: createChartMarker },
+  LoopBacktest: { schema: shared.LoopBacktestSchema, create: createLoopBacktest },
+  Operand: { schema: shared.OperandSchema, create: createOperand },
+  Condition: { schema: shared.ConditionSchema, create: createCondition },
+  LoopSpec: { schema: shared.LoopSpecSchema, create: createLoopSpec },
+  BurnWalletInfo: { schema: shared.BurnWalletInfoSchema, create: createBurnWalletInfo },
+  PonsBuybackStats: { schema: shared.PonsBuybackStatsSchema, create: createPonsBuybackStats },
+  BurnEngineInfo: { schema: shared.BurnEngineInfoSchema, create: createBurnEngineInfo },
+  BurnStatsExtra: { schema: shared.BurnStatsExtraSchema, create: createBurnStatsExtra },
+  BurnEvent: { schema: shared.BurnEventSchema, create: createBurnEvent },
+  BurnStats: { schema: shared.BurnStatsSchema, create: createBurnStats },
+  BurnStatsWithExtras: { schema: shared.BurnStatsWithExtrasSchema, create: createBurnStatsWithExtras },
+  Hex: { schema: shared.HexSchema, create: createHex },
+  Address: { schema: shared.AddressSchema, create: createAddress },
+  Level: { schema: shared.LevelSchema, create: createLevel },
+  WalletLabel: { schema: shared.WalletLabelSchema, create: createWalletLabel },
+  Untrusted: { schema: shared.UntrustedSchema, create: createUntrusted },
+  PlaybookId: { schema: shared.PlaybookIdSchema, create: createPlaybookId },
+  EvidenceRef: { schema: shared.EvidenceRefSchema, create: createEvidenceRef },
+  PoolRef: { schema: shared.PoolRefSchema, create: createPoolRef },
+  Tf: { schema: shared.TfSchema, create: createTf },
+  BusTopic: { schema: shared.BusTopicSchema, create: createBusTopic },
+  ErrorCode: { schema: shared.ErrorCodeSchema, create: createErrorCode },
+  ApiError: { schema: shared.ApiErrorSchema, create: createApiError },
+  PublicConfig: { schema: shared.PublicConfigSchema, create: createPublicConfig },
+  Me: { schema: shared.MeSchema, create: createMe },
+  Referrals: { schema: shared.ReferralsSchema, create: createReferrals },
+  TrialRecap: { schema: shared.TrialRecapSchema, create: createTrialRecap },
+  Census: { schema: shared.CensusSchema, create: createCensus },
+  ScoreboardKind: { schema: shared.ScoreboardKindSchema, create: createScoreboardKind },
+  ScoreboardRow: { schema: shared.ScoreboardRowSchema, create: createScoreboardRow },
+  PerpContext: { schema: shared.PerpContextSchema, create: createPerpContext },
+  WatchBody: { schema: shared.WatchBodySchema, create: createWatchBody },
+  AlertSettings: { schema: shared.AlertSettingsSchema, create: createAlertSettings },
+  Alert: { schema: shared.AlertSchema, create: createAlert },
+  Entitlements: { schema: shared.EntitlementsSchema, create: createEntitlements },
+  WsEventMap: { schema: shared.WsEventMapSchema, create: createWsEventMap },
+  WsChannelKind: { schema: shared.WsChannelKindSchema, create: createWsChannelKind },
+  WsChannel: { schema: shared.WsChannelSchema, create: createWsChannel },
+  WsKind: { schema: shared.WsKindSchema, create: createWsKind },
+  WsClient: { schema: shared.WsClientSchema, create: createWsClient },
+  WsEvent: { schema: shared.WsEventSchema, create: createWsEvent },
+  WsServer: { schema: shared.WsServerSchema, create: createWsServer },
+  CoinSummary: { schema: shared.CoinSummarySchema, create: createCoinSummary },
+  RadarRow: { schema: shared.RadarRowSchema, create: createRadarRow },
+  PairRow: { schema: shared.PairRowSchema, create: createPairRow },
+  FeedItem: { schema: shared.FeedItemSchema, create: createFeedItem },
+  Bar: { schema: shared.BarSchema, create: createBar },
+  Tick: { schema: shared.TickSchema, create: createTick },
+  ScanResult: { schema: shared.ScanResultSchema, create: createScanResult },
+  BagReport: { schema: shared.BagReportSchema, create: createBagReport },
+  GuardCheck: { schema: shared.GuardCheckSchema, create: createGuardCheck },
+  GuardResult: { schema: shared.GuardResultSchema, create: createGuardResult },
+  TradeQuoteRequest: { schema: shared.TradeQuoteRequestSchema, create: createTradeQuoteRequest },
+  TradeQuote: { schema: shared.TradeQuoteSchema, create: createTradeQuote },
+  TradeOrder: { schema: shared.TradeOrderSchema, create: createTradeOrder },
+  BacktestAssumptions: { schema: shared.BacktestAssumptionsSchema, create: createBacktestAssumptions },
+  BacktestTrade: { schema: shared.BacktestTradeSchema, create: createBacktestTrade },
+  SegmentMetrics: { schema: shared.SegmentMetricsSchema, create: createSegmentMetrics },
+  BacktestResult: { schema: shared.BacktestResultSchema, create: createBacktestResult },
+  UnsignedTx: { schema: shared.UnsignedTxSchema, create: createUnsignedTx },
+  ResearchNote: { schema: shared.ResearchNoteSchema, create: createResearchNote },
+  ResearchJob: { schema: shared.ResearchJobSchema, create: createResearchJob },
+  ReceiptRef: { schema: shared.ReceiptRefSchema, create: createReceiptRef },
+  ReceiptProof: { schema: shared.ReceiptProofSchema, create: createReceiptProof },
+  Receipt: { schema: shared.ReceiptSchema, create: createReceipt },
+  Policy: { schema: shared.PolicySchema, create: createPolicy },
+  PreflightOrderTx: { schema: shared.PreflightOrderTxSchema, create: createPreflightOrderTx },
+  PreflightAttestation: { schema: shared.PreflightAttestationSchema, create: createPreflightAttestation },
+  PreflightRequest: { schema: shared.PreflightRequestSchema, create: createPreflightRequest },
+  PreflightResult: { schema: shared.PreflightResultSchema, create: createPreflightResult },
+  JournalEntry: { schema: shared.JournalEntrySchema, create: createJournalEntry },
+  ApprovalDetail: { schema: shared.ApprovalDetailSchema, create: createApprovalDetail },
+  Approval: { schema: shared.ApprovalSchema, create: createApproval },
+  AgentGuardrails: { schema: shared.AgentGuardrailsSchema, create: createAgentGuardrails },
+  Agent: { schema: shared.AgentSchema, create: createAgent },
+  AgentDetail: { schema: shared.AgentDetailSchema, create: createAgentDetail },
+  ApiKeyCreated: { schema: shared.ApiKeyCreatedSchema, create: createApiKeyCreated },
+  ApiKeyInfo: { schema: shared.ApiKeyInfoSchema, create: createApiKeyInfo },
+  UncheckedOrder: { schema: shared.UncheckedOrderSchema, create: createUncheckedOrder },
+  HardKill: { schema: shared.HardKillSchema, create: createHardKill },
+  AgentSummary: { schema: shared.AgentSummarySchema, create: createAgentSummary },
+  Pack: { schema: shared.PackSchema, create: createPack },
+  LabelTier: { schema: shared.LabelTierSchema, create: createLabelTier },
+  LabelConfidence: { schema: shared.LabelConfidenceSchema, create: createLabelConfidence },
+  FlowEvent: { schema: shared.FlowEventSchema, create: createFlowEvent },
+  Flow: { schema: shared.FlowSchema, create: createFlow },
+  ReceiptKind: { schema: shared.ReceiptKindSchema, create: createReceiptKind },
+  Bytes32: { schema: shared.Bytes32Schema, create: createBytes32 },
+  ReceiptItem: { schema: shared.ReceiptItemSchema, create: createReceiptItem },
+  Flags: { schema: shared.FlagsSchema, create: createFlags },
+  FlagName: { schema: shared.FlagNameSchema, create: createFlagName },
+  OpsSwitch: { schema: shared.OpsSwitchSchema, create: createOpsSwitch },
+};
