@@ -1,0 +1,418 @@
+[
+  {
+    "address": "0xca8c22045054c51e144b5a6d5377072c5004ee82",
+    "name": {
+      "text": "Glint Club",
+      "flags": [],
+      "truncated": false
+    },
+    "symbol": {
+      "text": "GLINT",
+      "flags": [],
+      "truncated": false
+    },
+    "launchpad": "pons",
+    "stage": "curve",
+    "column": "new",
+    "curvePct": 11,
+    "priceUsd": 0.0003131482391003351,
+    "change1hPct": 135,
+    "liquidityUsd": 4506,
+    "verdict": "monitor",
+    "ageSec": 6,
+    "buyers": 145,
+    "exitCost100Pct": 0.9,
+    "flow": {
+      "window": "1h",
+      "agentPct": 45.347599195316434,
+      "declaredAgentPct": 40.697133981157094,
+      "likelyAgentPct": 4.65046521415934,
+      "crewPct": 2.554821788100526,
+      "humanPct": 52.09757901658304,
+      "washEstPct": 0,
+      "beta": true,
+      "confidence": 0.86
+    },
+    "antiSnipe": {
+      "taxPct": 84,
+      "endsInSec": 34
+    },
+    "verdictPending": true
+  },
+  {
+    "address": "0x6a71d8baf8f4adb9f74867738e7a884fef9cb4c5",
+    "name": {
+      "text": "Mote",
+      "flags": [],
+      "truncated": false
+    },
+    "symbol": {
+      "text": "MOTE",
+      "flags": [],
+      "truncated": false
+    },
+    "launchpad": "pons",
+    "stage": "curve",
+    "column": "new",
+    "curvePct": 4,
+    "priceUsd": 0.00017736062634384208,
+    "change1hPct": 121.2,
+    "liquidityUsd": 5028,
+    "verdict": "monitor",
+    "topPlaybook": "exempt_insiders",
+    "ageSec": 19,
+    "buyers": 151,
+    "exitCost100Pct": 1.8,
+    "flow": {
+      "window": "1h",
+      "agentPct": 28.038219090318307,
+      "declaredAgentPct": 15.97505486337468,
+      "likelyAgentPct": 12.063164226943627,
+      "crewPct": 7.124338315334172,
+      "humanPct": 64.83744259434752,
+      "washEstPct": 0,
+      "beta": true,
+      "confidence": 0.86
+    },
+    "antiSnipe": {
+      "taxPct": 52,
+      "endsInSec": 21
+    },
+    "verdictPending": true
+  },
+  {
+    "address": "0xac42a7d91abdf9f1bfce641cd32a6a64d44b3548",
+    "name": {
+      "text": "Prism Cat",
+      "flags": [],
+      "truncated": false
+    },
+    "symbol": {
+      "text": "PRISM",
+      "flags": [],
+      "truncated": false
+    },
+    "launchpad": "pons",
+    "stage": "curve",
+    "column": "new",
+    "curvePct": 4,
+    "priceUsd": 0.0003506744299235357,
+    "change1hPct": 71.3,
+    "liquidityUsd": 9286,
+    "verdict": "clear",
+    "ageSec": 31,
+    "buyers": 39,
+    "exitCost100Pct": 1.5,
+    "flow": {
+      "window": "1h",
+      "agentPct": 45.60847200616263,
+      "declaredAgentPct": 37.44261768832803,
+      "likelyAgentPct": 8.1658543178346,
+      "crewPct": 4.304903807584197,
+      "humanPct": 50.08662418625318,
+      "washEstPct": 0,
+      "beta": true,
+      "confidence": 0.86
+    },
+    "antiSnipe": {
+      "taxPct": 22,
+      "endsInSec": 9
+    },
+    "verdictPending": false
+  },
+  {
+    "address": "0xe0a06921ea6a95e7ff1a6b94047912b2cbcec48f",
+    "name": {
+      "text": "Ghost 2.0",
+      "flags": [],
+      "truncated": false
+    },
+    "symbol": {
+      "text": "GH0ST",
+      "flags": [
+        "impersonation"
+      ],
+      "truncated": false
+    },
+    "launchpad": "pons",
+    "stage": "curve",
+    "column": "new",
+    "curvePct": 7,
+    "priceUsd": 0.00024224219156133756,
+    "change1hPct": 12.9,
+    "liquidityUsd": 6375,
+    "verdict": "danger",
+    "topPlaybook": "clone_swarm",
+    "ageSec": 74,
+    "buyers": 143,
+    "exitCost100Pct": 42.2,
+    "flow": {
+      "window": "1h",
+      "agentPct": 34.96049513458274,
+      "declaredAgentPct": 25.032850160263475,
+      "likelyAgentPct": 9.927644974319264,
+      "crewPct": 21.09093300998211,
+      "humanPct": 43.948571855435155,
+      "washEstPct": 0,
+      "beta": true,
+      "confidence": 0.86
+    },
+    "verdictPending": false
+  },
+  {
+    "address": "0x32503bd5382bbb5420b646a613471aa8ceccea35",
+    "name": {
+      "text": "Ember Fi",
+      "flags": [],
+      "truncated": false
+    },
+    "symbol": {
+      "text": "EMBER",
+      "flags": [],
+      "truncated": false
+    },
+    "launchpad": "pons",
+    "stage": "curve",
+    "column": "new",
+    "curvePct": 11,
+    "priceUsd": 0.00004303780494048247,
+    "change1hPct": 57.9,
+    "liquidityUsd": 2695,
+    "verdict": "monitor",
+    "topPlaybook": "tax_trap",
+    "ageSec": 140,
+    "buyers": 235,
+    "exitCost100Pct": 1,
+    "flow": {
+      "window": "1h",
+      "agentPct": 54.95214265119285,
+      "declaredAgentPct": 47.062992884311825,
+      "likelyAgentPct": 7.889149766881019,
+      "crewPct": 4.78308078669943,
+      "humanPct": 40.26477656210773,
+      "washEstPct": 0,
+      "beta": true,
+      "confidence": 0.86
+    },
+    "verdictPending": false
+  },
+  {
+    "address": "0x1725e6edf59d002dffd2100356fed85d939a89b7",
+    "name": {
+      "text": "Lark Cat",
+      "flags": [],
+      "truncated": false
+    },
+    "symbol": {
+      "text": "LARK",
+      "flags": [],
+      "truncated": false
+    },
+    "launchpad": "pons",
+    "stage": "curve",
+    "column": "new",
+    "curvePct": 16,
+    "priceUsd": 0.0002708654257568561,
+    "change1hPct": 27.1,
+    "liquidityUsd": 10158,
+    "verdict": "clear",
+    "ageSec": 260,
+    "buyers": 200,
+    "exitCost100Pct": 3.6,
+    "flow": {
+      "window": "1h",
+      "agentPct": 30.82889791787602,
+      "declaredAgentPct": 22.4266515080817,
+      "likelyAgentPct": 8.402246409794317,
+      "crewPct": 7.100506972055882,
+      "humanPct": 62.0705951100681,
+      "washEstPct": 0,
+      "beta": true,
+      "confidence": 0.86
+    },
+    "verdictPending": false
+  },
+  {
+    "address": "0x675c7c3c682bc3a2d83c27ca506f0a88cf2f2d5e",
+    "name": {
+      "text": "Nimbus",
+      "flags": [],
+      "truncated": false
+    },
+    "symbol": {
+      "text": "NIMBUS",
+      "flags": [],
+      "truncated": false
+    },
+    "launchpad": "pons",
+    "stage": "curve",
+    "column": "new",
+    "curvePct": 9,
+    "priceUsd": 0.00012373872482632618,
+    "change1hPct": 34.6,
+    "liquidityUsd": 13737,
+    "verdict": "danger",
+    "topPlaybook": "bundle_dump",
+    "ageSec": 410,
+    "buyers": 115,
+    "exitCost100Pct": 79.3,
+    "flow": {
+      "window": "1h",
+      "agentPct": 27.055852136574686,
+      "declaredAgentPct": 21.19348058756441,
+      "likelyAgentPct": 5.862371549010278,
+      "crewPct": 37.220558552071466,
+      "humanPct": 35.72358931135386,
+      "washEstPct": 0,
+      "beta": true,
+      "confidence": 0.86
+    },
+    "verdictPending": false
+  },
+  {
+    "address": "0x51b8cc838670169cd4e0b2b4c26b2923675070fd",
+    "name": {
+      "text": "Opal AI",
+      "flags": [],
+      "truncated": false
+    },
+    "symbol": {
+      "text": "OPAL",
+      "flags": [],
+      "truncated": false
+    },
+    "launchpad": "pons",
+    "stage": "curve",
+    "column": "new",
+    "curvePct": 27,
+    "priceUsd": 0.00033532900050472575,
+    "change1hPct": 84.2,
+    "liquidityUsd": 7103,
+    "verdict": "clear",
+    "ageSec": 620,
+    "buyers": 113,
+    "exitCost100Pct": 1.1,
+    "flow": {
+      "window": "1h",
+      "agentPct": 50.57551074703225,
+      "declaredAgentPct": 44.97831531288103,
+      "likelyAgentPct": 5.597195434151218,
+      "crewPct": 2.1864092131145303,
+      "humanPct": 47.23808003985323,
+      "washEstPct": 0,
+      "beta": true,
+      "confidence": 0.86
+    },
+    "verdictPending": false
+  },
+  {
+    "address": "0x56a326fb49f5df1179a9cbd689b569e269d13844",
+    "name": {
+      "text": "Sprout Protocol",
+      "flags": [],
+      "truncated": false
+    },
+    "symbol": {
+      "text": "SPROUT",
+      "flags": [],
+      "truncated": false
+    },
+    "launchpad": "pons",
+    "stage": "curve",
+    "column": "new",
+    "curvePct": 21,
+    "priceUsd": 0.00018445538715504032,
+    "change1hPct": 129.5,
+    "liquidityUsd": 10188,
+    "verdict": "monitor",
+    "topPlaybook": "serial_deployer",
+    "ageSec": 980,
+    "buyers": 94,
+    "exitCost100Pct": 3,
+    "flow": {
+      "window": "1h",
+      "agentPct": 22.34271235810593,
+      "declaredAgentPct": 12.158768226392567,
+      "likelyAgentPct": 10.183944131713362,
+      "crewPct": 2.954933228902519,
+      "humanPct": 74.70235441299155,
+      "washEstPct": 0,
+      "beta": true,
+      "confidence": 0.86
+    },
+    "verdictPending": false
+  },
+  {
+    "address": "0x379461566cd41dad9d4766485bd8cec78c09c8d2",
+    "name": {
+      "text": "Tally",
+      "flags": [],
+      "truncated": false
+    },
+    "symbol": {
+      "text": "TALLY",
+      "flags": [],
+      "truncated": false
+    },
+    "launchpad": "pons",
+    "stage": "curve",
+    "column": "near_grad",
+    "curvePct": 98,
+    "priceUsd": 0.00022511710367489201,
+    "change1hPct": 87.1,
+    "liquidityUsd": 153849,
+    "verdict": "clear",
+    "ageSec": 3100,
+    "buyers": 46,
+    "exitCost100Pct": 1.8,
+    "flow": {
+      "window": "1h",
+      "agentPct": 41.40780162042938,
+      "declaredAgentPct": 36.114012878388166,
+      "likelyAgentPct": 5.293788742041215,
+      "crewPct": 8.310500069521368,
+      "humanPct": 50.28169831004925,
+      "washEstPct": 0,
+      "beta": true,
+      "confidence": 0.86
+    },
+    "verdictPending": false
+  },
+  {
+    "address": "0xfaf2b6b4a795c659477086ec3e82de54e1dc0e4b",
+    "name": {
+      "text": "Vesper Club",
+      "flags": [],
+      "truncated": false
+    },
+    "symbol": {
+      "text": "VESPER",
+      "flags": [],
+      "truncated": false
+    },
+    "launchpad": "pons",
+    "stage": "curve",
+    "column": "near_grad",
+    "curvePct": 88,
+    "priceUsd": 0.0003613493924187685,
+    "change1hPct": 60.1,
+    "liquidityUsd": 30355,
+    "verdict": "monitor",
+    "topPlaybook": "bundle_dump",
+    "ageSec": 5400,
+    "buyers": 135,
+    "exitCost100Pct": 1.4,
+    "flow": {
+      "window": "1h",
+      "agentPct": 17.627962163183838,
+      "declaredAgentPct": 9.038609392009676,
+      "likelyAgentPct": 8.589352771174163,
+      "crewPct": 6.871117741102354,
+      "humanPct": 75.50092009571381,
+      "washEstPct": 0,
+      "beta": true,
+      "confidence": 0.86
+    },
+    "verdictPending": false
+  }
+]
