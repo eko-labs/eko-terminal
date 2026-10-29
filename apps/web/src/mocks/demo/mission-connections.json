@@ -1,0 +1,24 @@
+{
+  "scout": {
+    "onchain": {
+      "safe": "0x3f9c2d71a0b84e5f6c3a9d8e7b1f0c2a4e6d9a9c",
+      "roles": "0x592e8af04e9fcbcd357589c38fe8d568d875e14c",
+      "signer": "0x7c41e2a9b3f05d6e8a1c4b92f0d3e7a6c5b81f2e",
+      "role": "eko-scout",
+      "chain": "Robinhood Chain · 4663",
+      "perms": [
+        "Swap on Uniswap v3 and v4 routers, inside policy v7",
+        "Token approvals only to those routers, capped at the order size",
+        "No transfers out of the Safe. The module can approve or deny, never move funds"
+      ]
+    }
+  },
+  "dca": {},
+  "loop": {},
+  "hedge": {
+    "venueKey": {
+      "venue": "Hyperliquid",
+      "note": "Trade-only API wallet with no withdrawal rights. Your agent holds it; EKO never sees it."
+    }
+  }
+}

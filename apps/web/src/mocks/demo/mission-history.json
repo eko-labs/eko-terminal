@@ -1,0 +1,90 @@
+[
+  {
+    "id": "ap-2229",
+    "agent": "scout",
+    "side": "buy",
+    "symbol": "$KITE",
+    "usd": 150,
+    "rule": "approvalAboveUsdNewCoins",
+    "decision": "approved",
+    "ago": 7840,
+    "took": "48s"
+  },
+  {
+    "id": "ap-2228",
+    "agent": "hedge",
+    "side": "sell",
+    "symbol": "BTC-PERP",
+    "usd": 1500,
+    "rule": "approvalAboveUsd",
+    "decision": "approved",
+    "ago": 28640,
+    "took": "38s"
+  },
+  {
+    "id": "ap-2226",
+    "agent": "scout",
+    "side": "buy",
+    "symbol": "$PIXL",
+    "usd": 200,
+    "rule": "approvalAboveUsdNewCoins",
+    "decision": "expired",
+    "ago": 39600,
+    "took": "10m"
+  },
+  {
+    "id": "ap-2224",
+    "agent": "loop",
+    "side": "buy",
+    "symbol": "MU",
+    "usd": 600,
+    "rule": "approvalAboveUsd",
+    "decision": "approved",
+    "ago": 91390,
+    "took": "2m 04s"
+  },
+  {
+    "id": "ap-2221",
+    "agent": "loop",
+    "side": "buy",
+    "symbol": "NFLX",
+    "usd": 700,
+    "rule": "approvalAboveUsd",
+    "decision": "denied",
+    "ago": 173800,
+    "took": "3m 40s"
+  },
+  {
+    "id": "ap-2219",
+    "agent": "scout",
+    "side": "buy",
+    "symbol": "$YOLK",
+    "usd": 150,
+    "rule": "approvalAboveUsdNewCoins",
+    "decision": "denied",
+    "ago": 180800,
+    "took": "1m 15s"
+  },
+  {
+    "id": "ap-2214",
+    "agent": "loop",
+    "side": "buy",
+    "symbol": "FDX",
+    "usd": 650,
+    "rule": "approvalAboveUsd",
+    "decision": "expired",
+    "ago": 261000,
+    "took": "30m"
+  },
+  {
+    "id": "ap-2210",
+    "agent": "dca",
+    "side": "buy",
+    "symbol": "NVDA",
+    "usd": 450,
+    "rule": "approvalAboveUsd",
+    "decision": "approved",
+    "ago": 432380,
+    "took": "1m 12s"
+  }
+]
