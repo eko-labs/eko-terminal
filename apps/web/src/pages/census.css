@@ -1,0 +1,13 @@
+.census-page { max-width: 1060px; }
+.census-page section { margin: 28px 0; border-top: 1px solid var(--line); padding-top: 20px; }
+.census-page p, .census-page dd { line-height: 1.6; }
+.census-watch { display: inline-flex; align-items: center; gap: 8px; }
+.census-windows { display: flex; flex-wrap: wrap; gap: 16px; }
+.census-window { flex: 1 1 240px; border: 1px solid var(--line); padding: 16px; border-radius: 8px; }
+.census-share { font-size: 1.6rem; font-weight: 600; }
+.census-page dt { font-weight: 600; margin-top: 16px; }
+.census-page dd { margin: 4px 0; color: var(--muted); }
+.census-table { overflow-x: auto; }
+.census-table table { border-collapse: collapse; width: 100%; text-align: left; }
+.census-table th, .census-table td { padding: 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.census-evidence code { overflow-wrap: anywhere; }
