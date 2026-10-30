@@ -1,0 +1,19 @@
+html:has(.ui-review),body:has(.ui-review),#root:has(.ui-review){height:auto;overflow:visible}
+.ui-review{max-width:1480px;margin:auto;padding:44px 32px 64px;counter-reset:sec;color:var(--ink);font:14px/1.45 var(--sans)}
+.ui-page-head{margin-bottom:36px}
+.ui-label{font:12px/1.4 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.ui-page-head h1{margin:20px 0;font:400 var(--t-page)/.98 var(--display);letter-spacing:-.055em}
+.ui-page-head p{color:var(--ink2);font-size:16px}
+.ui-review .fold{margin-top:24px}
+.ui-row{display:flex;flex-wrap:wrap;align-items:center;gap:16px;margin:16px 0}
+.ui-icon-grid,.ui-token-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:20px;padding:16px 0}
+.ui-icon-grid>span{display:flex;align-items:center;gap:12px;font:12px var(--mono)}
+.ui-review dt{font:12px var(--mono);color:var(--muted)}
+.ui-review dd{margin:6px 0 0;overflow-wrap:anywhere}
+.ui-token-grid dd{display:flex;align-items:center;gap:8px}
+.ui-token-grid i{display:inline-block;width:22px;height:22px;flex:none;border:1px solid var(--rule3)}
+.ui-copy>div{padding:16px 0;border-top:1px solid var(--rule)}
+.ui-surface{padding:24px;border:1px solid var(--edge);border-radius:var(--r3)}
+.ui-types p{margin:20px 0;overflow-wrap:anywhere}
+.ui-dither{width:240px;height:100px;background-color:var(--plate);background-size:cover;border:1px solid var(--edge);padding:12px}
+@media(max-width:700px){.ui-review{padding:28px 16px 48px}.ui-page-head h1{overflow-wrap:anywhere}}
