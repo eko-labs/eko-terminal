@@ -1,0 +1,24 @@
+.review-page { max-width: 1200px; }
+.review-page .panel { padding: 20px 0; border-top: 1px solid var(--line); }
+.review-page h2 { font-size: 20px; margin-bottom: 12px; }
+.review-page h3 { font-size: 16px; margin: 12px 0; }
+.review-page p, .review-page li { margin-block: 8px; }
+.review-page ul, .review-page ol { padding-left: 24px; }
+.review-page code, .review-page dd { overflow-wrap: anywhere; }
+.review-page article { margin-block: 16px; }
+.review-page dl > div { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(0, 2fr); gap: 16px; padding: 6px 0; }
+.review-page dt { color: var(--muted); }
+.review-page dd { margin: 0; font-family: var(--font-mono); }
+.review-panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.review-page figure { margin: 12px 0; }
+.review-page svg { width: 100%; color: var(--brand); }
+.review-page svg text { fill: var(--ink); font-size: 14px; }
+.review-page pre { overflow: auto; max-height: 420px; font-size: 13px; }
+.review-page fieldset { border: 0; padding: 0; min-width: 0; }
+.review-page label { display: block; margin-block: 16px; }
+.review-page input:not([type=checkbox]), .review-page select, .review-page textarea { display: block; margin-top: 8px; padding: 10px; width: 100%; color: var(--ink); background: var(--ground); border: 1px solid var(--line); border-radius: 2px; }
+.review-page textarea { min-height: 100px; }
+.review-page input[type=checkbox] { margin-right: 10px; }
+.review-page [id] { scroll-margin-top: 20px; }
+@media (max-width: 760px) { .review-panels { grid-template-columns: 1fr; gap: 0; } .review-page dl > div { grid-template-columns: 1fr; gap: 4px; } }
+@media (pointer: coarse) { .review-page a, .review-page button, .review-page label { min-height: 44px; } .review-page a { display: inline-block; } }
