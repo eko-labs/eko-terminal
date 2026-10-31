@@ -1,0 +1,281 @@
+/* Terminal secondary pages: New pairs, Feed and Scan my bags. Builds on base.css and terminal.css. */
+
+/* ---- New pairs ------------------------------------------------------------ */
+.pairs-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
+.pcol{display:flex;flex-direction:column;min-width:0;height:max(480px,calc(100vh - var(--header) - var(--subnav) - var(--status) - 226px))}
+.pcol-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:12px 14px 11px;border-bottom:1px solid var(--rule2)}
+.pcol-head h2{margin:0;display:flex;align-items:center;gap:8px;font:500 14px var(--sans)}
+.pcol-head p{margin:3px 0 0;font-size:12px;color:var(--muted)}
+.pcol-count{font:500 12px/16px var(--sans);color:var(--ink2);border:1px solid var(--rule2);border-radius:8px;padding:0 6px}
+.pcol-list{position:relative;flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--rule2) transparent}
+.pcol-list ul{list-style:none;margin:0;padding:0}
+.pcol-pill-wrap{position:sticky;top:8px;z-index:2;height:0;display:flex;justify-content:center}
+.pcol-pill{border-radius:14px;box-shadow:0 8px 24px -8px #000;animation:rise .2s var(--e-out)}
+.prow{display:flex;flex-direction:column;gap:8px;padding:12px 14px 13px;border-bottom:1px solid var(--rule);cursor:pointer;transition:background .12s}
+.prow:hover{background:var(--hover)}
+.prow.pending{cursor:default}
+.prow.enter{animation:rise .36s var(--e-out) both,pr-in 2s var(--e-out)}
+@keyframes pr-in{from{background:#8fcaf012}}
+.pr-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.pr-id{display:flex;align-items:baseline;gap:10px;min-width:0}
+.pr-sym{padding:0;border:0;background:none;color:var(--ink);font:400 19px/1 var(--display);letter-spacing:-.04em;white-space:nowrap;transition:color .15s}
+.pr-sym:hover{color:var(--lit)}
+.pr-age{font-size:12px;color:var(--muted)}
+.pr-verdict{display:inline-flex;animation:fade .3s}
+.prow .verdict.scanning::before{content:'';width:6px;height:6px;margin:0 1px 0 2px;border-radius:50%;background:var(--muted);animation:pr-blink 1.1s ease-in-out infinite}
+@keyframes pr-blink{50%{opacity:.25}}
+.pr-sub{display:flex;align-items:center;gap:6px;min-width:0;font-size:12px;color:var(--muted);white-space:nowrap}
+.pr-name{overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+.pr-play{color:var(--ink2);overflow:hidden;text-overflow:ellipsis;min-width:0}
+.pr-end{margin-left:auto;flex:none}
+.pr-snipe{font-size:12px;color:var(--ink2);border:1px solid var(--rule2);border-radius:var(--r1);padding:1px 6px}
+.pr-snipe b{color:var(--ink);font-weight:500}
+.prow .tag{height:18px;font-size:11px}
+.pr-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) 74px 66px;align-items:end;gap:14px;margin-top:2px}
+.pr-grid>.btn{width:100%}
+.pr-cell{display:flex;flex-direction:column;gap:5px;min-width:0;overflow:hidden}
+.pr-l{display:flex;align-items:center;gap:6px;height:16px;font-size:12px;color:var(--muted);white-space:nowrap}
+.pr-l b{color:var(--ink);font-weight:500}
+.pr-l .tag{height:14px;padding:0 4px;font-size:9.5px;margin-left:auto}
+.pr-bar{height:16px;display:flex;align-items:center}
+.pr-bar>*{flex:1}
+.pr-v{height:16px;font:500 14px/16px var(--sans)}
+.pr-v.bad{color:var(--danger)}
+.pr-wait{grid-column:span 2;align-self:center;font-size:12px;color:var(--muted)}
+.pr-drawer-sym{font:400 22px var(--display);letter-spacing:-.04em}
+.pairs-seg{margin-bottom:12px}
+.pairs-seg .seg{display:flex;width:100%}
+.pairs-seg .seg button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.seg-n{font-size:12px;color:var(--muted)}
+.seg button[aria-pressed=true] .seg-n{color:var(--ink2)}
+.pcol-beta{display:none;align-items:center;gap:6px;font-size:12px;color:var(--muted);white-space:nowrap}
+.pcol-beta .tag{height:17px;font-size:11px}
+@media (max-width:900px){
+ .pcol{height:auto;min-height:0}
+ .pcol-head h2{display:none}
+ .pcol-head p{margin:0}
+ .pcol-head{align-items:center}
+ .pcol-beta{display:inline-flex}
+ .pr-l .tag{display:none}
+ .pcol-list{overflow:visible}
+ .pcol-pill-wrap{top:calc(var(--header) + var(--subnav) + 8px)}
+}
+@media (max-width:480px){.pr-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 66px 62px;gap:10px}}
+@media (max-width:700px){.sec-page .page-head{flex-direction:column;align-items:flex-start;gap:12px}.sec-page .page-head .stats-inline{gap:6px 16px}}
+
+/* ---- Feed ------------------------------------------------------------------ */
+.feed-toolbar{gap:10px 18px}
+.feed-kind{font-size:13px;gap:8px}
+.feed-kind .num{font-size:12px}
+.feed-kind .tag{height:17px;font-size:11px}
+.feed-rule{width:1px;height:18px;background:var(--rule2)}
+.feed-grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}
+.feed-list{position:relative;overflow:clip}
+.feed-list ul{list-style:none;margin:0;padding:0}
+.feed-pill-wrap{position:sticky;top:calc(var(--header) + var(--subnav) + 10px);z-index:3;height:0;display:flex;justify-content:center}
+.feed-pill{margin-top:6px;border-radius:14px;box-shadow:0 10px 26px -8px #000;animation:rise .2s var(--e-out)}
+.frow{display:grid;grid-template-columns:66px 18px 92px minmax(0,1fr) 112px;align-items:center;gap:12px;min-height:42px;padding:0 16px;border-bottom:1px solid var(--rule);font-size:14px}
+.feed-list li:last-child{border-bottom:0}
+.frow.enter{animation:rise .24s var(--e-out) both,pr-in 1.6s var(--e-out)}
+.frow-head{min-height:36px;font-size:12px;color:var(--muted);border-bottom-color:var(--rule2)}
+.fr-time{font-size:12px;color:var(--muted)}
+.fr-kind{display:grid;place-items:center;width:18px;height:18px;color:var(--muted)}
+.fr-kind svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5}
+.k-scan .fr-kind{color:var(--accent)}
+.k-alert .fr-kind{color:var(--ink2)}
+.k-ghost .fr-kind{color:var(--danger)}
+.fr-sym{font:400 16px/1 var(--display);letter-spacing:-.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .15s}
+.fr-sym:hover{color:var(--lit)}
+.fr-desc{display:flex;align-items:center;gap:7px;min-width:0;white-space:nowrap;overflow:hidden;color:var(--ink2)}
+.fr-desc b{color:var(--ink);font-weight:500}
+.fr-desc .addr{font-size:12px}
+.fr-who{display:inline-flex;align-items:center;gap:6px;color:var(--muted)}
+.fr-sep{color:var(--faint)}
+.fr-clip{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.fr-buy{color:var(--ink)}
+.fr-sell{color:var(--muted)}
+.fr-ghost{color:var(--danger)!important}
+.fr-end{display:flex;justify-content:flex-end;align-items:center}
+.fr-size{font-weight:500}
+.fr-evidence{display:inline-flex;align-items:center;gap:3px;font-size:13px;color:var(--ink2);transition:color .15s}
+.fr-evidence:hover{color:var(--ink)}
+.fr-evidence svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:1.6}
+.feed-foot{margin:0;padding:12px 16px;border-top:1px solid var(--rule);font-size:12px;color:var(--faint)}
+.feed-aside{position:sticky;top:calc(var(--header) + var(--subnav) + 16px);display:flex;flex-direction:column;gap:14px}
+.feed-mix{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.feed-mix li{display:grid;grid-template-columns:18px 112px minmax(0,1fr) 28px;align-items:center;gap:10px;font-size:13px;color:var(--ink2)}
+.feed-mix b{text-align:right;font-weight:500;color:var(--ink)}
+.feed-busy{list-style:none;margin:0;padding:0}
+.feed-busy li{display:flex;flex-direction:column;gap:7px;padding:10px 0;border-top:1px solid var(--rule)}
+.feed-busy li:first-child{border-top:0}
+.fb-top{display:flex;align-items:center;gap:10px}
+.fb-top .muted{font-size:12px;margin-right:auto}
+.fb-flow{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;font-size:12px}
+.fb-flow b{color:var(--ink);font-weight:500}
+.feed-note{margin:0 2px}
+@media (max-width:1100px){.feed-grid{grid-template-columns:1fr}.feed-aside{position:static;display:grid;grid-template-columns:1fr 1fr}.feed-note{grid-column:1/-1}}
+@media (max-width:700px){
+ .feed-toolbar{gap:10px 14px}
+ .feed-rule{display:none}
+ .frow{grid-template-columns:18px minmax(0,1fr) auto;grid-template-areas:"kind sym time" "kind desc end";gap:4px 10px;padding:10px 14px}
+ .frow-head{display:none}
+ .fr-kind{grid-area:kind;align-self:start;margin-top:1px}
+ .fr-sym{grid-area:sym}
+ .fr-time{grid-area:time;text-align:right;font-size:12px}
+ .fr-desc{grid-area:desc;font-size:13px}
+ .fr-end{grid-area:end}
+ .feed-aside{grid-template-columns:1fr}
+}
+
+/* ---- New pairs: shading, scanning and the verdict stamp ---------------------------- */
+.pcol-list .prow.tone{background-color:transparent}
+.prow.tone.hot{background:linear-gradient(90deg,#8fcaf012,transparent 70%);box-shadow:inset 3px 0 0 var(--accent)}
+.prow.tone.avoid{background:linear-gradient(90deg,#f08c7e0e,transparent 70%);box-shadow:inset 3px 0 0 #b0655a}
+.prow.tone.fading{background:#02050799}
+.prow.tone.scanning{background:linear-gradient(90deg,#8fcaf008,transparent 60%);box-shadow:inset 3px 0 0 var(--rule3)}
+.prow.stamped{animation:pr-stamp 1.2s var(--e-out)}
+@keyframes pr-stamp{0%{background-color:#8fcaf01c}}
+.prow.migrated{box-shadow:inset 3px 0 0 var(--lit)}
+.pr-flag{height:18px}
+.pr-play.bad{color:var(--danger)}
+.prow .heat-tag{height:20px;font-size:12px}
+.pr-scan{display:grid;grid-template-columns:1fr;gap:7px;font-size:12px;color:var(--ink2);padding-top:2px}
+.pr-scan b{color:var(--ink);font-weight:500}
+.pr-scanbar-wrap{height:2px;background:#0f1a22;border-radius:1px;overflow:hidden}
+.pr-scanbar{display:block;height:100%;width:100%;background:var(--accent);transform-origin:left;animation:pr-fill linear forwards}
+@keyframes pr-fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.pr-scan-ghost{display:grid;grid-template-columns:1fr 1.15fr 74px 66px;gap:14px}
+.pr-scan-ghost i{height:14px}
+.prow .verdict.scanning::before{display:none}
+@media (prefers-reduced-motion:reduce){.pr-scanbar{animation:none;transform:none}}
+
+/* Dithered accents on New pairs cards: the same tiers as Radar rows, drawn at natural size. Cards are
+   taller than rows, so a shimmer glows from the top-right corner and an ember rises along the bottom. */
+.prow.tone[class*=mk-shimmer]::before{background-position:right top;background-size:420px 240px}
+.prow.tone[class*=mk-ember]::before{background-position:left bottom;background-size:640px 120px;background-repeat:repeat-x}
+.prow.mk-shimmer-1::before{background-image:var(--dg-1-0);animation-name:dg1;animation-duration:4.2s}
+.prow.mk-shimmer-2::before{background-image:var(--dg-2-0);animation-name:dg2;animation-duration:3.6s}
+.prow.mk-shimmer-3::before{background-image:var(--dg-3-0);animation-name:dg3;animation-duration:1s}
+.prow.mk-ember-1::before{background-image:var(--dw-1-0);animation-name:dw1;animation-duration:2.4s}
+.prow.mk-ember-2::before{background-image:var(--dw-2-0);animation-name:dw2;animation-duration:2.1s}
+.prow.mk-ember-3::before{background-image:var(--dw-3-0);animation-name:dw3;animation-duration:.8s}
+
+/* Desk geometry from the approved prototype, scoped to these two pages. */
+.sec-page{padding:44px 32px 64px;max-width:1480px;min-width:0;width:100%;background:none;overflow:visible}
+.sec-page .page-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:24px 40px;margin-bottom:36px}
+.sec-page .page-head h1{margin:0;font:400 clamp(52px,4.8vw,76px)/.98 var(--display);letter-spacing:-.055em}
+.sec-page .page-head p{margin:16px 0 0;font-size:16px;line-height:1.5;color:var(--ink2);max-width:560px}
+.sec-page .panel{background:transparent;border:0;border-top:1px solid var(--rule2);border-radius:0;box-shadow:none}
+.sec-page .panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0 10px}
+.sec-page .panel-head h3{margin:0;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.sec-page .panel-head>.muted{font-size:12px}
+.sec-page .panel-body{padding:4px 0 18px}
+.sec-page .bar{height:4px;background:var(--off);border-radius:1px;overflow:hidden;flex:1}
+.sec-page .bar>i{display:block;height:100%;background:var(--accent)}
+.sec-page .foot-meta{margin:18px 0 0;font-size:12px;color:var(--faint);line-height:1.5}
+.sec-page .note{font-size:13px;line-height:1.6;color:var(--muted)}
+.sec-page .check{display:inline-flex;align-items:center;position:relative;cursor:pointer}
+.sec-page .check input{position:absolute;opacity:0;width:16px;height:16px;left:0}
+.sec-page .check>i{width:14px;height:14px;border:1px solid var(--rule2);border-radius:2px;flex:none}
+.sec-page .check input:checked+i{background:var(--lit);border-color:var(--lit)}
+.sec-page .check input:checked+i::after{content:'✓' / '';display:block;text-align:center;font:11px/12px var(--sans);color:var(--brand-ink)}
+.sec-page .check input:focus-visible+i{outline:2px solid var(--accent);outline-offset:3px}
+.pairs-page .pcol{height:max(480px,calc(100vh - var(--header) - 226px))}
+.pairs-page .pcol-head{padding:12px 2px 11px;border-bottom-color:var(--rule)}
+.pairs-page .pcol+.pcol{border-left:1px solid var(--rule);padding-left:12px}
+.pairs-page .prow{height:var(--pair-row-height,132px);gap:6px;box-sizing:border-box;overflow:hidden;background:transparent}
+.pairs-page .pr-sym .untrusted{max-width:150px}
+.pairs-page .pr-verdict{gap:6px;flex:none}
+.pairs-page .pr-tax-line{height:18px;display:flex;gap:8px;align-items:center;white-space:nowrap}
+.pairs-page .pr-scanning{font-size:12px;color:var(--muted)}
+.pairs-page .pr-snipe{padding:0 4px;font-size:11px;line-height:16px}
+.pairs-page .pr-grid{gap:10px;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) 68px 62px;align-items:start;margin-top:auto}
+.pairs-page .pr-grid>.btn{align-self:center;padding:0 6px}
+.pairs-page .pr-l{font-size:11px}
+.pairs-page .radar-flow{padding-top:5px}
+.pairs-page .flowbar{height:5px}
+.pairs-page .flow-beta{white-space:nowrap;font-size:9px;margin-top:3px}
+.pairs-page .flow-beta .tag{height:13px;font-size:9px}
+.pairs-page .pr-name .untrusted{display:inline}
+.feed-page .frow:not(.frow-head){height:42px;min-height:42px;box-sizing:border-box}
+.feed-page .fr-sym .untrusted{display:inline}
+.feed-page .label-glyph{width:10px;height:10px;flex:none;fill:currentColor;stroke:currentColor;stroke-width:1.3}
+.feed-page .label-glyph.declared_agent{color:var(--l-agent)}
+.feed-page .label-glyph.likely_agent{color:var(--l-likely)}
+.feed-page .label-glyph.crew{color:var(--l-crew)}
+.feed-page .label-glyph.human{color:var(--l-human)}
+.feed-page .fr-clip{display:block;text-overflow:ellipsis}
+.feed-page .feed-list{scroll-margin-top:calc(var(--header) + 12px)}
+.feed-page .feed-pill-wrap{top:calc(var(--header) + 10px)}
+.feed-page .feed-aside{top:calc(var(--header) + 16px)}
+.feed-page .fb-flow .flow-beta .tag{height:14px}
+@media(max-width:1100px){.feed-page .feed-grid{grid-template-columns:1fr}.feed-page .feed-aside{position:static}}
+@media(max-width:900px){.pairs-page .pcol{height:auto;min-height:0}.pairs-page .pcol-list{overflow:visible}.pairs-page .pcol-head h2{display:none}.pairs-page .pcol-head p{margin:0}.pairs-page .pcol-head{align-items:center}}
+@media(max-width:700px){
+ .sec-page{padding:18px 14px 32px}.sec-page .page-head{flex-direction:column;align-items:flex-start;gap:12px;margin-bottom:28px}.sec-page .page-head h1{font-size:48px}.sec-page .page-head p{font-size:14px}
+ .feed-page .feed-toolbar{flex-wrap:nowrap;overflow:visible;margin:0 0 14px;padding:0;gap:10px 14px}.feed-page .frow:not(.frow-head){height:66px;min-height:66px}.feed-page .fr-sym{align-self:end}.feed-page .fr-desc{align-self:start}
+ .pairs-page .pr-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 66px 62px;gap:10px}.pairs-page .pr-sym .untrusted{max-width:140px}.pairs-page .flow-beta{font-size:8px}.pairs-page .pr-top{gap:4px}.pairs-page .pr-id{gap:7px}.pairs-page .pr-verdict{gap:3px}.pairs-page .pr-verdict .heat-tag{display:none}
+}
+
+/* Inspector columns retain labels within their smaller available width. */
+.pairs-page .pcol{container-type:inline-size}
+@container(max-width:340px){.pairs-page .pr-verdict .heat-tag{display:none}.pairs-page .pr-sym .untrusted{max-width:110px}.pairs-page .pr-scanning{overflow:hidden;text-overflow:ellipsis}}
+
+/* The live status keeps one width whether it reads Live or Paused, so pausing to read never reflows the toolbar
+   (FRONTEND §3.3: no layout shift while reading). "while you read" is for screen readers only. */
+.live-slot{display:inline-grid}.live-slot>span,.live-slot::after{grid-area:1/1}
+.live-slot::after{content:'Paused';visibility:hidden;height:0;overflow:hidden}
+
+/* Lead review: section labels and inline beta marks match the Desk prototype. */
+.pairs-page .pcol-head h2{font:500 12.5px/1.4 var(--mono);letter-spacing:.09em;text-transform:uppercase}
+.pairs-page .pcol-count{font:inherit;border:0;border-radius:0;padding:0}
+.pairs-page .pr-l .tag{display:inline-flex;height:14px;padding:0 4px;font-size:9.5px}
+.feed-page .fb-flow>span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.feed-page .fb-flow>span .tag{height:14px;padding:0 4px;font-size:9.5px}
+.feed-page .fr-part-label{display:inline-flex;align-items:center;gap:6px;color:var(--muted)}
+.feed-page .fr-part-name{font-weight:500;color:var(--ink)}
+.feed-page .fr-part-address{font-size:12px;color:var(--muted)}
+.feed-page .fr-part-muted,.feed-page .fr-part-sell{color:var(--muted)}
+.feed-page .fr-part-buy{color:var(--ink)}
+.feed-page .fr-part-ghost{font-weight:500;color:var(--danger)}
+.feed-page .fr-clip{flex:1;min-width:0}
+.feed-page .feed-filters{display:flex;align-items:center;flex-wrap:wrap;gap:10px 18px;flex:1;min-width:0}
+@media(max-width:700px){
+ .feed-page .feed-toolbar>.feed-filters{flex:1 1 0;flex-wrap:nowrap;gap:10px 14px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+ .feed-page .feed-filters::-webkit-scrollbar{display:none}
+ .feed-page .feed-filters>*{flex:none;white-space:nowrap}
+ .feed-page .feed-toolbar>.toolbar-live{flex:none;white-space:nowrap;margin-left:0}
+}
+.pr-id{min-width:0;flex:1}.pr-sym{display:block;max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pr-age{flex:none}.pr-top{gap:8px}.pr-grid{min-width:0}.pr-cell{min-width:0}.pr-cell .availability{display:inline-block;line-height:1.3}.pcol>.availability-legend{padding:0 14px;margin:8px 0;flex:none}.pr-l{white-space:nowrap}.pr-l b{margin-left:4px}.fr-sym{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fb-top{min-width:0}.fb-top .fr-sym{flex:1}
+.pr-l b{display:block;margin:5px 0 0;line-height:1.2}
+
+/* Guard shadow/availability labels remain readable without covering the token identity. */
+.pairs-page .guard-labels .pr-top{flex-direction:column;align-items:stretch}
+.pairs-page .guard-labels .pr-verdict{flex-wrap:wrap;min-width:0;max-width:100%;align-items:center}
+.pairs-page .guard-labels .pr-verdict>a,.pairs-page .guard-labels .pr-verdict>span{max-width:100%;white-space:normal;overflow-wrap:anywhere;height:auto}
+/* Feed summaries keep identity/count on the first line and wrap all Guard disclosures below. */
+.feed-busy .fb-top{flex-wrap:wrap}
+.feed-busy .fb-top>.fr-sym{flex:1 1 calc(100% - 75px)}
+.feed-busy .fb-top>.muted{flex:none;margin-left:auto;margin-right:0}
+.feed-busy .fb-top>:not(.fr-sym):not(.muted){max-width:100%;white-space:normal;overflow-wrap:anywhere;height:auto}
+
+/* New pairs card: three lines of numbers under the identity, so a column reads at a glance (market cap, money in the
+   curve or pool, last-hour volume and trades, the 1h move; then who holds it; then curve, price line, exit and Trade). */
+.pairs-page .prow{height:var(--pair-row-height,176px);gap:7px;padding:11px 14px 12px}
+.pairs-page .pr-metrics{display:grid;grid-template-columns:1.1fr 1fr 1fr .85fr .85fr;gap:8px;min-width:0}
+.pr-m{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pr-ml{font-size:10px;line-height:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);white-space:nowrap}
+.pr-mv{font:500 14px/17px var(--sans);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr-mv.up{color:var(--up)}.pr-mv.down{color:var(--danger)}
+.pr-holders{display:flex;gap:12px;min-width:0;height:16px;font-size:11.5px;line-height:16px;color:var(--muted);white-space:nowrap;overflow:hidden}
+.pr-holders b{color:var(--ink2);font-weight:500}
+.pr-holders .warn b{color:var(--lit)}
+.pr-holders .bad b{color:var(--danger)}
+.pairs-page .pr-grid{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) 68px 62px;align-items:end;margin-top:auto}
+.pairs-page .pr-spark{align-self:stretch;justify-content:flex-end;opacity:.9}
+.pairs-page .pr-sub .pr-end{margin-left:auto}
+/* A hot pair is lit: a brighter wash and edge than the resting card, with the shimmer mark over it. */
+.pairs-page .prow.tone.lit{background:linear-gradient(90deg,#8fcaf024,#8fcaf00a 55%,transparent 85%);box-shadow:inset 3px 0 0 var(--accent),inset 0 0 0 1px #8fcaf026}
+.pairs-page .prow.tone.lit .pr-sym{color:var(--lit)}
+.pairs-page .prow.tone.avoid.lit{background:linear-gradient(90deg,#f08c7e1c,#f08c7e08 55%,transparent 85%);box-shadow:inset 3px 0 0 var(--danger),inset 0 0 0 1px #f08c7e26}
+@container(max-width:340px){.pairs-page .pr-metrics{grid-template-columns:1fr 1fr 1fr}.pairs-page .pr-metrics .pr-m:nth-child(n+4){display:none}.pairs-page .pr-holders span:nth-child(n+3){display:none}}
