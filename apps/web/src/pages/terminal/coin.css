@@ -1,0 +1,130 @@
+.coin-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 24px;margin-bottom:18px}
+.coin-id{display:flex;align-items:flex-end;gap:18px;min-width:0}
+.coin-id h1{margin:0;font:400 clamp(40px,4vw,58px)/.95 var(--display);letter-spacing:-.045em}
+.coin-id .sub{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:13px;color:var(--muted);margin-bottom:4px}
+.coin-price{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px}.coin-price>*{white-space:nowrap}
+.coin-price b{font:500 24px var(--sans);font-variant-numeric:tabular-nums}
+.coin-actions{display:flex;gap:8px;flex-wrap:wrap}
+.coin-grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:20px;align-items:start}
+.coin-aside{position:sticky;top:calc(var(--header) + var(--subnav) + 16px);display:flex;flex-direction:column;gap:14px}
+.coin-tabs{margin:22px 0 18px}
+.ov-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;align-items:start}
+.pb-list{list-style:none;margin:0;padding:0}
+.pb-list li{padding:12px 0;border-top:1px solid var(--rule)}
+.pb-list li:first-child{border-top:0;padding-top:0}
+.pb-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pb-row b{font-weight:500}
+.pb-hist{margin:5px 0 0;font-size:13px;color:var(--ink2)}
+.pb-blurb{margin:3px 0 0;font-size:13px;color:var(--muted)}
+.ev{margin-top:8px;font-size:13px}
+.ev summary{cursor:pointer;color:var(--ink2);list-style:none}
+.ev summary::-webkit-details-marker{display:none}
+.ev summary::before{content:'+ ';color:var(--muted)}
+.ev[open]>summary::before{content:'− '}
+.ev ul{margin:8px 0 0;padding-left:16px;color:var(--muted)}
+.sec{padding:14px 0;border-top:1px solid var(--rule)}
+.sec:first-child{border-top:0;padding-top:0}
+.sec h4{margin:0 0 10px;font:500 14px var(--sans)}
+.supply-row{display:grid;grid-template-columns:120px 1fr 48px;align-items:center;gap:10px;font-size:13px;padding:4px 0}
+.supply-row span:first-child{color:var(--muted)}
+.yn{display:inline-flex;align-items:center;gap:6px}
+.yn.no{color:var(--ink2)}.yn.yes{color:var(--danger)}
+.receipt-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px}
+.foot-meta{margin-top:20px;font-size:12px;color:var(--faint)}
+.mine{font-size:13px;color:var(--ink2)}
+.mine li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--rule)}
+.mine li:first-child{border-top:0}
+/* Signal tab: the five readings */
+.sig-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+.readings{width:100%;border-collapse:collapse;font-size:14px}
+.readings th{text-align:left;font-weight:400;font-size:12px;color:var(--muted);padding:0 8px 10px;border-bottom:1px solid var(--rule2)}
+.readings td{padding:10px 8px;border-bottom:1px solid var(--rule)}
+.readings th:first-child,.readings td:first-child{padding-left:0}
+.readings .score{font:600 18px var(--sans);font-variant-numeric:tabular-nums}
+.readings tr.off td{opacity:.4}
+.readings .mbar{height:6px;background:#0f1a22;border-radius:1px;position:relative;min-width:80px}
+.readings .mbar i{position:absolute;inset:0 auto 0 0;background:#9fcbe8;border-radius:1px;transition:width .5s var(--e-out)}
+.comp{display:flex;flex-direction:column;gap:14px}
+.comp-score{display:flex;align-items:flex-end;gap:12px}
+.comp-score b{font:400 84px/.9 var(--display);letter-spacing:-.05em}
+.comp-score>span{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted);padding-bottom:6px}
+.comp-score>span strong{font:600 18px var(--sans);color:var(--ink);letter-spacing:.02em}
+.comp-receipt{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.comp-receipt td{padding:4px 0}.comp-receipt td:not(:first-child){text-align:right;color:var(--ink2)}
+.comp-receipt tfoot td{border-top:1px solid var(--rule2);padding-top:8px;color:var(--ink);font-weight:500}
+/* The coin view ports the approved chart plate; declarations are scoped to this page. */
+.coin-page{min-width:0;padding-bottom:36px}.coin-center{min-width:0}.coin-page .kv{display:flex;flex-direction:column;gap:8px}.coin-page .kv>div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}.coin-page .kv dd{margin:0;text-align:right;overflow-wrap:anywhere}.coin-page .kv dt{color:var(--muted)}.coin-page .bar{height:5px;background:#0f1a22;position:relative}.coin-page .bar i{position:absolute;inset:0 auto 0 0}.coin-page .mine{list-style:none;padding:0;margin:0}.coin-page .addr{overflow-wrap:anywhere}.coin-verdict-button{padding:0;background:none;border:0}.coin-flow-window{margin-bottom:18px}.coin-page .verdict-reasons{margin:0 0 14px;color:var(--ink2)}
+.coin-page .cchart{display:flex;flex-direction:column;gap:10px}.coin-chart{position:relative;height:440px;background:radial-gradient(ellipse 70% 90% at 72% 42%,#0a1924 0%,transparent 70%),var(--plate);border:1px solid var(--edge);border-radius:var(--r2);overflow:hidden;container-type:inline-size}.coin-chart canvas.light{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.coin-page .flow-layer{position:absolute;inset:0;pointer-events:none}.coin-page .fmark{position:absolute;left:0;top:0;pointer-events:auto;width:24px;height:24px;padding:0;background:transparent;border:0;border-radius:var(--r1);will-change:transform}.coin-page .fmark[hidden]{display:none}.coin-page .fmark-content{position:absolute;display:flex;align-items:center;justify-content:center;gap:2px;min-width:24px;height:24px;left:0;top:0}.coin-page .fmark:hover .fmark-content,.coin-page .fmark:focus-visible .fmark-content{background:#ffffff14}.coin-page .fmark[data-clustered=true]{opacity:0}.coin-page .fmark[data-clustered=true]:focus-visible{opacity:1}.coin-page .fcount{font:600 9px var(--sans);color:var(--ink2)}.coin-page .fmark svg{flex:none}.coin-page .fmark .icon{color:var(--l-burn)}
+.coin-page .chart-top{position:absolute;left:12px;right:12px;top:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;pointer-events:none}.coin-page .chart-top>*{pointer-events:auto}.coin-page .chart-read{display:flex;gap:8px;align-items:center}.coin-page .chart-ctl{display:flex;gap:4px}.coin-page .chart-ctl .seg button{padding:3px 5px;font-size:12px}.coin-page .chart-flowkeys{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;font-size:12px}.coin-page .chart-flowkeys .check{display:flex;align-items:center;gap:5px}.coin-page .cc-surface{position:absolute;left:12px;right:78px;top:44px;bottom:0;cursor:crosshair;touch-action:none;outline:none}.coin-page .cc-surface:active{cursor:grabbing}.coin-page .cc-surface:focus-visible{box-shadow:inset 0 0 0 1px var(--accent)}.coin-page .cc-scale{position:absolute;top:44px;bottom:0;right:0;width:78px;cursor:ns-resize;touch-action:none}.coin-page .cc-scale:hover{background:linear-gradient(90deg,transparent,#8fcaf00d)}.coin-page .cc-zoom{display:flex;align-items:center;gap:2px;padding:2px;border:1px solid var(--rule2);border-radius:var(--r2)}.coin-page .cc-zoom .iconbtn{width:28px;height:28px;font:500 16px var(--sans);color:var(--ink2)}.coin-page .cc-hint{margin-left:auto;font-size:12px;color:var(--faint)}.coin-page .coin-tip{position:absolute;width:224px;z-index:5;white-space:normal;pointer-events:auto;padding:12px;background:var(--panel);border:1px solid var(--edge);font-size:12px}.coin-tip p{margin:6px 0}.coin-tip .addr{overflow-wrap:anywhere}.tip-close{float:right}.coin-table-wrap{max-width:100%;overflow:auto}.coin-stale{margin:8px 16px;color:var(--v-monitor)}
+@media(max-width:1100px){.coin-grid{grid-template-columns:1fr}.coin-aside{position:static}.ov-grid,.sig-grid{grid-template-columns:1fr}}
+@media(max-width:700px){.coin-page{padding-bottom:210px}.coin-id{flex-wrap:wrap}.coin-chart{height:45vh}.coin-page .chart-top{left:8px;right:8px;top:4px;align-items:center;flex-wrap:nowrap;gap:4px}.coin-page .chart-ctl .seg button{padding:3px 5px}.coin-page .chart-ctl{gap:4px}.coin-page .cc-hint{display:none}.coin-page .chart-flowkeys{gap:6px 10px}.coin-page .check{font-size:11px}.coin-sheet{position:fixed;left:0;right:0;bottom:58px;z-index:35;background:var(--ground);border-top:1px solid var(--rule2);max-height:65vh;overflow:hidden}.coin-sheet>.panel{margin:0}.coin-sheet .panel-head{padding:8px 14px}.coin-sheet .panel-body{padding:8px 14px}.coin-sheet .tp-side{position:sticky;top:0;z-index:2;background:var(--ground)}.coin-sheet .tpanel fieldset{margin:0;padding:0;border:0}.coin-sheet:not(.expanded) .tp-amounts,.coin-sheet:not(.expanded) .tp-quote,.coin-sheet:not(.expanded) .tp-guard{display:none}.coin-sheet:not(.expanded) .tp-submit{margin-top:8px}.coin-sheet .coin-your-agents{display:none}.coin-sheet.expanded .panel-body{max-height:44vh;overflow:auto}.coin-sheet .coin-stale{margin:2px 14px;font-size:12px}.coin-page .coin-id h1{font-size:40px}}
+@media(pointer:coarse){.coin-page .fmark{width:44px;height:44px;margin-left:-10px;margin-top:-10px}.coin-page .fmark-content{left:10px;top:10px}.coin-page .cc-zoom .iconbtn{width:44px;height:44px}}
+
+.coin-page .coin-ohlc{font:12px var(--sans);font-variant-numeric:tabular-nums;color:var(--ink2);white-space:nowrap;flex:none}.coin-page .chart-read{min-width:0;overflow:visible}.coin-page .chart-ctl{flex:none}
+
+
+
+
+/* Keep "$" and the symbol in one inline run, so the heading reads "$GHOST" to screen readers too (as on Radar). */
+.coin-id h1 .untrusted,.coin-id h1 .untrusted-value,.coin-id h1 .radar-decode{display:inline}
+
+/* Coin toolbar: compact to the prototype intervals when all intervals do not fit. */
+.coin-page .coin-timeframes-compact{display:none;align-items:center;gap:4px}
+.coin-page .coin-tf-more{position:relative;font-size:12px;flex:none}
+.coin-page .coin-tf-more summary{list-style:none;cursor:pointer;border:1px solid var(--rule2);border-radius:var(--r2);padding:3px 6px;min-height:32px;display:flex;align-items:center;white-space:nowrap;color:var(--ink2)}
+.coin-page .coin-tf-more summary::-webkit-details-marker{display:none}
+.coin-page .coin-tf-more[open] summary{background:var(--raise)}
+.coin-page .coin-tf-menu{position:absolute;top:calc(100% + 4px);right:0;z-index:10;width:136px;display:grid;grid-template-columns:1fr 1fr;padding:4px;gap:2px;background:var(--panel);border:1px solid var(--edge);border-radius:var(--r2)}
+.coin-page .coin-tf-menu button{padding:6px;color:var(--ink2);font-size:12px}
+.coin-page .coin-tf-menu button[aria-pressed=true]{color:var(--ink);background:var(--raise)}
+.coin-page .coin-tf-phone-thirty,.coin-page .coin-tf-phone-current,.coin-page .coin-chart-phone-options{display:none}
+.coin-page .coin-section-head{justify-content:space-between}
+.coin-page .coin-section-head h3{margin:0;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.coin-page .coin-section-head>.muted{font-size:12px}
+@container(max-width:1000px){.coin-page .coin-timeframes-full{display:none}.coin-page .coin-timeframes-compact{display:flex}}
+@container(max-width:760px){.coin-page .coin-ohlc{display:none}}
+@media(max-width:699px){
+ .coin-page .chart-ctl>.seg,.coin-page .coin-ohlc,.coin-page .chart-read>.tag{display:none}
+ .coin-page .chart-ctl .seg:has(.tf-thirty) button:has(.tf-thirty){display:none}
+ .coin-page .coin-tf-phone-thirty,.coin-page .coin-tf-phone-current{display:block}
+ .coin-page .coin-chart-phone-options{display:flex;gap:8px;flex-wrap:wrap}
+ .coin-page .chart-read{overflow:hidden}
+ .coin-page .coin-verdict-button{max-width:100%}
+ .coin-page .coin-verdict-button .verdict{max-width:100%}
+ .coin-page .coin-verdict-button .verdict-detail{overflow:hidden;text-overflow:ellipsis}
+}
+
+/* The verdict pill never shrinks under the price line: the OHLC readout gives way (ellipsis) instead. */
+.coin-page .chart-read>.coin-verdict-button{flex:none}
+.coin-page .chart-read>.coin-ohlc{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+
+.guard-assessment .coin-section-head{align-items:flex-start;flex-wrap:wrap}
+.guard-card{display:flex;flex-direction:column;gap:16px;min-width:0}.guard-card .panel{min-width:0}
+.guard-section>.panel-head{display:list-item;min-height:48px;padding:12px 0;font:500 14px/24px var(--sans);cursor:pointer}
+.guard-groups{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+.guard-card h3{margin:0 0 16px}.guard-quotes{max-width:100%;overflow:auto}.guard-quotes table{min-width:1000px}.guard-quotes th,.guard-quotes td{vertical-align:top;min-width:120px}
+.guard-metric{overflow-wrap:anywhere;font-size:13px}.guard-coverage{display:block;font-size:12px;color:var(--muted);margin:4px 0;overflow-wrap:anywhere}
+.guard-card .guard-fields>div{grid-template-columns:minmax(100px,1fr) minmax(0,1.5fr)}.guard-card .guard-fields .guard-fields>div{grid-template-columns:1fr}
+.guard-card .guard-fields dd{text-align:left}.guard-record{padding:8px 0;border-top:1px solid var(--rule)}
+.guard-assessment .kv>div{align-items:start}.guard-assessment dd{overflow-wrap:anywhere}.guard-reasons{padding-left:20px}.guard-assessment .ev{margin-bottom:16px}
+@media(max-width:1100px){.guard-groups{grid-template-columns:1fr}}
+@media(max-width:700px){.guard-card .guard-fields>div{grid-template-columns:1fr;gap:4px}.guard-assessment .kv>div{grid-template-columns:1fr;gap:4px}.guard-assessment .kv dd{text-align:left}.coin-page .guard-chip{gap:4px}.coin-page .chart-read:has(.guard-chip){overflow:visible}.coin-page .chart-top:has(.guard-chip){align-items:flex-start}.guard-gap{max-width:100%}}
+
+.coin-page .chart-read:has(.guard-chip){flex:1;min-width:0;align-items:flex-start}.coin-page .coin-verdict-button:has(.guard-chip){flex:0 1 auto;max-width:100%;text-align:left}.coin-page .chart-top:has(.guard-chip){align-items:flex-start}
+
+.guard-findings,.guard-detail-list{list-style:none;margin:0;padding:0}
+.guard-detail-row{padding:8px 0;border-top:1px solid var(--rule);overflow-wrap:anywhere;min-width:0}
+.guard-detail-row:first-child{border-top:0}.guard-detail-row>.ev{margin:0}
+.guard-detail-row summary{min-height:32px;line-height:1.6}
+.guard-result-label{font-weight:500;color:var(--ink2)}
+.guard-detail-row[data-result=flagged] .guard-result-label{color:var(--v-danger)}
+.guard-detail-row[data-result=fine] .guard-result-label{color:var(--v-clear)}
+.guard-detail-row[data-result=not_applicable]{border-left:2px solid var(--rule2);padding-left:12px}
+.guard-evidence-hint,.guard-section-counts,.guard-technical-title{font-size:12px;color:var(--muted)}
+.guard-question-title{font-weight:500}.guard-section-counts{display:block}
+.guard-technical-title{display:block;font-weight:400;line-height:1.5;overflow-wrap:anywhere}
+.guard-section>.panel-head:focus-visible,.guard-detail-row summary:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.guard-not-run h4{margin:16px 0 8px;font-weight:500}.guard-not-run section:first-child h4{margin-top:0}
+.guard-policy{font-size:13px}.guard-technical .panel-body{min-width:0;overflow-wrap:anywhere}
+@media(max-width:700px){.guard-evidence-hint{display:block}.guard-section>.panel-head{padding-left:4px;padding-right:4px}}
+@media(pointer:coarse){.guard-detail-row summary{min-height:44px}}
