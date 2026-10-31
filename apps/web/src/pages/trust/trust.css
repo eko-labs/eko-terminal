@@ -1,0 +1,36 @@
+.trust-page { display: grid; gap: 20px; min-width: 0; }
+.trust-page .page-head { margin-bottom: 0; }
+.scoreboard-headlines { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.scoreboard-counter { padding: 24px; border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.scoreboard-counter h2 { font-size: 16px; margin: 0 0 12px; }
+.scoreboard-figure { display: block; font-size: clamp(24px, 4vw, 48px); overflow-wrap: anywhere; }
+.scoreboard-counter p { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.scoreboard-tabs, .scoreboard-links, .scoreboard-record-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.scoreboard-tabs .btn[aria-pressed="true"] { border-color: var(--accent); }
+.scoreboard-records, .receipt-steps { list-style: none; padding: 0; margin: 0; }
+.scoreboard-records > li, .receipt-steps > li { padding: 16px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.scoreboard-links a { text-decoration: underline; }
+.scoreboard-cohorts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.receipt-metadata { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; }
+.receipt-metadata dt { color: var(--muted); }
+.receipt-metadata dd { margin: 0; overflow-wrap: anywhere; min-width: 0; }
+.receipt-json { max-width: 100%; max-height: 560px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: 16px; border: 1px solid var(--line); }
+.receipt-panel h2 { font-size: 18px; margin-top: 24px; }
+.receipt-steps [data-status="failed"] { color: var(--danger); }
+.trust-page input { max-width: 100%; margin: 0 12px; }
+@media (max-width: 700px) {
+  .scoreboard-counter { padding: 12px; }
+  .scoreboard-cohorts { grid-template-columns: minmax(0, 1fr); }
+  .receipt-metadata { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .receipt-metadata dd { margin-bottom: 12px; }
+  .scoreboard-record-head { align-items: flex-start; flex-direction: column; }
+  .trust-page .page-head { flex-wrap: wrap; }
+  .trust-page .btn { min-height: 44px; }
+}
+
+/* How each grade did: a small table above the record. */
+.grade-outcomes{width:100%;border-collapse:collapse;margin:10px 0 12px}
+.grade-outcomes th,.grade-outcomes td{padding:9px 12px 9px 0;text-align:left;border-bottom:1px solid var(--rule);font-weight:400;vertical-align:top}
+.grade-outcomes thead th{font-size:12px;color:var(--muted)}
+.grade-outcomes caption{caption-side:top;text-align:left;padding:10px 0 2px;font-weight:600}
+.grade-outcomes tbody th{color:var(--ink);font-weight:500;white-space:nowrap}
