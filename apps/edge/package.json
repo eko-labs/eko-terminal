@@ -1,0 +1,30 @@
+{
+  "name": "@eko/edge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "EKO on Elysium: one small stateless service. Follows Montra launches and pool swaps in memory, runs the live checks, serves the read API and the web app. No database, no signing keys.",
+  "scripts": {
+    "start": "node --import tsx src/main.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run --testTimeout=30000 --hookTimeout=30000"
+  },
+  "dependencies": {
+    "@eko/chain": "workspace:*",
+    "@eko/playbooks": "workspace:*",
+    "@eko/shared": "workspace:*",
+    "@eko/untrusted": "workspace:*",
+    "@fastify/static": "^10.1.5",
+    "@fastify/websocket": "^11.3.1",
+    "fastify": "^5.12.5",
+    "tsx": "^4.23.15",
+    "viem": "2.56.9",
+    "ws": "^8.22.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "vitest": "^5.0.2",
+    "@types/ws": "^8.18.1"
+  }
+}
