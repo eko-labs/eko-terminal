@@ -1,0 +1,223 @@
+/* Retained trade controls: presets, Buy and Sell. */
+.tc {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.tc-read {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 20px 20px 18px;
+  scrollbar-width: thin;
+}
+
+/* ─────────────── The trade ─────────────── */
+.tc-trade {
+  flex: none;
+  display: grid;
+  gap: 12px;
+  padding: 6px 20px 20px;
+}
+.tc-balance {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
+.tc-balance b {
+  font-family: var(--font-ui);
+  font-feature-settings: 'tnum';
+  font-size: var(--fs-md);
+  font-weight: 560;
+  color: var(--text-1);
+}
+.tc-presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 6px;
+}
+.tc-chip {
+  height: 36px;
+  border-radius: var(--r-md);
+  font-family: var(--font-ui);
+  font-feature-settings: 'tnum';
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text-2);
+  background: var(--bg-3);
+  transition:
+    background var(--dur-1),
+    color var(--dur-1),
+    box-shadow var(--dur-1);
+}
+.tc-chip:hover:not(:disabled) {
+  color: var(--text-1);
+  background: var(--bg-4);
+}
+.tc-chip[aria-checked='true'] {
+  color: #fff;
+  background: var(--bg-select);
+  box-shadow: inset 0 0 0 1.5px var(--blue);
+}
+.tc-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.tc-side {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.tc-btn {
+  --dir: var(--buy);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 52px;
+  padding: 0 10px;
+  border-radius: var(--r-lg);
+  font-size: 16px;
+  font-weight: 720;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  color: var(--text-inverse);
+  background: linear-gradient(180deg, #2ee3ac, var(--buy));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transition:
+    background var(--dur-1),
+    box-shadow var(--dur-2),
+    transform var(--dur-1),
+    opacity var(--dur-1);
+}
+.tc-btn--sell {
+  --dir: var(--sell);
+  color: #fff;
+  background: linear-gradient(180deg, #ff5d71, var(--sell));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+.tc-btn--buy:hover:not(:disabled) {
+  background: linear-gradient(180deg, #4cebbb, var(--buy-hi));
+}
+.tc-btn--sell:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ff7486, var(--sell-hi));
+}
+.tc-btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.99);
+}
+.tc-btn:disabled {
+  opacity: 0.35;
+}
+.tc-btn[aria-busy='true'] {
+  opacity: 1;
+  font-size: var(--fs-md);
+}
+.tc-btn .spinner {
+  width: 15px;
+  height: 15px;
+}
+.tc-hint {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  text-align: center;
+}
+.btn.tc-connect {
+  grid-column: 1 / -1;
+  height: 52px;
+  font-size: 15px;
+  border-radius: var(--r-lg);
+}
+.tc-result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 0;
+  font-size: var(--fs-md);
+  text-align: center;
+  color: var(--text-1);
+  animation: fadeIn var(--dur-2);
+}
+.tc-result.tone-ok::before {
+  content: '';
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--buy);
+}
+.tc-result.tone-pending {
+  color: var(--blue-hi);
+}
+.tc-result.tone-warn,
+.tc-result.tone-confirm {
+  color: var(--warn);
+}
+.tc-result.tone-error {
+  color: var(--danger);
+}
+.tc-fine {
+  margin: 0;
+  font-size: var(--fs-xs);
+  text-align: center;
+  color: var(--text-4);
+}
+
+@media (max-width: 1080px) and (min-width: 901px) {
+  .tc-read {
+    padding: 16px 14px 14px;
+  }
+  .tc-trade {
+    padding: 6px 14px 16px;
+  }
+  .tc-btn {
+    font-size: 15px;
+  }
+}
+
+/* Phones: the column is a sheet docked under the chart. */
+@media (max-width: 900px) {
+  .ws-sheet > .tc {
+    border-radius: 18px 18px 0 0;
+    box-shadow:
+      0 -10px 30px -12px rgba(0, 0, 0, 0.6),
+      inset 0 1px 0 var(--line-2);
+  }
+  .ws-sheet .tc-read {
+    max-height: 27vh;
+    gap: 12px;
+    padding: 14px 16px 10px;
+  }
+  .ws-sheet .tc-signal {
+    padding: 12px 14px;
+    gap: 6px;
+  }
+  .ws-sheet .tc-dir {
+    font-size: 28px;
+  }
+  .ws-sheet .tc-why {
+    font-size: var(--fs-md);
+  }
+  .ws-sheet .tc-trade {
+    gap: 10px;
+    padding: 2px 16px calc(10px + env(safe-area-inset-bottom));
+  }
+  .ws-sheet .tc-btn {
+    height: 48px;
+  }
+  .ws-sheet .tc-chip {
+    height: 34px;
+  }
+  .ws-sheet .tc-name {
+    font-size: 16px;
+  }
+}

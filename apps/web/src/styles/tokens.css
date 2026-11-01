@@ -1,0 +1,113 @@
+/* EKO app tokens. Carried over from the site's signal desk:
+   black ground, blue-white ink, hairlines, phosphor only inside chart plates.
+   One warm colour exists, and it is reserved for Danger and refusals. */
+@font-face{font-family:Syne;font-weight:400;font-display:swap;src:url(/fonts/syne-regular.ttf) format('truetype')}
+@font-face{font-family:Syne;font-weight:600;font-display:swap;src:url(/fonts/syne-semibold.ttf) format('truetype')}
+:root{
+ color-scheme:dark;
+ --bg:#000;--panel:#03080c;--plate:#02060a;--raise:#0c151b;--side:#000;--hover:#ffffff06;
+ /* Surfaces separate by tone; --edge is the faint line a surface keeps, --rule2 is for controls. */
+ --edge:#17252f;
+ --ink:#e8f2f8;--ink2:#b9cad6;--muted:#94a9b8;--faint:#8599aa;
+ --rule:#142029;--rule2:#223341;--rule3:#34495a;
+ --accent:#8fcaf0;--lit:#d6ecfa;--off:#1a2833;
+ /* Verdicts: Clear is the brand blue, Monitor is neutral ink, Danger is the one warm colour. */
+ --clear:#8fcaf0;--clear-bg:#8fcaf014;--monitor:#d6ecfa;--monitor-bg:#d6ecfa0f;--danger:#f08c7e;--danger-bg:#f08c7e17;--danger-ink:#1a0806;
+ /* Wallet labels: hue by who, used only on glyphs and flow bars. */
+ --l-agent:#8fcaf0;--l-likely:#5d9fd3;--l-crew:#c9b8f0;--l-human:#4d6576;
+ --up:#bfe4fb;--down:#4f6d82;
+ --sans:"Helvetica Neue",Helvetica,Arial,sans-serif;--display:Syne,Arial,sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+ --e-out:cubic-bezier(.2,.85,.1,1);--e-spring:cubic-bezier(.3,1.2,.5,1);
+ --r1:2px;--r2:2px;--r3:3px;
+ /* Type scale: meta 12 · labels 13 · body 14 · section 16 · figure 24 · page 52–76. */
+ --t-meta:12px;--t-label:13px;--t-body:14px;--t-sec:16px;--t-fig:24px;--t-page:clamp(52px,4.8vw,76px);
+
+}
+
+/* Compatibility aliases consumed by kept screens; new components use Desk tokens. */
+:root {
+  --ai: var(--accent);
+  --ai-a12: color-mix(in srgb, var(--accent) 14%, transparent);
+  --ai-a24: color-mix(in srgb, var(--accent) 14%, transparent);
+  --bg-0: var(--bg);
+  --bg-1: var(--plate);
+  --bg-2: var(--panel);
+  --bg-3: var(--raise);
+  --bg-4: var(--off);
+  --bg-5: var(--rule3);
+  --bg-glass: color-mix(in srgb, var(--panel) 94%, transparent);
+  --bg-select: var(--raise);
+  --blue: var(--accent);
+  --blue-a08: color-mix(in srgb, var(--accent) 14%, transparent);
+  --blue-a12: color-mix(in srgb, var(--accent) 14%, transparent);
+  --blue-a24: color-mix(in srgb, var(--accent) 14%, transparent);
+  --blue-deep: var(--accent);
+  --blue-hi: var(--lit);
+  --buy: var(--up);
+  --buy-a16: color-mix(in srgb, var(--accent) 14%, transparent);
+  --buy-a32: color-mix(in srgb, var(--accent) 14%, transparent);
+  --buy-hi: var(--lit);
+  --danger-a12: var(--danger-bg);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --font-brand: var(--sans);
+  --font-display: var(--display);
+  --font-num: var(--mono);
+  --font-ui: var(--sans);
+  --fs-2xl: var(--t-fig);
+  --fs-2xs: var(--t-meta);
+  --fs-lg: var(--t-sec);
+  --fs-md: var(--t-body);
+  --fs-sm: var(--t-label);
+  --fs-xl: var(--t-sec);
+  --fs-xs: var(--t-meta);
+  --header-grad: var(--lit);
+  --header-h: 60px;
+  --hold: var(--muted);
+  --hold-a16: color-mix(in srgb, var(--accent) 14%, transparent);
+  --line-1: var(--rule);
+  --line-2: var(--rule2);
+  --line-3: var(--rule3);
+  --line-focus: var(--accent);
+  --mode-live: var(--danger);
+  --mode-live-a12: color-mix(in srgb, var(--accent) 14%, transparent);
+  --mode-paper: var(--accent);
+  --mode-paper-a12: color-mix(in srgb, var(--accent) 14%, transparent);
+  --mode-testnet: var(--l-crew);
+  --mode-testnet-a12: color-mix(in srgb, var(--accent) 14%, transparent);
+  --ok: var(--clear);
+  --r-lg: var(--r3);
+  --r-md: var(--r2);
+  --r-sm: var(--r1);
+  --r-xl: var(--r3);
+  --r-xs: var(--r1);
+  --sell: var(--down);
+  --sell-a08: color-mix(in srgb, var(--accent) 14%, transparent);
+  --sell-a16: color-mix(in srgb, var(--accent) 14%, transparent);
+  --sell-a32: color-mix(in srgb, var(--accent) 14%, transparent);
+  --sell-hi: var(--lit);
+  --shadow-float: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 16px 40px -10px rgba(0, 0, 0, 0.8), 0 2px 8px rgba(0, 0, 0, 0.45);
+  --shadow-pop: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 28px 70px -14px rgba(0, 0, 0, 0.85), 0 4px 14px rgba(0, 0, 0, 0.5);
+  --sky: var(--accent);
+  --sky-hi: var(--lit);
+  --statusbar-h: 36px;
+  --text-1: var(--ink);
+  --text-2: var(--ink2);
+  --text-3: var(--muted);
+  --text-4: var(--faint);
+  --text-inverse: var(--danger-ink);
+  --warn: var(--monitor);
+  --warn-a12: color-mix(in srgb, var(--accent) 14%, transparent);
+  --white: #ffffff;
+  --v-clear:var(--clear); --v-monitor:var(--monitor); --v-danger:var(--danger); --v-info:var(--accent);
+  --info-bg:var(--clear-bg); --l-burn:#ff8a3d;
+  --ground:var(--bg); --ground-deep:var(--plate); --line:var(--rule2);
+  --brand:var(--accent); --brand-hi:var(--lit); --brand-ink:#04111a;
+  --mode-safe:var(--accent); --mode-balanced:var(--monitor); --mode-degen:var(--danger);
+  --font-mono:var(--mono); --fs-hero:56px;
+  --dur-1:120ms; --dur-2:200ms; --dur-3:360ms; --dur-4:640ms;
+  --ease-out:var(--e-out); --ease-spring:var(--e-spring);
+}
+@media (prefers-reduced-motion:reduce) {
+ :root { --dur-1:0ms; --dur-2:0ms; --dur-3:0ms; --dur-4:0ms; }
+}
+:root[data-motion='off'] { --dur-1:0ms; --dur-2:0ms; --dur-3:0ms; --dur-4:0ms; }
