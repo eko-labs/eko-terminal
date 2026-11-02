@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 428 246" fill="none" stroke="#d6ecfa" stroke-width="6.5" stroke-linejoin="miter">
+  <path d="M202 5H122a118 118 0 0 0 0 236h80V151l-52 48-17-17 50-49h-73v-22h73l-50-49 17-17 52 48V5Z"/>
+  <path d="M226 5h80a118 118 0 0 1 0 236h-80V151l52 48 17-17-50-49h73v-22h-73l50-49-17-17-52 48V5Z"/>
+  <path d="M202 27h-80a96 96 0 0 0 0 192h80M226 27h80a96 96 0 0 1 0 192h-80M183 111h62v22h-62Z"/>
+</svg>
