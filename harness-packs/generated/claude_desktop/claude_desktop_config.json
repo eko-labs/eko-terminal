@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "eko": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "{{MCP_URL}}",
+        "--header",
+        "Authorization:${EKO_AUTH_HEADER}"
+      ],
+      "env": {
+        "EKO_AUTH_HEADER": "Bearer {{API_KEY}}"
+      }
+    }
+  }
+}
