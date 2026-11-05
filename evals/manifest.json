@@ -1,0 +1,577 @@
+{
+  "schemaVersion": 1,
+  "spec": [
+    "04-BACKEND \u00a720",
+    "05-GO-PLAN \u00a7\u00a71,7\u20139"
+  ],
+  "v4": "quote-only",
+  "censusEnabled": false,
+  "generation": {
+    "enabled": false,
+    "approvedBudgetUsd": 0,
+    "actualCostUsd": 0,
+    "reason": "No provider generation or paid runs authorized; supplied adversarial fixtures only."
+  },
+  "dependencies": {
+    "merged": [
+      "068",
+      "071",
+      "080",
+      "086",
+      "093"
+    ],
+    "pending": [
+      "046",
+      "061",
+      "062",
+      "063",
+      "075",
+      "076",
+      "077",
+      "078",
+      "094",
+      "095",
+      "096",
+      "101",
+      "108",
+      "109",
+      "110",
+      "114",
+      "115",
+      "116",
+      "123",
+      "129"
+    ]
+  },
+  "labels": "evals/fixtures/normalizer/inventory.json",
+  "suites": [
+    {
+      "id": "normalizer-fixtures",
+      "gates": [
+        "B",
+        "T"
+      ],
+      "kind": "fixture",
+      "command": [
+        "pnpm",
+        "--filter",
+        "@eko/chain",
+        "test",
+        "test/reference-simulation.test.ts",
+        "test/reference-anvil.test.ts",
+        "test/v4-reference.test.ts",
+        "test/pons-simulation.test.ts"
+      ],
+      "inputs": [
+        "packages/chain/test/reference-simulation.test.ts",
+        "packages/chain/test/reference-anvil.test.ts",
+        "packages/chain/test/v4-reference.test.ts",
+        "packages/chain/test/pons-simulation.test.ts"
+      ]
+    },
+    {
+      "id": "normalizer-storage-fixtures",
+      "gates": [
+        "B",
+        "T"
+      ],
+      "kind": "fixture",
+      "command": [
+        "pnpm",
+        "--filter",
+        "@eko/engines",
+        "test",
+        "test/reference-simulation.test.ts",
+        "test/pons-reference.test.ts",
+        "test/v4-reference.test.ts"
+      ],
+      "inputs": [
+        "apps/engines/test/reference-simulation.test.ts",
+        "apps/engines/test/pons-reference.test.ts",
+        "apps/engines/test/v4-reference.test.ts"
+      ]
+    },
+    {
+      "id": "execution-fixtures",
+      "gates": [
+        "B",
+        "T"
+      ],
+      "kind": "fixture",
+      "command": [
+        "pnpm",
+        "--filter",
+        "@eko/server",
+        "test",
+        "test/actual-order.test.ts",
+        "test/trade-access.test.ts",
+        "test/sanctions.test.ts",
+        "test/v3-routes.test.ts"
+      ],
+      "inputs": [
+        "apps/server/test/actual-order.test.ts",
+        "apps/server/test/trade-access.test.ts",
+        "apps/server/test/sanctions.test.ts",
+        "apps/server/test/v3-routes.test.ts"
+      ]
+    },
+    {
+      "id": "receipts-fixtures",
+      "gates": [
+        "B",
+        "T"
+      ],
+      "kind": "fixture",
+      "command": [
+        "pnpm",
+        "--filter",
+        "@eko/engines",
+        "test",
+        "test/receipt-committer.test.ts"
+      ],
+      "inputs": [
+        "apps/engines/test/receipt-committer.test.ts"
+      ]
+    },
+    {
+      "id": "receipt-proofs-fixtures",
+      "gates": [
+        "B",
+        "T"
+      ],
+      "kind": "fixture",
+      "command": [
+        "pnpm",
+        "--filter",
+        "@eko/shared",
+        "test",
+        "test/receipts.test.ts",
+        "test/guard-receipts.test.ts"
+      ],
+      "inputs": [
+        "packages/shared/test/receipts.test.ts",
+        "packages/shared/test/guard-receipts.test.ts"
+      ]
+    },
+    {
+      "id": "harness-fixtures",
+      "gates": [
+        "B",
+        "T"
+      ],
+      "kind": "fixture",
+      "command": [
+        "pnpm",
+        "--filter",
+        "@eko/policy",
+        "test",
+        "test/preflight.test.ts",
+        "test/repeat.test.ts",
+        "test/actual-order.test.ts"
+      ],
+      "inputs": [
+        "packages/policy/test/preflight.test.ts",
+        "packages/policy/test/repeat.test.ts",
+        "packages/policy/test/actual-order.test.ts"
+      ]
+    },
+    {
+      "id": "mcp-fixtures",
+      "gates": [
+        "B",
+        "T"
+      ],
+      "kind": "fixture",
+      "command": [
+        "pnpm",
+        "--filter",
+        "@eko/mcp",
+        "test",
+        "test/transport.test.ts"
+      ],
+      "inputs": [
+        "apps/mcp/test/transport.test.ts"
+      ]
+    },
+    {
+      "id": "injection-fixtures",
+      "gates": [
+        "B",
+        "T"
+      ],
+      "kind": "fixture",
+      "command": [
+        "pnpm",
+        "--filter",
+        "@eko/untrusted",
+        "test",
+        "test/untrusted.test.ts"
+      ],
+      "inputs": [
+        "packages/untrusted/test/untrusted.test.ts"
+      ]
+    },
+    {
+      "id": "injection-rest-fixtures",
+      "gates": [
+        "B",
+        "T"
+      ],
+      "kind": "fixture",
+      "command": [
+        "pnpm",
+        "--filter",
+        "@eko/server",
+        "test",
+        "test/untrusted-token-ingest.test.ts"
+      ],
+      "inputs": [
+        "apps/server/test/untrusted-token-ingest.test.ts"
+      ]
+    },
+    {
+      "id": "latency-fixtures",
+      "gates": [
+        "B",
+        "T"
+      ],
+      "kind": "fixture",
+      "command": [
+        "pnpm",
+        "--filter",
+        "@eko/server",
+        "test",
+        "test/scan-latency.test.ts"
+      ],
+      "inputs": [
+        "apps/server/test/scan-latency.test.ts"
+      ]
+    },
+    {
+      "id": "product-fixtures",
+      "gates": [
+        "B",
+        "T"
+      ],
+      "kind": "fixture",
+      "command": [
+        "pnpm",
+        "--filter",
+        "@eko/web",
+        "test",
+        "src/routes.test.ts",
+        "src/pages/terminal/availability.test.tsx",
+        "src/lib/receipt-verifier.test.ts"
+      ],
+      "inputs": [
+        "apps/web/src/routes.test.ts",
+        "apps/web/src/pages/terminal/availability.test.tsx",
+        "apps/web/src/lib/receipt-verifier.test.ts"
+      ]
+    },
+    {
+      "id": "playbooks-fixtures",
+      "gates": [
+        "B",
+        "T"
+      ],
+      "kind": "fixture",
+      "command": [
+        "pnpm",
+        "--filter",
+        "@eko/playbooks",
+        "test",
+        "test/rules.test.ts",
+        "test/verdict.test.ts"
+      ],
+      "inputs": [
+        "packages/playbooks/test/rules.test.ts",
+        "packages/playbooks/test/verdict.test.ts"
+      ]
+    },
+    {
+      "id": "normalizer",
+      "gates": [
+        "B",
+        "T"
+      ],
+      "kind": "acceptance",
+      "source": "fork",
+      "bar": "truth",
+      "dependencies": [
+        "068"
+      ],
+      "pending": []
+    },
+    {
+      "id": "execution",
+      "gates": [
+        "B",
+        "T"
+      ],
+      "kind": "acceptance",
+      "source": "fork",
+      "bar": "perfect",
+      "dependencies": [
+        "075",
+        "076",
+        "077",
+        "078"
+      ],
+      "pending": []
+    },
+    {
+      "id": "execution-v4",
+      "gates": [
+        "B",
+        "T"
+      ],
+      "kind": "acceptance",
+      "source": "fork",
+      "bar": "perfect",
+      "dependencies": [],
+      "pending": [
+        "Executable v4 intentionally unavailable; quote-only 071."
+      ]
+    },
+    {
+      "id": "receipts",
+      "gates": [
+        "B",
+        "T"
+      ],
+      "kind": "acceptance",
+      "source": "staging",
+      "bar": "perfect",
+      "dependencies": [
+        "080"
+      ],
+      "pending": []
+    },
+    {
+      "id": "guard-locked",
+      "gates": [
+        "B",
+        "T"
+      ],
+      "kind": "acceptance",
+      "source": "guard-report",
+      "bar": "guard",
+      "dependencies": [
+        "061"
+      ],
+      "pending": []
+    },
+    {
+      "id": "guard-shadow",
+      "gates": [
+        "B",
+        "T"
+      ],
+      "kind": "acceptance",
+      "source": "guard-report",
+      "bar": "guard",
+      "dependencies": [
+        "062"
+      ],
+      "pending": []
+    },
+    {
+      "id": "guard-cutover",
+      "gates": [
+        "B",
+        "T"
+      ],
+      "kind": "acceptance",
+      "source": "guard-report",
+      "bar": "guard",
+      "dependencies": [
+        "063"
+      ],
+      "pending": []
+    },
+    {
+      "id": "staging",
+      "gates": [
+        "B"
+      ],
+      "kind": "acceptance",
+      "source": "staging",
+      "bar": "perfect",
+      "dependencies": [],
+      "pending": []
+    },
+    {
+      "id": "backfill",
+      "gates": [
+        "B"
+      ],
+      "kind": "acceptance",
+      "source": "staging",
+      "bar": "perfect",
+      "dependencies": [
+        "086"
+      ],
+      "pending": []
+    },
+    {
+      "id": "policies",
+      "gates": [
+        "B"
+      ],
+      "kind": "acceptance",
+      "source": "approval",
+      "bar": "perfect",
+      "dependencies": [],
+      "pending": []
+    },
+    {
+      "id": "restore",
+      "gates": [
+        "B"
+      ],
+      "kind": "acceptance",
+      "source": "staging",
+      "bar": "perfect",
+      "dependencies": [],
+      "pending": []
+    },
+    {
+      "id": "harness",
+      "gates": [
+        "T"
+      ],
+      "kind": "acceptance",
+      "source": "staging",
+      "bar": "perfect",
+      "dependencies": [
+        "094",
+        "095",
+        "096"
+      ],
+      "pending": []
+    },
+    {
+      "id": "injection",
+      "gates": [
+        "T"
+      ],
+      "kind": "acceptance",
+      "source": "staging",
+      "bar": "injection",
+      "dependencies": [
+        "094",
+        "095"
+      ],
+      "pending": []
+    },
+    {
+      "id": "playbooks",
+      "gates": [
+        "T"
+      ],
+      "kind": "acceptance",
+      "source": "fork",
+      "bar": "precision",
+      "dependencies": [],
+      "pending": []
+    },
+    {
+      "id": "latency",
+      "gates": [
+        "T"
+      ],
+      "kind": "acceptance",
+      "source": "staging",
+      "bar": "latency",
+      "dependencies": [
+        "095"
+      ],
+      "pending": []
+    },
+    {
+      "id": "product",
+      "gates": [
+        "T"
+      ],
+      "kind": "acceptance",
+      "source": "staging",
+      "bar": "perfect",
+      "dependencies": [
+        "129"
+      ],
+      "pending": []
+    },
+    {
+      "id": "honeypot-fills",
+      "gates": [
+        "T"
+      ],
+      "kind": "acceptance",
+      "source": "beta",
+      "bar": "fills",
+      "dependencies": [
+        "075",
+        "077"
+      ],
+      "pending": []
+    },
+    {
+      "id": "watcher",
+      "gates": [
+        "T"
+      ],
+      "kind": "acceptance",
+      "source": "staging",
+      "bar": "precision",
+      "dependencies": [
+        "101"
+      ],
+      "pending": []
+    },
+    {
+      "id": "burn-ritual",
+      "gates": [],
+      "kind": "acceptance",
+      "source": "fork",
+      "bar": "perfect",
+      "dependencies": [],
+      "pending": [
+        "D0 scope"
+      ]
+    },
+    {
+      "id": "access",
+      "gates": [],
+      "kind": "acceptance",
+      "source": "staging",
+      "bar": "perfect",
+      "dependencies": [],
+      "pending": [
+        "D0 scope"
+      ]
+    },
+    {
+      "id": "swarm",
+      "gates": [],
+      "kind": "acceptance",
+      "source": "staging",
+      "bar": "perfect",
+      "dependencies": [],
+      "pending": [
+        "Ranking gate; not a B/T launch claim"
+      ]
+    },
+    {
+      "id": "mcp-oauth",
+      "gates": [],
+      "kind": "acceptance",
+      "source": "staging",
+      "bar": "perfect",
+      "dependencies": [],
+      "pending": [
+        "Separate connector readiness gate"
+      ]
+    }
+  ]
+}
