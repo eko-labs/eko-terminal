@@ -1,0 +1,121 @@
+# Audit-grade 2026-10-02 repo-hygiene lane: 13 triaged non-secrets.
+# Keep default detection; each exception requires its rule AND exact path AND exact value.
+[extend]
+useDefault = true
+
+# Migration identifier in a historical expected tag array.
+[[allowlists]]
+description = "Server migration identifiers (00NN_name) in the harness migration test's expected tag arrays."
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^apps/server/test/harness\-migrations\.test\.ts$''']
+regexTarget = "secret"
+regexes = ['''^00[0-9]{2}_[a-z0-9_]+$''']
+
+# Mathematical state-field access, not key material.
+[[allowlists]]
+description = "Mathematical state-field access, not key material."
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^packages/chain/src/simulation/depth\-v3\.ts$''']
+regexTarget = "secret"
+regexes = ['''^p=s\.sqrtPriceX96$''']
+
+# Historical variable declaration, not key material.
+[[allowlists]]
+description = "Historical variable declaration, not key material."
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^packages/chain/src/simulation/v4\.ts$''']
+regexTarget = "secret"
+regexes = ['''^v=route\.verification$''']
+
+# Environment-variable name in the dormant-key deny-list.
+[[allowlists]]
+description = "Environment-variable name in the dormant-key deny-list."
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^scripts/check\-staging\-railway\.mjs$''']
+regexTarget = "secret"
+regexes = ['''^X402_FACILITATOR_KEY$''']
+
+# Public ERC-20 contract address in a synthetic replay fixture.
+[[allowlists]]
+description = "Public ERC-20 contract address in a synthetic replay fixture."
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^apps/indexer/test/performance\.test\.ts$''']
+regexTarget = "secret"
+regexes = ['''^0x7d33d051e0311bcdef1063eedf7ba1c83bae0383$''']
+
+# Copy-map property name; no authentication material.
+[[allowlists]]
+description = "Copy-map property name; no authentication material."
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^apps/web/src/copy/mission\.ts$''']
+regexTarget = "secret"
+regexes = ['''^dailyProfitAndLoss30Days$''']
+
+# Property name in a test comparison.
+[[allowlists]]
+description = "Property name in a test comparison."
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^packages/signal/test/readings\.test\.ts$''']
+regexTarget = "secret"
+regexes = ['''^buyVolumeUsd1h$''']
+
+# Deliberately test-prefixed dummy gateway key in temporary-file serialization.
+[[allowlists]]
+description = "Deliberately test-prefixed dummy gateway key in temporary-file serialization."
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^apps/server/test/setup\-ai\.test\.ts$''']
+regexTarget = "secret"
+regexes = ['''^test_key\-1234567890$''']
+
+# Public token-contract address in the chain-event fixture.
+[[allowlists]]
+description = "Public token-contract address in the chain-event fixture."
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^packages/chain/test/fixtures/4663/erc20\-transfer\-logs\.json$''']
+regexTarget = "secret"
+regexes = ['''^0x7d33D051E0311BcdeF1063EeDf7ba1c83Bae0383$''']
+
+# Public token-contract address in the chain-event fixture.
+[[allowlists]]
+description = "Public token-contract address in the chain-event fixture."
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^packages/chain/test/fixtures/4663/pons\-curve\-logs\.json$''']
+regexTarget = "secret"
+regexes = ['''^0x7d33D051E0311BcdeF1063EeDf7ba1c83Bae0383$''']
+
+# Public token-contract address in the chain-event fixture.
+[[allowlists]]
+description = "Public token-contract address in the chain-event fixture."
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^packages/chain/test/fixtures/4663/pons\-launch\.json$''']
+regexTarget = "secret"
+regexes = ['''^0x7d33D051E0311BcdeF1063EeDf7ba1c83Bae0383$''']
+
+# Public token-contract address in the chain-event fixture.
+[[allowlists]]
+description = "Public token-contract address in the chain-event fixture."
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^packages/chain/test/fixtures/4663/v3\-pool\.json$''']
+regexTarget = "secret"
+regexes = ['''^0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73$''']
+
+# Public token-contract address in the chain-event fixture.
+[[allowlists]]
+description = "Public token-contract address in the chain-event fixture."
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^packages/chain/test/fixtures/4663/v3\-pool\.json$''']
+regexTarget = "secret"
+regexes = ['''^0x11094228B5F9D7011F6F7f9c523c03A31E85341E$''']

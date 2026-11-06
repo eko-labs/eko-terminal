@@ -1,0 +1,25 @@
+# What `railway up` must not upload: caches, builds, local data, secrets and tooling the edge image never uses.
+.git
+**/node_modules
+**/.pnpm-store
+**/dist
+**/.data
+**/coverage
+**/.env
+**/.env.*
+**/secrets
+**/*.pem
+**/*.key
+*.log
+**/.claude
+contracts/lib
+contracts/out
+contracts/cache
+**/e2e/.artifacts
+**/test-results
+**/playwright-report
+/docs
+/brand
+/evals
+/infra
+/harness-packs

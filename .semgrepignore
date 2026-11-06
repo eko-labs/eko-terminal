@@ -1,0 +1,12 @@
+# Audit scope excludes UI, tests, fixtures and generated output.
+apps/web/
+**/test/
+**/tests/
+**/__tests__/
+**/fixtures/
+**/*.test.*
+**/*.spec.*
+**/dist/
+**/node_modules/
+packages/chain/abi/
+packages/db/drizzle/meta/
