@@ -1,0 +1,72 @@
+{
+  "services": {
+    "api": {
+      "image": "${EKO_IMAGE:?Set the reviewed image}",
+      "restart": "unless-stopped",
+      "command": [
+        "node",
+        "dist/launch.js"
+      ],
+      "environment": {
+        "APP_ROLE": "api",
+        "RUN_WORKER": "false",
+        "PORT": "8710"
+      },
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:'+(process.env.PORT||8710)+'/v1/health',{signal:AbortSignal.timeout(5000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        ],
+        "interval": "15s",
+        "timeout": "6s",
+        "start_period": "120s",
+        "retries": 3
+      },
+      "ports": [
+        "127.0.0.1:8710:8710"
+      ],
+      "env_file": [
+        "${EKO_ENV_FILE:?Set the runtime environment file}"
+      ]
+    },
+    "worker": {
+      "image": "${EKO_IMAGE:?Set the reviewed image}",
+      "restart": "unless-stopped",
+      "command": [
+        "node",
+        "dist/launch.js"
+      ],
+      "environment": {
+        "APP_ROLE": "worker",
+        "RUN_WORKER": "true",
+        "PORT": "8710"
+      },
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:'+(process.env.PORT||8710)+'/v1/health',{signal:AbortSignal.timeout(5000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        ],
+        "interval": "15s",
+        "timeout": "6s",
+        "start_period": "120s",
+        "retries": 3
+      },
+      "env_file": [
+        "${EKO_ENV_FILE:?Set the runtime environment file}"
+      ],
+      "depends_on": {
+        "api": {
+          "condition": "service_healthy"
+        }
+      }
+    }
+  },
+  "x-health-endpoints": {
+    "liveness": "/v1/health",
+    "loop-readiness": "/v1/health/loops"
+  }
+}
