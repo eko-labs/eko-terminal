@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4EB7FA"/><stop offset="1" stop-color="#7CCBFD"/></linearGradient></defs><rect width="1024" height="1024" rx="235.52" fill="url(#bg)"/>
+<defs>
+  <linearGradient id="as-body" x1="0" y1="5" x2="0" y2="35" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#9ADDFF"/><stop offset=".33" stop-color="#3A9BFF"/><stop offset=".72" stop-color="#1459E6"/><stop offset="1" stop-color="#0A2E91"/></linearGradient>
+  <linearGradient id="as-hl" x1="0" y1="5" x2="0" y2="35" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".5" stop-color="#fff" stop-opacity=".3"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  <mask id="as-tube"><path d="M20 31C26 31 29 26 32 20C35 14 38 8.5 45 8.5C52 8.5 57 13.5 57 20C57 26.5 52 31.5 45 31.5C38 31.5 35 26 32 20C29 14 26 9 20 9C13.5 9 8.5 14 8.5 20C8.5 26 13.5 31 20 31Z" stroke="#fff" stroke-width="8" fill="none"/></mask>
+  <mask id="as-cross"><circle cx="32" cy="20" r="7.5" fill="#fff"/></mask>
+  <filter id="as-blur" x="-20%" y="-30%" width="140%" height="170%"><feGaussianBlur stdDeviation="1.1"/></filter>
+</defs>
+<g transform="translate(122.88 268.8) scale(12.16) rotate(-8 32 20)">
+  <path d="M20 31C26 31 29 26 32 20C35 14 38 8.5 45 8.5C52 8.5 57 13.5 57 20C57 26.5 52 31.5 45 31.5C38 31.5 35 26 32 20C29 14 26 9 20 9C13.5 9 8.5 14 8.5 20C8.5 26 13.5 31 20 31Z" stroke="#03143F" stroke-opacity=".42" stroke-width="8" fill="none" transform="translate(.6 2.1)" filter="url(#as-blur)"/>
+  <path d="M20 31C26 31 29 26 32 20C35 14 38 8.5 45 8.5C52 8.5 57 13.5 57 20C57 26.5 52 31.5 45 31.5C38 31.5 35 26 32 20C29 14 26 9 20 9C13.5 9 8.5 14 8.5 20C8.5 26 13.5 31 20 31Z" stroke="#0A2C85" stroke-width="8" fill="none" transform="translate(0 .9)"/>
+  <path d="M20 31C26 31 29 26 32 20C35 14 38 8.5 45 8.5C52 8.5 57 13.5 57 20C57 26.5 52 31.5 45 31.5C38 31.5 35 26 32 20C29 14 26 9 20 9C13.5 9 8.5 14 8.5 20C8.5 26 13.5 31 20 31Z" stroke="url(#as-body)" stroke-width="8" fill="none"/>
+  <g mask="url(#as-tube)"><path d="M20 31C26 31 29 26 32 20C35 14 38 8.5 45 8.5C52 8.5 57 13.5 57 20C57 26.5 52 31.5 45 31.5C38 31.5 35 26 32 20C29 14 26 9 20 9C13.5 9 8.5 14 8.5 20C8.5 26 13.5 31 20 31Z" stroke="url(#as-hl)" stroke-width="2.4" fill="none" transform="translate(0 -2.2)"/></g>
+  <g mask="url(#as-cross)"><path d="M20 31C26 31 29 26 32 20C35 14 38 8.5 45 8.5" stroke="#03143F" stroke-opacity=".55" stroke-width="10" fill="none" filter="url(#as-blur)" transform="translate(0 .6)"/></g>
+  <path d="M20 31C26 31 29 26 32 20C35 14 38 8.5 45 8.5" stroke="#0A2C85" stroke-width="8" fill="none" transform="translate(0 .9)"/>
+  <path d="M20 31C26 31 29 26 32 20C35 14 38 8.5 45 8.5" stroke="url(#as-body)" stroke-width="8" fill="none"/>
+  <g mask="url(#as-tube)"><path d="M20 31C26 31 29 26 32 20C35 14 38 8.5 45 8.5" stroke="url(#as-hl)" stroke-width="2.4" fill="none" transform="translate(0 -2.2)"/></g>
+  <ellipse cx="45" cy="10.4" rx="4.2" ry="1.1" fill="#fff" opacity=".8"/>
+  <ellipse cx="17.5" cy="10.9" rx="2.6" ry=".85" fill="#fff" opacity=".6"/>
+</g>
+</svg>
