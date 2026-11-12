@@ -1,0 +1,15 @@
+{
+  "name": "chaos-to-order-video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "preview": "node render.mjs --preview",
+    "render": "node render.mjs",
+    "draft": "node render.mjs --draft",
+    "sheet": "node render.mjs --sheet 16"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0",
+    "puppeteer-core": "^24.0.0"
+  }
+}

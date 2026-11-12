@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Chaos → Order video</title>
+<style>
+  html, body { margin: 0; background: #1b1b1b; color: #ddd; font: 13px/1.4 -apple-system, system-ui, sans-serif; }
+  #stage { position: relative; overflow: hidden; transform-origin: 0 0; }
+  #stage * { box-sizing: border-box; }
+  .render #stage { transform: none !important; }
+  #player { padding: 10px 14px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  #player button { background: #333; color: #eee; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+  #player input[type=range] { flex: 1; min-width: 240px; }
+  #acts { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 14px 12px; }
+  #acts button { background: #2a2a2a; color: #aaa; border: 0; border-radius: 4px; padding: 3px 8px; cursor: pointer; font-size: 12px; }
+  #acts button.on { background: #555; color: #fff; }
+  #boot-error { position: fixed; inset: 0; background: #300; color: #fcc; padding: 24px; white-space: pre-wrap; font: 14px monospace; z-index: 99; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script src="video.config.js"></script>
+<script src="engine/core.js"></script>
+<script src="engine/standins.js"></script>
+<script src="engine/acts.js"></script>
+<script>E.boot().catch(err => { const d = document.createElement('div'); d.id = 'boot-error'; d.textContent = 'Boot failed:\n' + (err && err.stack || err); document.body.appendChild(d); window.__bootError = String(err && err.stack || err); });</script>
+</body>
+</html>
