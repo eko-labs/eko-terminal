@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>SignalOS · social templates</title>
+    <link rel="stylesheet" href="kit.css" />
+    <style>
+      /* ---------- OG 1200×630 ---------- */
+      #og { width: 1200px; height: 630px; }
+      #og .lockup { position: absolute; left: 64px; top: 52px; height: 58px; }
+      #og h1 { position: absolute; left: 64px; top: 150px; margin: 0; font-size: 104px; }
+      #og .chart { position: absolute; right: 56px; top: 70px; width: 470px; height: 420px; padding: 18px; background: #0e0d14; transform: rotate(2deg); }
+      #og .back { position: absolute; right: 30px; top: 50px; width: 490px; height: 450px; border: var(--b); border-radius: 36px; background: var(--violet); transform: rotate(-3deg); }
+      #og .chart-top { display: flex; align-items: center; gap: 10px; color: #f7f1e6; font-size: 22px; margin: 2px 4px 14px; }
+      #og .chart-top b { font-family: 'Bricolage'; font-size: 26px; letter-spacing: -0.03em; }
+      #og .chart-top i { margin-left: auto; font-style: normal; padding: 4px 14px; border-radius: 10px; background: var(--beam); color: var(--ink); font-family: 'Bricolage'; font-weight: 800; font-size: 18px; }
+
+      /* ---------- X header 1500×500 ---------- */
+      #x-header { width: 1500px; height: 500px; background: var(--violet); }
+      #x-header h1 { position: absolute; right: 80px; top: 80px; margin: 0; font-size: 132px; color: #fff; text-align: right; text-shadow: 6px 6px 0 var(--ink); }
+      #x-header .band { position: absolute; left: -40px; right: -40px; bottom: 34px; height: 76px; display: flex; align-items: center; gap: 36px; padding-left: 460px; border-block: var(--b); background: var(--ink); color: var(--paper); transform: rotate(-2deg); font-family: 'Bricolage'; font-weight: 800; font-size: 34px; text-transform: uppercase; letter-spacing: -0.02em; white-space: nowrap; }
+      #x-header .band span { color: var(--beam); }
+
+      /* ---------- Posts 1080×1080 ---------- */
+      .post { width: 1080px; height: 1080px; }
+      .post .foot { position: absolute; left: 70px; right: 70px; bottom: 56px; display: flex; justify-content: space-between; align-items: flex-end; }
+      .post .foot img { height: 64px; }
+      .post .foot .legal { position: static; max-width: 460px; text-align: right; font-size: 17px; }
+
+      #post-hero { background: var(--violet); color: #fff; }
+      #post-hero h1 { position: absolute; left: 70px; top: 100px; margin: 0; font-size: 190px; text-shadow: 8px 8px 0 var(--ink); }
+      #post-hero .foot .legal { color: #fff; }
+
+      #post-colors h1 { position: absolute; left: 70px; top: 80px; margin: 0; font-size: 104px; }
+      #post-colors .grid { position: absolute; left: 70px; right: 70px; top: 330px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+      #post-colors .sw { height: 250px; padding: 22px; border: var(--b); border-radius: 30px; box-shadow: 7px 7px 0 var(--ink); display: flex; flex-direction: column; }
+      #post-colors .sw b { margin-top: auto; font-family: 'Bricolage'; font-size: 58px; letter-spacing: -0.05em; line-height: 1; }
+      #post-colors .sw span { align-self: flex-start; padding: 5px 13px; border: 3px solid currentColor; border-radius: 999px; font-family: 'Bricolage'; font-weight: 800; font-size: 20px; }
+      #post-colors .sw small { font-size: 19px; font-weight: 600; margin-top: 6px; }
+
+      #post-crew { background: var(--sky); }
+      #post-crew h1 { position: absolute; left: 70px; top: 76px; margin: 0; font-size: 120px; }
+      #post-crew .sub { position: absolute; left: 74px; top: 216px; font-family: 'Bricolage'; font-weight: 700; font-size: 38px; letter-spacing: -0.02em; }
+      #post-crew .crew-item { width: 128px; }
+      #post-crew .crew-item figcaption { font-size: 20px; }
+      #post-crew .crew { position: absolute; left: 60px; right: 60px; top: 320px; display: flex; flex-wrap: wrap; justify-content: center; gap: 34px 22px; padding: 40px 20px; border: var(--b); border-radius: 36px; background: var(--card); box-shadow: 10px 10px 0 var(--ink); }
+
+      /* ---------- Post 1080×1350 ---------- */
+      #post-prices { width: 1080px; height: 1350px; background: var(--ink); color: var(--paper); }
+      #post-prices h1 { position: absolute; left: 70px; top: 90px; margin: 0; font-size: 136px; }
+      #post-prices h1 span { color: var(--beam); }
+      #post-prices .ladder { position: absolute; left: 70px; right: 70px; top: 470px; display: grid; gap: 20px; }
+      #post-prices .rung { display: grid; grid-template-columns: 70px 1fr auto; gap: 24px; align-items: center; padding: 26px 30px; border-radius: 28px; background: #1c1a26; box-shadow: inset 8px 0 0 var(--c); }
+      #post-prices .rung i { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 18px; background: var(--c); color: var(--ink); font-style: normal; font-family: 'Bricolage'; font-weight: 800; font-size: 32px; }
+      #post-prices .rung b { display: block; font-family: 'Bricolage'; font-size: 38px; letter-spacing: -0.02em; }
+      #post-prices .rung small { font-size: 22px; color: #bcb5c8; }
+      #post-prices .rung .mono { font-size: 34px; font-weight: 600; }
+      #post-prices .foot { position: absolute; left: 70px; right: 70px; bottom: 60px; display: flex; justify-content: space-between; align-items: flex-end; }
+      #post-prices .foot img { height: 60px; }
+      #post-prices .foot .legal { position: static; color: var(--paper); font-size: 18px; }
+
+      /* ---------- Story 1080×1920 ---------- */
+      #story { width: 1080px; height: 1920px; background: var(--beam); }
+      #story .tape { position: absolute; left: 0; right: 0; height: 60px; border-block: var(--b); }
+      #story h1 { position: absolute; left: 80px; top: 200px; margin: 0; font-size: 150px; }
+      #story .phone { position: absolute; left: 110px; right: 110px; top: 800px; padding: 26px; background: #0e0d14; border-radius: 56px; transform: rotate(-2deg); }
+      #story .band { display: flex; justify-content: space-between; align-items: flex-end; padding: 30px 30px 24px; border-radius: 30px; background: var(--go); box-shadow: inset 0 -8px 0 #12b378; }
+      #story .band b { font-family: 'Bricolage'; font-size: 88px; letter-spacing: -0.045em; line-height: 0.9; }
+      #story .band small { display: block; margin-top: 10px; font-size: 26px; font-weight: 600; opacity: 0.75; }
+      #story .rows { display: grid; gap: 6px; margin: 24px 10px; color: #f7f1e6; font-size: 30px; }
+      #story .rows div { display: flex; justify-content: space-between; padding: 8px 6px; }
+      #story .rows span:first-child { color: #bcb5c8; }
+      #story .btn { height: 110px; border-radius: 28px; background: var(--go); display: grid; place-items: center; font-family: 'Bricolage'; font-weight: 800; font-size: 44px; box-shadow: 0 8px 0 #12b378; }
+      #story .cta { position: absolute; left: 80px; right: 80px; bottom: 170px; height: 150px; display: grid; place-items: center; border: 5px solid var(--ink); border-radius: 40px; background: var(--ink); color: var(--paper); font-family: 'Bricolage'; font-weight: 800; font-size: 58px; letter-spacing: -0.03em; box-shadow: 12px 12px 0 var(--violet); }
+      #story .legal { left: 80px; right: 80px; bottom: 100px; text-align: center; font-size: 24px; }
+
+      /* ---------- LinkedIn 1584×396 ---------- */
+      #linkedin-banner { width: 1584px; height: 396px; background: var(--ink); color: var(--paper); }
+      #linkedin-banner h1 { position: absolute; right: 90px; top: 64px; margin: 0; font-size: 108px; text-align: right; }
+      #linkedin-banner h1 span { color: var(--beam); }
+      #linkedin-banner .stripe { position: absolute; left: 0; top: 0; bottom: 0; width: 26px; }
+
+      /* ---------- Poster 1800×2400 ---------- */
+      #poster { width: 1800px; height: 2400px; }
+      #poster .tape { position: absolute; left: 0; right: 0; top: 0; height: 90px; border-bottom: 6px solid var(--ink); }
+      #poster h1 { position: absolute; left: 100px; top: 930px; margin: 0; font-size: 610px; line-height: 0.8; letter-spacing: -0.065em; }
+      #poster .sub { position: absolute; left: 120px; top: 1960px; max-width: 1300px; font-family: 'Bricolage'; font-weight: 700; font-size: 74px; letter-spacing: -0.03em; line-height: 1.02; }
+      #poster .foot { position: absolute; left: 120px; right: 120px; bottom: 110px; display: flex; justify-content: space-between; align-items: flex-end; }
+      #poster .foot img { height: 120px; }
+      #poster .foot .legal { position: static; font-size: 30px; max-width: 760px; text-align: right; }
+    </style>
+  </head>
+  <body>
+    <!-- OG -->
+    <section class="ab dots" id="og">
+      <img class="lockup" src="../logo/lockup-on-paper.svg" alt="" />
+      <h1 class="display"><span class="tile" style="background: var(--violet); color: #fff">Bots</span> call it.<br />You make<br /><span class="scribble">the call.</span></h1>
+      <div class="back"></div>
+      <div class="chart card">
+        <div class="chart-top"><b>ETH<span style="opacity: 0.45">/USD</span></b> 5m <i>● Paper</i></div>
+        <div data-chart='{"w":430,"h":320,"n":26}'></div>
+      </div>
+      <span class="sticker" style="right: 420px; bottom: 44px; background: var(--sky); font-size: 28px; transform: rotate(-4deg)">Your keys stay yours</span>
+    </section>
+
+    <!-- X header -->
+    <section class="ab" id="x-header">
+      <span data-pin='{"size":150,"color":"#FFF4E0","chevron":"#7B5CFF"}' style="position: absolute; left: 110px; top: 60px; transform: rotate(-10deg)"></span>
+      <span data-av="bolt,40,96,-8" style="position: absolute; left: 300px; top: 150px"></span>
+      <span data-av="orbit,24,84,10" style="position: absolute; left: 180px; top: 250px"></span>
+      <h1 class="display">Bots call it.<br />You make the call.</h1>
+      <div class="band">Paper by default <span>✦</span> Signals on the candle <span>✦</span> Four prices, zero guesswork <span>✦</span> Your keys stay yours <span>✦</span> Receipts, not promises</div>
+    </section>
+
+    <!-- Post: hero -->
+    <section class="ab post" id="post-hero">
+      <h1 class="display">Bots<br />call it.<br /><span style="color: var(--beam)">You make<br />the call.</span></h1>
+      <span data-pin='{"size":230,"color":"#FFF4E0","chevron":"#7B5CFF"}' style="position: absolute; right: 80px; top: 96px; transform: rotate(-10deg); filter: drop-shadow(8px 8px 0 #0d0c12)"></span>
+      <span class="sticker" style="right: 70px; top: 360px; background: var(--beam); color: var(--ink); font-size: 34px; transform: rotate(6deg)">● Paper by default</span>
+      <div class="foot">
+        <img src="../logo/lockup-mono-white.svg" alt="" />
+        <span class="legal">Not investment advice. Paper trading uses simulated funds.</span>
+      </div>
+    </section>
+
+    <!-- Post: colors -->
+    <section class="ab post dots" id="post-colors">
+      <h1 class="display">If it's mint,<br />it's a buy.</h1>
+      <div class="grid">
+        <div class="sw" style="background: var(--go)"><span>▲ BUY</span><b>Go</b><small>Buy and gains. Nothing else.</small></div>
+        <div class="sw" style="background: var(--stop)"><span>▼ SELL</span><b>Stop</b><small>Sell and losses. Nothing else.</small></div>
+        <div class="sw" style="background: var(--violet); color: #fff"><span>✦ AI</span><b>Violet</b><small>The brand, and AI at work.</small></div>
+        <div class="sw" style="background: var(--beam)"><span>PAPER</span><b>Beam</b><small>Practice money.</small></div>
+        <div class="sw" style="background: var(--sky)"><span>TESTNET</span><b>Sky</b><small>Test network.</small></div>
+        <div class="sw" style="background: var(--live)"><span>● LIVE</span><b>Live</b><small>Real money, opt-in.</small></div>
+      </div>
+      <div class="foot">
+        <img src="../logo/lockup-on-paper.svg" alt="" />
+        <span class="legal">Colors with a job. Every signal also says ▲/▼ and BUY/SELL.</span>
+      </div>
+    </section>
+
+    <!-- Post: crew -->
+    <section class="ab post" id="post-crew">
+      <h1 class="display">Meet the crew.</h1>
+      <div class="sub">Eleven bots. None of them psychic.</div>
+      <div class="crew" data-crew="104"></div>
+      <div class="foot">
+        <img src="../logo/lockup-on-paper.svg" alt="" />
+        <span class="legal">Signals are information, not advice. Past or backtested results don't predict future results.</span>
+      </div>
+    </section>
+
+    <!-- Post: prices -->
+    <section class="ab" id="post-prices">
+      <h1 class="display">Four prices.<br /><span>Zero guesswork.</span></h1>
+      <div class="ladder">
+        <div class="rung" style="--c: hsl(182 92% 66%)"><i>1</i><div><b>Signal reference</b><small>What the bot saw</small></div><span class="mono">1,936.20</span></div>
+        <div class="rung" style="--c: #fff4e0"><i>2</i><div><b>Chart last</b><small>Latest trade on the chart</small></div><span class="mono">1,941.30</span></div>
+        <div class="rung" style="--c: #9a82ff"><i>3</i><div><b>Executable quote</b><small>What the venue gives you now</small></div><span class="mono">1,941.85</span></div>
+        <div class="rung" style="--c: #2de39e"><i>4</i><div><b>Fill</b><small>What you actually got</small></div><span class="mono">1,941.85</span></div>
+      </div>
+      <div class="foot">
+        <img src="../logo/lockup-on-dark.svg" alt="" />
+        <span class="legal">Example values.</span>
+      </div>
+    </section>
+
+    <!-- Story -->
+    <section class="ab" id="story">
+      <div class="tape caution" style="top: 0"></div>
+      <h1 class="display">Paper trading<br />is on by<br /><span class="tile" style="background: var(--card)">default.</span></h1>
+      <span data-av="wave,182,130,-8" style="position: absolute; right: 90px; top: 640px"></span>
+      <div class="phone card">
+        <div class="band">
+          <div><b>BUY ETH</b><small>Tideline · 5m · paper</small></div>
+          <span class="mono" style="font-size: 40px; font-weight: 700">4:52</span>
+        </div>
+        <div class="rows mono">
+          <div><span>Signal reference</span><span>1,936.20</span></div>
+          <div><span>Executable quote</span><span>1,941.85</span></div>
+          <div><span>Fill</span><span style="color: var(--go)">after execution</span></div>
+        </div>
+        <div class="btn">Buy $100 of ETH</div>
+      </div>
+      <div class="cta">Start paper trading →</div>
+      <span class="legal">Illustration with made-up prices. Not investment advice.</span>
+      <div class="tape caution" style="bottom: 0"></div>
+    </section>
+
+    <!-- LinkedIn -->
+    <section class="ab" id="linkedin-banner">
+      <div class="stripe caution"></div>
+      <span data-pin='{"size":170,"color":"#7B5CFF"}' style="position: absolute; left: 470px; top: 110px; transform: rotate(-8deg)"></span>
+      <h1 class="display">Bots call it.<br /><span>You make the call.</span></h1>
+    </section>
+
+    <!-- Poster -->
+    <section class="ab dots" id="poster">
+      <div class="tape caution"></div>
+      <span data-pin='{"size":640,"color":"#7B5CFF"}' style="position: absolute; left: 110px; top: 250px; filter: drop-shadow(14px 14px 0 #0d0c12)"></span>
+      <span class="sticker" style="left: 820px; top: 360px; background: var(--beam); font-size: 70px; transform: rotate(-5deg); border-width: 6px; box-shadow: 10px 10px 0 var(--ink)">● Paper by default</span>
+      <span class="sticker" style="left: 900px; top: 560px; background: var(--sky); font-size: 62px; transform: rotate(4deg); border-width: 6px; box-shadow: 10px 10px 0 var(--ink)">Your keys stay yours</span>
+      <span data-av="bolt,40,170,-8" style="position: absolute; right: 170px; top: 800px"></span>
+      <span data-av="orbit,24,150,10" style="position: absolute; right: 420px; top: 880px"></span>
+      <h1 class="display">Your<br /><span class="scribble">call.</span></h1>
+      <div class="sub">Bots publish the signals. You see the reasoning and the real quote. Nothing trades until your wallet signs.</div>
+      <div class="foot">
+        <img src="../logo/lockup-on-paper.svg" alt="" />
+        <span class="legal">Not investment advice. Trading crypto assets is risky. Paper trading uses simulated funds.</span>
+      </div>
+    </section>
+
+    <script src="kit.js"></script>
+  </body>
+</html>

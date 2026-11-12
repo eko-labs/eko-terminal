@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>SignalOS · stickers</title>
+    <link rel="stylesheet" href="kit.css" />
+    <style>
+      html, body { background: transparent !important; }
+      .crew-item { width: 170px; }
+      .crew-item figcaption { font-size: 28px; }
+      #sticker-sheet { width: 2200px; height: 1560px; background: transparent; }
+      .stk { position: absolute; display: inline-flex; align-items: center; gap: 16px; padding: 22px 42px; border: 6px solid var(--ink); border-radius: 999px; font-family: 'Bricolage'; font-weight: 800; font-size: 64px; letter-spacing: -0.025em; white-space: nowrap; box-shadow: 9px 9px 0 var(--ink); }
+      .stk.sq { flex-direction: column; align-items: flex-start; gap: 0; border-radius: 44px; }
+      .pin-stk { position: absolute; display: grid; place-items: center; width: 230px; height: 230px; border: 6px solid var(--ink); border-radius: 50%; background: var(--card); box-shadow: 9px 9px 0 var(--ink); }
+      .crew-row { position: absolute; left: 40px; right: 40px; bottom: 50px; display: flex; flex-wrap: wrap; justify-content: center; gap: 24px 20px; }
+    </style>
+  </head>
+  <body>
+    <section class="ab" id="sticker-sheet">
+      <span class="stk" style="left: 60px; top: 60px; background: var(--violet); color: #fff; transform: rotate(-4deg)">Bots call it.</span>
+      <span class="stk" style="left: 640px; top: 90px; background: var(--beam); transform: rotate(3deg)">You make the call.</span>
+      <span class="stk" style="left: 1420px; top: 60px; background: var(--card); transform: rotate(-2deg)">Receipts, not promises</span>
+      <span class="stk caution" style="left: 80px; top: 300px; color: var(--ink); transform: rotate(2deg); padding: 0; overflow: hidden"><span style="padding: 22px 42px; margin: 14px; background: var(--beam); border-radius: 999px; border: 4px solid var(--ink)">● Paper by default</span></span>
+      <span class="stk" style="left: 850px; top: 320px; background: var(--sky); transform: rotate(-3deg)">Your keys stay yours</span>
+      <span class="stk" style="left: 1560px; top: 300px; background: var(--live); transform: rotate(5deg)">No autopilot</span>
+      <span class="stk sq" style="left: 70px; top: 540px; background: var(--ink); color: var(--paper); transform: rotate(-3deg); line-height: 0.95"><span>Don't trust a bot.</span><span style="color: var(--beam)">Test it.</span></span>
+      <span class="stk" style="left: 800px; top: 600px; background: var(--tangerine); transform: rotate(2deg)">4 prices · 0 guesswork</span>
+      <span class="pin-stk" style="left: 1560px; top: 520px; transform: rotate(-8deg)" data-pin='{"size":170,"color":"#7B5CFF"}'></span>
+      <span class="pin-stk" style="left: 1850px; top: 600px; transform: rotate(8deg); background: var(--violet)" data-pin='{"size":170,"color":"#FFF4E0","chevron":"#7B5CFF"}'></span>
+      <span class="stk" style="left: 90px; top: 820px; background: var(--card); transform: rotate(-2deg)">Signals on the candle ✦</span>
+      <span class="stk" style="left: 960px; top: 840px; background: var(--violet); color: #fff; transform: rotate(3deg)">Fun, not gamified</span>
+      <div class="crew-row" data-crew="130"></div>
+    </section>
+    <script>
+      // Individual die-cut stickers: one artboard per bot, plus the pin (transparent PNGs).
+      const crewNames = ['tideline', 'kinetic', 'recoil', 'breakline', 'meridian', 'vector', 'lumen', 'halcyon', 'deep-current', 'quorum', 'council'];
+      const crewDefs = [['wave', 182], ['bolt', 40], ['spring', 198], ['gate', 262], ['orbit', 24], ['prism', 306], ['flare', 56], ['compass', 230], ['delta', 214], ['hex', 326], ['ring', 284]];
+      crewDefs.forEach(([g, h], i) => {
+        const sec = document.createElement('section');
+        sec.className = 'ab';
+        sec.id = 'bot-' + crewNames[i];
+        sec.style.cssText = 'width:440px;height:440px;display:grid;place-items:center;background:transparent';
+        sec.setAttribute('data-av', `${g},${h},380,0`);
+        document.body.appendChild(sec);
+      });
+      [['pin', '#7B5CFF', '#0D0C12'], ['pin-paper', '#FFF4E0', '#7B5CFF']].forEach(([id, c, ch]) => {
+        const sec = document.createElement('section');
+        sec.className = 'ab';
+        sec.id = id;
+        sec.style.cssText = 'width:440px;height:440px;display:grid;place-items:center;background:transparent';
+        sec.setAttribute('data-pin', JSON.stringify({ size: 400, color: c, chevron: ch }));
+        document.body.appendChild(sec);
+      });
+    </script>
+    <script src="kit.js"></script>
+  </body>
+</html>
