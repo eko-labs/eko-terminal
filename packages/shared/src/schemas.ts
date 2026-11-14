@@ -214,7 +214,7 @@ export const PreferencesSchema = z.object({
   defaultMode: TradingModeSchema.default('paper'),
   confirmLargeTradeUsd: z.number().positive().default(1000),
   reducedMotion: z.enum(['system', 'on', 'off']).default('system'),
-  favorites: z.array(z.string()).max(50).default([]),
+  favorites: z.array(z.string().max(128)).max(50).default([]),
   onboarding: OnboardingPrefsSchema.prefault({}),
 });
 export type Preferences = z.infer<typeof PreferencesSchema>;

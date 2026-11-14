@@ -163,7 +163,7 @@ export const AlertSettingsSchema = z.object({
   telegram: z.boolean(),
   push: z.boolean(),
   minLevel: LevelSchema,
-  kinds: z.array(z.enum(['verdict_change', 'playbook', 'crew_active', 'agent_flow_spike', 'approval', 'order'])),
+  kinds: z.array(z.enum(['verdict_change', 'playbook', 'crew_active', 'agent_flow_spike', 'approval', 'order'])).max(12),
   quietHoursUtc: z.tuple([z.number().int().min(0).max(23), z.number().int().min(0).max(23)]).optional(),
   agentTradeAboveUsd: z.number().finite().nonnegative().optional(),
 });

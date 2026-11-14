@@ -12,7 +12,7 @@ const hash=(n:number)=>`0x${n.toString(16).padStart(64,'0')}` as const;
 it('retains the swap peak when history is pruned and repairs an orphan peak on rollback',async()=>{
   const db=await openDb({pgliteDir:':memory:'}),coin=address(1),zero=address(0),epoch=Date.parse('2026-10-01T00:00:00Z');
   try {
-    await migrate(db);await migrateEngines(db);await db.ensurePartitions(new Date(epoch));
+    await migrate(db);await migrateEngines(db);await db.ensurePartitions(new Date(epoch),{now:new Date(epoch)});
     await db.insert('tokens',{address:binary(coin),decimals:0,first_block:1,block:1});
     for(const [block,usd] of [[1,10],[2,100],[3,20]] as const) {
       await db.insert('chain_blocks',{number:block,block,hash:binary(hash(block)),parent_hash:binary(hash(block-1)),ts:new Date(epoch+block*1000)});
@@ -28,7 +28,7 @@ it('retains the swap peak when history is pruned and repairs an orphan peak on r
 it('backfills a retained minute peak even when all raw swaps have already been removed',async()=>{
   const db=await openDb({pgliteDir:':memory:'}),coin=address(2);
   try {
-    await migrate(db);await migrateEngines(db);
+    await migrate(db);await migrateEngines(db);await db.ensurePartitions(new Date('2026-10-01T00:00:00Z'),{now:new Date('2026-10-01T00:00:00Z')});
     await db.insert('tokens',{address:binary(coin),decimals:0,first_block:1,block:1});
     await db.sql.query("INSERT INTO bars_1m VALUES($1,'2026-10-01T00:00:00Z',10,100,10,15,10,1,1,1)",[binary(coin)]);
     for(const sql of ['DROP TRIGGER rating_prices_insert ON swaps','DROP TRIGGER rating_prices_update ON swaps','DROP FUNCTION rating_prices_changed()','DROP TABLE coin_rating_checks','DROP TABLE coin_rating_prices',"DELETE FROM eko_engine_migrations WHERE id='0203_rating_checks'"])await db.sql.query(sql);

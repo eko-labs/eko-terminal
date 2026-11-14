@@ -15,7 +15,7 @@
     "@eko/shared": "workspace:*",
     "fastify": "^5.12.5",
     "pino": "^10.3.1",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^26.6.3",

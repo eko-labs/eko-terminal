@@ -32,7 +32,7 @@
     "pino": "^10.3.1",
     "viem": "2.56.9",
     "ws": "^8.22.0",
-    "zod": "^4.6.5",
+    "zod": "^4.6.7",
     "@eko/chain": "workspace:*",
     "@eko/db": "workspace:*",
     "@eko/engines": "workspace:*",

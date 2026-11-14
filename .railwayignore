@@ -23,3 +23,5 @@ contracts/cache
 /evals
 /infra
 /harness-packs
+**/.solidity-auditor
+**/.audit-grade

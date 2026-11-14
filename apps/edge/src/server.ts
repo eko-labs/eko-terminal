@@ -18,6 +18,8 @@ import { registerTradeRoutes, type Trading } from './trade.js';
 import { AgentStore, registerAgentRoutes } from './agents.js';
 import { registerMcp } from './mcp.js';
 import type { Approval } from '@eko/shared';
+import type { BuildInfo } from './build.js';
+import { RelayBusy, relayFromRpc, type RelayClient } from './relay.js';
 
 const fail = (reply: FastifyReply, status: number, error: ErrorCode, message: string) => reply.code(status).send({ error, message });
 const LIMIT = 100;
@@ -29,13 +31,16 @@ const LIMIT = 100;
 /** Read methods the web app's wallet layer may relay (network badge, balances, token reads). Nothing that sends. */
 export const RELAY_METHODS = new Set(['eth_chainId', 'eth_blockNumber', 'eth_getBalance', 'eth_getTransactionCount', 'eth_getCode', 'eth_call', 'eth_gasPrice', 'eth_maxPriorityFeePerGas', 'eth_getBlockByNumber', 'eth_getTransactionReceipt', 'eth_estimateGas']);
 
-export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: string; logger?: boolean; rpc?: Rpc; store?: HistoryStore; historian?: Historian; funders?: FunderTracer; accounts?: AccountStore; trading?: Trading; maxTradeUsd?: number; flags?: ReadonlySet<string>; features?: readonly LoadedFeature[]; onApproval?: (accountId: string, a: Approval) => void } = {}): FastifyInstance {
-  const app = Fastify({ logger: opts.logger ?? false, trustProxy: true });
+export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: string; logger?: boolean; rpc?: Rpc; store?: HistoryStore; historian?: Historian; funders?: FunderTracer; accounts?: AccountStore; trading?: Trading; maxTradeUsd?: number; flags?: ReadonlySet<string>; features?: readonly LoadedFeature[]; onApproval?: (accountId: string, a: Approval) => void; trustProxyHops?: number; build?: BuildInfo; relay?: RelayClient } = {}): FastifyInstance {
+  // Trust exactly the proxies in front of us (Railway: one hop), so a client cannot pick its own req.ip with X-Forwarded-For.
+  // JSON bodies are small everywhere; the routes that need more (SIWE contract-wallet signatures, MCP batches) say so.
+  const hops = opts.trustProxyHops ?? 1;
+  const app = Fastify({ logger: opts.logger ?? false, trustProxy: (_address: string, hop: number) => hop < hops, bodyLimit: 16_384 });
   app.addHook('onSend', async (_req, reply, payload) => { reply.header('cache-control', reply.getHeader('cache-control') ?? 'no-store'); return payload; });
 
   app.get('/health', async () => {
     const t = edge.tracker;
-    return { ok: t.cursor > 0n, head: Number(t.head), cursor: Number(t.cursor), lagBlocks: Number(t.head - t.cursor), coins: t.coins.size,
+    return { ok: t.cursor > 0n, build: opts.build ?? { commit: null, builtAt: null }, head: Number(t.head), cursor: Number(t.cursor), lagBlocks: Number(t.head - t.cursor), coins: t.coins.size,
       assessed: edge.assessedCount, hypeUsd: edge.hype.latest, counters: edge.counters, memory: opts.store ? { historian: opts.historian?.status() ?? null, funderQueue: opts.funders?.pending ?? null } : null };
   });
 
@@ -137,14 +142,19 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
 
 
   // Bounded read-only JSON-RPC relay for the wallet layer: one request per call, allowlisted methods only.
+  // It runs on its own public-RPC client (relay.ts), never on the metered lanes the tracker and safety checks use.
+  const relay = opts.relay ?? (opts.rpc ? relayFromRpc(opts.rpc) : undefined);
   app.post<{ Body: { jsonrpc?: string; id?: number | string; method?: string; params?: unknown[] } }>('/v1/rpc', { bodyLimit: 16_384 }, async (req, reply) => {
     const { id = 1, method, params = [] } = req.body ?? {};
-    if (!opts.rpc || typeof method !== 'string' || !RELAY_METHODS.has(method) || !Array.isArray(params) || params.length > 4) {
+    if (!relay || typeof method !== 'string' || !RELAY_METHODS.has(method) || !Array.isArray(params) || params.length > 4) {
       return reply.code(400).send({ jsonrpc: '2.0', id, error: { code: -32601, message: 'Method not available' } });
     }
     if (method === 'eth_getBlockByNumber' && params[1] === true) return reply.code(400).send({ jsonrpc: '2.0', id, error: { code: -32602, message: 'Full blocks are not relayed' } });
-    try { return { jsonrpc: '2.0', id, result: await opts.rpc.request({ method, params }) }; }
-    catch { return reply.code(502).send({ jsonrpc: '2.0', id, error: { code: -32603, message: 'Upstream RPC unavailable' } }); }
+    try { return { jsonrpc: '2.0', id, result: await relay.request(req.ip, { method, params }) }; }
+    catch (e) {
+      if (e instanceof RelayBusy) return reply.code(429).send({ jsonrpc: '2.0', id, error: { code: -32005, message: 'Too many requests; slow down.' } });
+      return reply.code(502).send({ jsonrpc: '2.0', id, error: { code: -32603, message: 'Upstream RPC unavailable' } });
+    }
   });
 
   app.get('/v2/ghost-reports', async () => ({ records: [] }));

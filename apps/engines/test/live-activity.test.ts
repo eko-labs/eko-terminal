@@ -68,7 +68,7 @@ class Chain {
 }
 async function database() {
   const db = await openDb({ pgliteDir: ':memory:' }); handles.push(db);
-  await migrate(db); await migrateEngines(db); await db.ensurePartitions(new Date(epoch * 1000));
+  await migrate(db); await migrateEngines(db); await db.ensurePartitions(new Date(epoch * 1000), { now: new Date(epoch * 1000), daysAhead: 14 });
   return db;
 }
 /** A new process on the same database: refreshClock keeps its watermark per handle. */

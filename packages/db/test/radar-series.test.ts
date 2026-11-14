@@ -6,6 +6,8 @@ import { backfillRadarSeries } from '../../../scripts/backfill-radar-series.js';
 const at=Date.parse('2026-10-17T12:00:00Z')/1000,coin=Buffer.alloc(20,7);
 async function database() {
   const db=await openDb({pgliteDir:':memory:'});await migrate(db);await migrateEngines(db);
+  // Partitions for the fixture's own day, not today's: the bars and swaps below are dated 2026-10-17.
+  await db.ensurePartitions(new Date(at*1000),{now:new Date(at*1000)});
   await db.sql.query('INSERT INTO tokens(address,deployer,first_block,block) VALUES($1,$1,1,1)',[coin]);
   return db;
 }

@@ -2,6 +2,6 @@
   "name": "@eko/indexer", "version": "0.1.0", "private": true, "type": "module",
   "scripts": { "typecheck": "tsc -p tsconfig.json", "test": "vitest run --testTimeout=30000 --hookTimeout=30000", "start": "node --env-file-if-exists=.env --import tsx src/cli.ts", "backfill": "node --env-file-if-exists=.env --import tsx src/cli.ts backfill", "bars:rebuild": "node --env-file-if-exists=.env --import tsx src/cli.ts bars:rebuild" },
   "exports": { ".": "./src/index.ts" },
-  "dependencies": { "@eko/db": "workspace:*", "@eko/chain": "workspace:*", "viem": "2.56.9", "zod": "^4.6.5" },
+  "dependencies": { "@eko/db": "workspace:*", "@eko/chain": "workspace:*", "viem": "2.56.9", "zod": "^4.6.7" },
   "devDependencies": { "@types/node": "^26.6.3", "tsx": "^4.23.15" }
 }

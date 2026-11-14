@@ -7,7 +7,7 @@ import { LIQUIDITY_PRICE_SQL, prepareLiquidityModels, writeLiquidityModels } fro
 const handles:ChainDb[]=[],now=Date.parse('2026-10-17T12:00:00Z');
 afterEach(async()=>{await Promise.all(handles.splice(0).map(db=>db.close()));});
 async function fixture(count=1) {
-  const db=await openDb({pgliteDir:':memory:'});handles.push(db);await migrate(db);await migrateEngines(db);
+  const db=await openDb({pgliteDir:':memory:'});handles.push(db);await migrate(db);await migrateEngines(db);await db.ensurePartitions(new Date(now),{now:new Date(now)});
   await db.sql.query('INSERT INTO chain_blocks VALUES(1,1,$1,$1,to_timestamp($2))',[Buffer.alloc(32),now/1000]);
   await db.sql.query(`INSERT INTO tokens(address,deployer,first_block,block,launchpad,total_supply)
     SELECT decode(lpad(to_hex(n),40,'0'),'hex'),decode(lpad(to_hex(999),40,'0'),'hex'),1,1,'pons',10000 FROM generate_series(1,$1::int) n`,[count]);

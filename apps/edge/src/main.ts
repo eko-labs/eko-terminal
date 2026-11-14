@@ -1,6 +1,8 @@
 import { createMeteredClients, elysium, ELYSIUM_PUBLIC_RPC, loadElysiumRegistry } from '@eko/chain';
 import { HypeUsd } from './hype.js';
 import { buildServer } from './server.js';
+import { loadBuild } from './build.js';
+import { relayClient } from './relay.js';
 import { Edge } from './service.js';
 import { Tracker, type Rpc } from './tracker.js';
 import { registerRealtime } from './ws.js';
@@ -34,7 +36,10 @@ import { dirname, join } from 'node:path';
  *   REPLAY_MIN_SWAPS swaps a past launch needs before the historian rebuilds it (default 10)
  *   ACCOUNTS         "off" closes wallet sign-in (and with it trading); on by default with a store
  *   TRADING          "off" keeps sign-in but turns wallet trading off
- *   MAX_TRADE_USD    largest trade the panel quotes (default 1,000)
+ *   MAX_TRADE_USD    largest trade the panel quotes (default 250)
+ *   TRUST_PROXY_HOPS proxies in front of the edge whose X-Forwarded-For is trusted (default 1: Railway). Add one per extra proxy (e.g. Cloudflare).
+ *   BUILD_COMMIT     the commit this runs, when build.json is absent (scripts/deploy-edge.mjs writes build.json)
+ *   RPC_RELAY_URL    RPC the browser wallet relay (/v1/rpc) uses (default: the public RPC; never the paid one)
  *   EKO_FLAGS        features turned on, e.g. "leaderboards,referrals" (flags.ts; docs/FLAGS.md). Unset: none.
  */
 const env = process.env;
@@ -64,7 +69,7 @@ const hype = new HypeUsd();
 const edge = new Edge(tracker, rpc, registry, hype, { log, concurrency: Number(env.ASSESS_CONCURRENCY ?? 2),
   ...(store && historian && funders ? { memory: { store, historian, funders } } : {}) });
 const accounts = store && env.ACCOUNTS !== 'off' ? new AccountStore(store.db) : null;
-const maxTradeUsd = Number(env.MAX_TRADE_USD ?? 1000);
+const maxTradeUsd = Number(env.MAX_TRADE_USD ?? 250);
 let pushTo: ((accountId: string, ch: string, kind: string, data: unknown) => void) | null = null;
 const trading = accounts && env.TRADING !== 'off' ? new Trading({ db: store!.db, rpc, registry, coin: (a) => tracker.coin(a), assess: (c) => edge.fresh(c), hypeUsd: () => hype.latest, maxTradeUsd,
   onOrder: (accountId, order) => pushTo?.(accountId, 'orders', 'order', { order }) }) : null;
@@ -72,7 +77,7 @@ const flags = parseFlags(env.EKO_FLAGS);
 if (flags.unknown.length) log('flags_unknown', { names: flags.unknown });
 const features = await loadFeatures(flags.on);
 if (features.length) log('features_on', { flags: features.map(f => f.flag) });
-const app = buildServer(edge, { rpc, flags: flags.on, features, ...(accounts ? { accounts } : {}), ...(trading ? { trading } : {}), maxTradeUsd, onApproval: (accountId, a) => pushTo?.(accountId, 'approvals', 'approval', a), ...(store ? { store } : {}), ...(historian ? { historian } : {}), ...(funders ? { funders } : {}), webDist: env.WEB_DIST ?? new URL('../../web/dist', import.meta.url).pathname,
+const app = buildServer(edge, { rpc, relay: relayClient(env.RPC_RELAY_URL ?? env.RPC_PUBLIC_HTTP_URL ?? ELYSIUM_PUBLIC_RPC), trustProxyHops: Number(env.TRUST_PROXY_HOPS ?? 1), build: loadBuild(), flags: flags.on, features, ...(accounts ? { accounts } : {}), ...(trading ? { trading } : {}), maxTradeUsd, onApproval: (accountId, a) => pushTo?.(accountId, 'approvals', 'approval', a), ...(store ? { store } : {}), ...(historian ? { historian } : {}), ...(funders ? { funders } : {}), webDist: env.WEB_DIST ?? new URL('../../web/dist', import.meta.url).pathname,
   landingDist: env.LANDING_DIST ?? new URL('../../landing/dist', import.meta.url).pathname });
 
 const realtime = await registerRealtime(app, edge, { ...(accounts ? { accounts } : {}) });

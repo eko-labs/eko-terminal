@@ -15,7 +15,7 @@ import { swapAbi, TRANSFER_TOPIC } from './tracker.js';
  *
  * The call is the shape Elysium's own swaps use (decoded from mainnet transactions, 2026-11-11): one V4_SWAP command
  * with SETTLE (pay in: native HYPE from the call's value on a buy, the coin through Permit2 on a sell), then
- * SWAP_EXACT_IN_SINGLE (the minimum out is enforced inside the swap), then TAKE (the whole output to the wallet).
+ * SWAP_EXACT_IN_SINGLE (the minimum out is enforced inside the swap), then TAKE (the whole output to whoever signs: MSG_SENDER).
  */
 export const universalRouterAbi = parseAbi(['function execute(bytes commands, bytes[] inputs, uint256 deadline) payable']);
 export const v4QuoterAbi = parseAbi(['function quoteExactInputSingle(((address currency0, address currency1, uint24 fee, int24 tickSpacing, address hooks) poolKey, bool zeroForOne, uint128 exactAmount, bytes hookData) params) returns (uint256 amountOut, uint256 gasEstimate)']);
@@ -23,6 +23,8 @@ const erc20Abi = parseAbi(['function allowance(address owner, address spender) v
 const permit2Abi = parseAbi(['function allowance(address user, address token, address spender) view returns (uint160 amount, uint48 expiration, uint48 nonce)']);
 
 const V4_SWAP = '0x10', SETTLE = 0x0b, SWAP_EXACT_IN_SINGLE = 0x06, TAKE = 0x0e;
+/** v4-periphery ActionConstants.MSG_SENDER: the router pays TAKE's output to the account that called execute(). */
+export const MSG_SENDER: Address = '0x0000000000000000000000000000000000000001';
 const poolKeyType = { type: 'tuple', components: [{ name: 'currency0', type: 'address' }, { name: 'currency1', type: 'address' }, { name: 'fee', type: 'uint24' }, { name: 'tickSpacing', type: 'int24' }, { name: 'hooks', type: 'address' }] } as const;
 
 /** The Universal Router call for one exact-in swap on a native-HYPE pool (currency0 is HYPE). */
@@ -151,7 +153,8 @@ export class Trading {
     const warn = q.quote.guard.checks.filter(c => c.status === 'warn').map(c => c.code);
     if (warn.some(c => !body.acknowledged.includes(c))) throw Object.assign(new Error('Acknowledge the warnings first.'), { code: 'needs_ack', status: 409 });
     const deadline = BigInt(Math.floor(this.now() / 1000) + 300);
-    const swap = buildSwap(q.key, q.quote.side, q.amountIn, q.minOut, wallet, deadline);
+    // The output goes to whoever signs (the Universal Router's MSG_SENDER), never to an address named in the request.
+    const swap = buildSwap(q.key, q.quote.side, q.amountIn, q.minOut, MSG_SENDER, deadline);
     // The exact call, from the wallet, now: it must not revert (the swap enforces the minimum out).
     try { await this.call(this.router, swap.data, 'latest', wallet, swap.value); }
     catch (error) {

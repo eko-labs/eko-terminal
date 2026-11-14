@@ -19,6 +19,8 @@ export const PRESETS: { name: 'Safe' | 'Balanced' | 'Degen'; policy: Policy }[] 
   { name: 'Degen', policy: { mode: 'degen', blockPlaybookLevel: null, maxPositionUsd: 1000, killed: false, version: 1, guardPolicyVersion: 2 } },
 ];
 const MAX_AGENTS = 3, APPROVAL_TTL_SEC = 900;
+/** Storage bounds: rows kept per agent, their age, notes an account's agents may write a day, approvals waiting per agent. */
+export const JOURNAL_KEEP = 1_000, JOURNAL_DAYS = 90, NOTES_PER_ACCOUNT_DAY = 500, MAX_PENDING_APPROVALS = 20;
 const sha = (s: string) => createHash('sha256').update(s).digest('hex');
 const now = () => Math.floor(Date.now() / 1000);
 const iso = (sec: number) => new Date(sec * 1000).toISOString();
@@ -39,6 +41,8 @@ export class AgentStore {
       CREATE TABLE IF NOT EXISTS approvals(id TEXT PRIMARY KEY, agent_id TEXT NOT NULL, account_id TEXT NOT NULL, preflight_id TEXT NOT NULL, client_ref TEXT NOT NULL,
         summary TEXT NOT NULL, status TEXT NOT NULL, detail TEXT NOT NULL, expires_at INTEGER NOT NULL, decided_at INTEGER);
       CREATE INDEX IF NOT EXISTS approvals_account ON approvals(account_id, status);`);
+    // An approval readies one trade: used_at marks it spent (added after the table first shipped).
+    if (!(db.prepare('PRAGMA table_info(approvals)').all() as { name: string }[]).some(c => c.name === 'used_at')) db.exec('ALTER TABLE approvals ADD COLUMN used_at INTEGER');
   }
   private row(r: Record<string, unknown>): AgentRow {
     return { id: String(r.id), accountId: String(r.account_id), name: String(r.name), kind: r.kind as Agent['kind'], wallet: r.wallet ? getAddress(String(r.wallet)) : null,
@@ -54,7 +58,9 @@ export class AgentStore {
   }
   setStatus(id: string, status: Agent['status']) { this.db.prepare('UPDATE agents SET status = ? WHERE id = ?').run(status, id); }
   setPolicy(id: string, policy: Policy) { this.db.prepare('UPDATE agents SET policy = ? WHERE id = ?').run(JSON.stringify(policy), id); }
-  setWallet(id: string, wallet: Address) { this.db.prepare('UPDATE agents SET wallet = ? WHERE id = ? AND wallet IS NULL').run(wallet.toLowerCase(), id); }
+  setName(id: string, name: string) { this.db.prepare('UPDATE agents SET name = ? WHERE id = ?').run(name, id); }
+  /** The wallet an agent trades from. Only the owner sets it (Mission Control); an agent can never bind one itself. */
+  setWallet(id: string, wallet: Address | null) { this.db.prepare('UPDATE agents SET wallet = ? WHERE id = ?').run(wallet ? wallet.toLowerCase() : null, id); }
   touch(id: string) { this.db.prepare('UPDATE agents SET last_seen = ? WHERE id = ?').run(now(), id); }
 
   createKey(agentId: string) {
@@ -87,7 +93,23 @@ export class AgentStore {
     const id = randomUUID(), ts = now(), body = JSON.stringify(payload);
     const commitment = `0x${sha(`${id}:${agentId}:${ts}:${kind}:${body}`)}`;
     this.db.prepare('INSERT INTO journal(id, agent_id, ts, kind, payload, preflight_id, share, commitment) VALUES(?, ?, ?, ?, ?, ?, ?, ?)').run(id, agentId, ts, kind, body, preflightId ?? null, share ? 1 : 0, commitment);
+    this.trim(agentId, ts);
     return { id, agentId, ts: iso(ts), kind, payload, ...(preflightId ? { preflightId } : {}), share, commitment };
+  }
+  /** Each agent keeps its newest JOURNAL_KEEP rows and nothing older than JOURNAL_DAYS: the shared database cannot be filled. */
+  private trim(agentId: string, ts: number) {
+    this.db.prepare('DELETE FROM journal WHERE agent_id = ? AND ts < ?').run(agentId, ts - JOURNAL_DAYS * 86_400);
+    const n = (this.db.prepare('SELECT count(*) AS n FROM journal WHERE agent_id = ?').get(agentId) as { n: number }).n;
+    if (n > JOURNAL_KEEP) this.db.prepare('DELETE FROM journal WHERE rowid IN (SELECT rowid FROM journal WHERE agent_id = ? ORDER BY ts ASC, rowid ASC LIMIT ?)').run(agentId, n - JOURNAL_KEEP);
+  }
+  /** Rows an account's agents wrote themselves (not EKO's decisions and orders) in the last day. */
+  agentNotesToday(accountId: string): number {
+    return (this.db.prepare('SELECT count(*) AS n FROM journal j JOIN agents a ON a.id = j.agent_id WHERE a.account_id = ? AND j.ts > ? AND j.preflight_id IS NULL').get(accountId, now() - 86_400) as { n: number }).n;
+  }
+  /** Approvals still waiting on the owner for one agent. */
+  pendingApprovals(agentId: string): number {
+    this.expire();
+    return (this.db.prepare(`SELECT count(*) AS n FROM approvals WHERE agent_id = ? AND status = 'pending'`).get(agentId) as { n: number }).n;
   }
   journalPage(agentId: string, opts: { cursor?: string; kind?: string; limit?: number }) {
     const limit = Math.min(100, Math.max(1, opts.limit ?? 50)), before = Number(opts.cursor ?? Number.MAX_SAFE_INTEGER) || Number.MAX_SAFE_INTEGER;
@@ -108,14 +130,33 @@ export class AgentStore {
   }
   decide(accountId: string, id: string, decision: 'approved' | 'denied'): Approval | null {
     this.expire();
-    this.db.prepare(`UPDATE approvals SET status = ?, decided_at = ? WHERE id = ? AND account_id = ? AND status = 'pending'`).run(decision, now(), id, accountId);
+    // An approved order must be traded within the same window it was waiting in; after that it expires unused.
+    this.db.prepare(`UPDATE approvals SET status = ?, decided_at = ?, expires_at = ? WHERE id = ? AND account_id = ? AND status = 'pending'`).run(decision, now(), now() + APPROVAL_TTL_SEC, id, accountId);
     return this.approval(accountId, id);
   }
-  /** The latest approval for one order of an agent (clientOrderRef), if any. */
-  approvalFor(agentId: string, clientRef: string) {
+  /** The latest approval for one order of an agent (clientOrderRef), with the order it was given for and whether it was used. */
+  approvalFor(agentId: string, clientRef: string): (Approval & { orderHash: string | null; used: boolean }) | null {
     this.expire();
     const r = this.db.prepare('SELECT * FROM approvals WHERE agent_id = ? AND client_ref = ? ORDER BY expires_at DESC LIMIT 1').get(agentId, clientRef) as Record<string, string | number | null> | undefined;
-    return r ? toApproval(r) : null;
+    if (!r) return null;
+    const a = toApproval(r);
+    return { ...a, orderHash: a.detail?.orderHash ?? null, used: r.used_at != null };
+  }
+  /** Spend an approval on one ready trade. False when it was already used, expired or never approved. */
+  useApproval(id: string): boolean {
+    this.expire();
+    return Number(this.db.prepare(`UPDATE approvals SET used_at = ? WHERE id = ? AND status = 'approved' AND used_at IS NULL`).run(now(), id).changes) === 1;
+  }
+  /** The decision EKO itself recorded for an agent's clientOrderRef (never a row the agent wrote through the journal tool). */
+  decisionFor(agentId: string, clientRef: string): (JournalEntry & { preflightId: string }) | null {
+    const r = this.db.prepare(`SELECT * FROM journal WHERE agent_id = ? AND kind = 'decision' AND preflight_id IS NOT NULL AND json_extract(payload, '$.clientOrderRef') = ?
+      ORDER BY ts DESC, rowid DESC LIMIT 1`).get(agentId, clientRef) as Record<string, string | number | null> | undefined;
+    return r ? { id: String(r.id), agentId: String(r.agent_id), ts: iso(Number(r.ts)), kind: 'decision', payload: JSON.parse(String(r.payload)), preflightId: String(r.preflight_id),
+      share: !!r.share, commitment: String(r.commitment) } : null;
+  }
+  /** Whether EKO already handed out a ready transaction for this clientOrderRef. */
+  prepared(agentId: string, clientRef: string): boolean {
+    return !!this.db.prepare(`SELECT 1 FROM journal WHERE agent_id = ? AND kind = 'order' AND preflight_id IS NOT NULL AND json_extract(payload, '$.clientOrderRef') = ? LIMIT 1`).get(agentId, clientRef);
   }
   requestApproval(agent: AgentRow, preflightId: string, clientRef: string, summary: string, detail: Approval['detail']): Approval {
     const id = `apr_${randomBytes(8).toString('hex')}`;
@@ -123,7 +164,7 @@ export class AgentStore {
       .run(id, agent.id, agent.accountId, preflightId, clientRef, summary, JSON.stringify(detail ?? null), now() + APPROVAL_TTL_SEC);
     return this.approval(agent.accountId, id)!;
   }
-  private expire() { this.db.prepare(`UPDATE approvals SET status = 'expired' WHERE status = 'pending' AND expires_at < ?`).run(now()); }
+  private expire() { this.db.prepare(`UPDATE approvals SET status = 'expired' WHERE (status = 'pending' OR (status = 'approved' AND used_at IS NULL)) AND expires_at < ?`).run(now()); }
   erase(accountId: string) {
     for (const a of this.list(accountId)) { for (const t of ['agent_keys', 'journal']) this.db.prepare(`DELETE FROM ${t} WHERE agent_id = ?`).run(a.id); }
     this.db.prepare('DELETE FROM approvals WHERE account_id = ?').run(accountId);
@@ -153,6 +194,8 @@ export interface PreflightDeps {
   assess: (coin: CoinState) => Promise<Assessment | undefined>;
 }
 export interface PreflightOrder { coin: Address; side: 'buy' | 'sell'; notionalUsd: number }
+/** The order an approval is for: agent, reference, coin, side and size. */
+export const orderHash = (agentId: string, clientOrderRef: string, o: PreflightOrder): `0x${string}` => `0x${sha(`${agentId}:${clientOrderRef}:${o.coin}:${o.side}:${o.notionalUsd}`)}`;
 
 /**
  * Advice for one order against the agent's policy and the coin's live check. Deny: the agent is paused or killed, the
@@ -185,21 +228,27 @@ export async function preflight(d: PreflightDeps, agent: AgentRow, clientOrderRe
   if (buy && p.maxPositionUsd !== undefined && order.notionalUsd > p.maxPositionUsd) deny(`$${order.notionalUsd} is over the policy's $${p.maxPositionUsd} cap.`);
   let approvalId: string | undefined;
   if (decision === 'allow' && p.approvalAboveUsd !== undefined && order.notionalUsd > p.approvalAboveUsd) {
-    const prior = d.agents.approvalFor(agent.id, clientOrderRef);
-    if (prior?.status === 'approved') reasons.push('The owner approved this order.');
+    // An approval covers exactly the order the owner saw (coin, side, size), once, and only until it expires.
+    const prior = d.agents.approvalFor(agent.id, clientOrderRef), hash = orderHash(agent.id, clientOrderRef, order);
+    if (prior && prior.orderHash !== hash) deny('This clientOrderRef was used for a different order; use a fresh clientOrderRef for every order.');
+    else if (prior?.status === 'approved' && prior.used) deny('The owner\'s approval for this order was already used for one trade; run preflight with a fresh clientOrderRef.');
+    else if (prior?.status === 'approved') { approvalId = prior.id; reasons.push('The owner approved this order.'); }
     else if (prior?.status === 'pending') { decision = 'needs_approval'; approvalId = prior.id; reasons.push('Waiting for the owner to approve this order in Mission Control.'); }
     else if (prior?.status === 'denied') deny('The owner declined this order.');
+    else if (prior?.status === 'expired') deny('The owner\'s approval for this order expired; run preflight with a fresh clientOrderRef.');
+    else if (d.agents.pendingApprovals(agent.id) >= MAX_PENDING_APPROVALS) deny(`${MAX_PENDING_APPROVALS} orders are already waiting for the owner's approval; wait for those first.`);
     else {
       decision = 'needs_approval';
       const summary = `${agent.name}: ${order.side} $${order.notionalUsd} of ${order.coin}`;
       approvalId = d.agents.requestApproval(agent, preflightId, clientOrderRef, summary, {
         clientOrderRef, order: { venue: 'elysium', instrument: order.coin, side: order.side, notionalUsd: order.notionalUsd, orderType: 'market' },
-        orderHash: `0x${sha(`${agent.id}:${clientOrderRef}:${order.coin}:${order.side}:${order.notionalUsd}`)}`, notionalUsd: order.notionalUsd, approvalAboveUsd: p.approvalAboveUsd,
+        orderHash: hash, notionalUsd: order.notionalUsd, approvalAboveUsd: p.approvalAboveUsd,
         reasons: [...reasons], policyVersion: p.version, ...(verdict ? { verdict } : {}) }).id;
       reasons.push(`Above the $${p.approvalAboveUsd} approval line: the owner must approve it in Mission Control.`);
     }
   }
-  const entry = d.agents.journal(agent.id, 'decision', { clientOrderRef, order, decision, reasons }, preflightId);
+  // Recorded by EKO with its own preflightId: trade_prepare trusts only these rows, never one an agent journals itself.
+  const entry = d.agents.journal(agent.id, 'decision', { clientOrderRef, order, decision, reasons, ...(decision === 'allow' && approvalId ? { approvalId } : {}) }, preflightId);
   return { preflightId, decision, reasons, policyVersion: p.version, ...(p.guardPolicyVersion ? { guardPolicyVersion: p.guardPolicyVersion } : {}),
     ...(approvalId ? { approvalId } : {}), ...(verdict ? { senses: { verdict } } : {}), journalId: entry.id };
 }
@@ -239,11 +288,19 @@ export function registerAgentRoutes(app: FastifyInstance, agents: AgentStore, au
     return agentDetail(agents.create(acct.id, name, kind, preset.policy));
   });
   app.get<{ Params: { id: string } }>('/v1/agents/:id', async (req, reply) => { const a = mine(req, reply); return a ? agentDetail(a) : reply; });
-  app.patch<{ Params: { id: string }; Body: { status?: unknown } }>('/v1/agents/:id', async (req, reply) => {
+  // The owner resumes an agent, renames it, or sets the wallet it trades from (null clears it).
+  app.patch<{ Params: { id: string }; Body: { status?: unknown; name?: unknown; wallet?: unknown } }>('/v1/agents/:id', { bodyLimit: 4_096 }, async (req, reply) => {
     const a = mine(req, reply); if (!a) return reply;
-    if (req.body?.status !== 'active') return fail(reply, 400, 'bad_request', 'Only resuming is supported here.');
-    if (a.status === 'disconnected') return fail(reply, 409, 'conflict', 'A disconnected agent needs a new key; create a new agent.');
-    agents.setStatus(a.id, 'active'); agents.setPolicy(a.id, { ...a.policy, killed: false, version: a.policy.version + 1 });
+    const b = req.body ?? {};
+    if (b.status === undefined && b.name === undefined && b.wallet === undefined) return fail(reply, 400, 'bad_request', 'Send status, name or wallet.');
+    if (b.status !== undefined && b.status !== 'active') return fail(reply, 400, 'bad_request', 'Only resuming is supported here.');
+    const name = typeof b.name === 'string' ? b.name.trim().slice(0, 48) : undefined;
+    if (b.name !== undefined && !name) return fail(reply, 400, 'bad_request', 'Name the agent.');
+    if (b.wallet !== undefined && b.wallet !== null && !isWallet(b.wallet)) return fail(reply, 400, 'bad_request', 'wallet must be an address or null.');
+    if (a.status === 'disconnected' && (b.status !== undefined || b.wallet !== undefined)) return fail(reply, 409, 'conflict', 'A disconnected agent needs a new key; create a new agent.');
+    if (b.status === 'active') { agents.setStatus(a.id, 'active'); agents.setPolicy(a.id, { ...a.policy, killed: false, version: a.policy.version + 1 }); }
+    if (name) agents.setName(a.id, name);
+    if (b.wallet !== undefined) agents.setWallet(a.id, b.wallet === null ? null : getAddress(b.wallet as string));
     return agentView(agents.byId(a.id)!);
   });
   app.post<{ Params: { id: string }; Body: { mode?: unknown } }>('/v1/agents/:id/kill', async (req, reply) => {

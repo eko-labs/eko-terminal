@@ -75,11 +75,15 @@ export class AccountStore {
 }
 
 /** A tiny fixed-window limiter per client address (one instance, so memory is enough). */
-export function limiter(max: number, windowMs: number) {
+export function limiter(max: number, windowMs: number, maxKeys = 50_000) {
   const hits = new Map<string, { n: number; until: number }>();
   return (key: string) => {
     const now = Date.now(), h = hits.get(key);
-    if (!h || h.until < now) { hits.set(key, { n: 1, until: now + windowMs }); if (hits.size > 50_000) hits.clear(); return true; }
+    if (!h || h.until < now) {
+      // Full: drop finished windows only. Clearing everything would hand every client a fresh budget mid-flood.
+      if (!h && hits.size >= maxKeys) { for (const [k, v] of hits) if (v.until < now) hits.delete(k); if (hits.size >= maxKeys) return false; }
+      hits.set(key, { n: 1, until: now + windowMs }); return true;
+    }
     h.n++; return h.n <= max;
   };
 }
@@ -140,7 +144,8 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AuthContext) {
     return { nonce: store.nonce(), domain: host, uri: origin(req), issuedAt: issued.toISOString(), expirationTime: new Date(issued.getTime() + NONCE_TTL_SEC * 1000).toISOString() };
   });
 
-  app.post('/v1/auth/siwe/verify', async (req, reply) => {
+  // A contract wallet's signature can be long (ERC-6492 wraps the deployment): this route takes more than the 16 KB default.
+  app.post('/v1/auth/siwe/verify', { bodyLimit: 49_152 }, async (req, reply) => {
     if (!verifyLimit(req.ip)) return fail(reply, 429, 'rate_limited', 'Too many sign-in attempts. Try again in a minute.');
     const body = SiweVerifySchema.safeParse(req.body);
     if (!body.success) return fail(reply, 400, 'bad_request', 'Malformed sign-in.');

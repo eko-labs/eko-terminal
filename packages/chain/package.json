@@ -22,7 +22,7 @@
     "@eko/shared": "workspace:*",
     "viem": "2.56.9",
     "yaml": "2.9.0",
-    "zod": "^4.6.5",
+    "zod": "^4.6.7",
     "@eko/db": "workspace:*"
   },
   "devDependencies": {

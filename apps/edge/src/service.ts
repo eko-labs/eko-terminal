@@ -185,6 +185,9 @@ export class Edge {
   /** For a coin page: the cached check if fresh, otherwise a new one (bounded wait). */
   async fresh(coin: CoinState, waitMs = 8000): Promise<Assessment | undefined> {
     if (!this.stale(coin.token)) return this.assessment(coin.token);
+    // Page views wait out the same RPC pause and per-coin backoff as the scheduler: requests cannot force extra RPC work.
+    const nowMs = this.opts.now(), f = this.failed.get(coin.token.toLowerCase());
+    if (nowMs < this.pausedUntil || (f && f.until > nowMs)) return this.assessment(coin.token);
     const job = this.check(coin);
     const timeout = new Promise<null>(resolve => setTimeout(resolve, waitMs, null));
     return (await Promise.race([job, timeout])) ?? this.assessment(coin.token);

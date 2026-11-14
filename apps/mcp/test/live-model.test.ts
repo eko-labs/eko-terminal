@@ -113,7 +113,7 @@ describe('seven T MCP tools on the API data model', () => {
     // A later engine verdict with a confirmed honeypot is refused from the stored row alone.
     await f.handle.chain.sql.query(`INSERT INTO verdicts(id,coin,valid_from_block,rules_version,signature,data)
       SELECT id||'-later',coin,valid_from_block+1,rules_version,signature,$2::jsonb FROM verdicts WHERE coin=$1 LIMIT 1`,
-    [Buffer.from(coin.slice(2), 'hex'), JSON.stringify({ ...stored, level: 'danger', reasons: ['honeypot'],
+    [Buffer.from(coin.slice(2), 'hex'), JSON.stringify({ ...stored, receipt: { ...stored.receipt, id: `${stored.receipt.id}-later` }, level: 'danger', reasons: ['honeypot'],
       playbooks: [{ id: 'honeypot', level: 'danger', confidence: 1, evidence: [] }] })]);
     const honeypot = PreflightResultSchema.parse(await call(key, 'preflight', order('live-model-honeypot', coin)));
     expect(honeypot.decision).toBe('deny'); expect(honeypot.reasons[0]).toBe('honeypot: the sell simulation fails');

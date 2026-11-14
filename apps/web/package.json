@@ -25,7 +25,7 @@
     "react-dom": "^19.3.0",
     "viem": "^2.56.9",
     "wagmi": "^3.7.7",
-    "zod": "^4.6.5",
+    "zod": "^4.6.7",
     "zustand": "^5.0.15",
     "@eko/receipts-verifier": "workspace:*"
   },

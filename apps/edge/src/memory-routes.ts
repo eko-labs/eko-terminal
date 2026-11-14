@@ -6,6 +6,7 @@ import type { FunderTracer } from './funders.js';
 import type { Historian } from './historian.js';
 import type { HistoryStore, StoredLaunch } from './history.js';
 import type { Edge } from './service.js';
+import { limiter } from './accounts.js';
 
 const iso = (sec: number | null | undefined) => sec ? new Date(sec * 1000).toISOString() : null;
 const RANK: Record<string, number> = { danger: 3, monitor: 2, info: 1, clear: 0 };
@@ -17,6 +18,7 @@ const BAD = new Set(['rugged', 'honeypot', 'dumped']);
  */
 export function registerMemoryRoutes(app: FastifyInstance, edge: Edge, m: { store: HistoryStore; historian?: Historian; funders?: FunderTracer }) {
   const { store } = m;
+  const deployerLimit = limiter(60, 60_000);
 
   app.get('/v1/memory', async () => ({
     launches: store.query<{ n: number }>('SELECT count(*) AS n FROM launches')[0]!.n,
@@ -27,6 +29,7 @@ export function registerMemoryRoutes(app: FastifyInstance, edge: Edge, m: { stor
   }));
 
   app.get<{ Params: { address: string } }>('/v1/deployers/:address', async (req, reply) => {
+    if (!deployerLimit(req.ip)) return reply.code(429).send({ error: 'rate_limited', message: 'Too many lookups. Try again in a minute.' });
     if (!isAddress(req.params.address, { strict: false })) return reply.code(400).send({ error: 'bad_request', message: 'Not an address.' });
     const deployer = getAddress(req.params.address);
     const own = store.launchesBy(deployer, 200);
@@ -55,7 +58,8 @@ export function registerMemoryRoutes(app: FastifyInstance, edge: Edge, m: { stor
       launches: [...own.map(l => row(l, 'deployer')), ...crew.map(l => row(l, 'crew'))],
       coverage: { since: iso(since), launchesThroughBlock: Number(store.meta('historian.launches.block') ?? 0) },
     };
-    if (!traced) m.funders?.want([deployer]);
+    // Only a wallet that deployed a launch EKO knows is worth tracing, and a page view never jumps ahead of live work.
+    if (!traced && own.length) m.funders?.want([deployer], 'lookup');
     return body;
   });
 
