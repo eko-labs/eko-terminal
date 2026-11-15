@@ -172,8 +172,8 @@ Measured: **599/599 (100.00%)** documented. Minimum: **90%**.
 | `authenticateCommit` | function | [apps/engines/src/receipts/worker.ts:56](../../apps/engines/src/receipts/worker.ts#L56) | Yes |
 | `ReceiptWorker.constructor` | constructor | [apps/engines/src/receipts/worker.ts:86](../../apps/engines/src/receipts/worker.ts#L86) | Yes |
 | `ReceiptWorker.stop` | method | [apps/engines/src/receipts/worker.ts:94](../../apps/engines/src/receipts/worker.ts#L94) | Yes |
-| `ReceiptWorker.tick` | method | [apps/engines/src/receipts/worker.ts:129](../../apps/engines/src/receipts/worker.ts#L129) | Yes |
-| `ReceiptWorker.run` | method | [apps/engines/src/receipts/worker.ts:178](../../apps/engines/src/receipts/worker.ts#L178) | Yes |
+| `ReceiptWorker.tick` | method | [apps/engines/src/receipts/worker.ts:132](../../apps/engines/src/receipts/worker.ts#L132) | Yes |
+| `ReceiptWorker.run` | method | [apps/engines/src/receipts/worker.ts:181](../../apps/engines/src/receipts/worker.ts#L181) | Yes |
 | `fitMomentum` | function | [apps/engines/src/swarm/calibration.ts:12](../../apps/engines/src/swarm/calibration.ts#L12) | Yes |
 | `momentumProbability` | function | [apps/engines/src/swarm/calibration.ts:37](../../apps/engines/src/swarm/calibration.ts#L37) | Yes |
 | `calibrationReport` | function | [apps/engines/src/swarm/calibration.ts:43](../../apps/engines/src/swarm/calibration.ts#L43) | Yes |

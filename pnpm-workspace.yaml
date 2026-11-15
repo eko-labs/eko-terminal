@@ -8,3 +8,5 @@ minimumReleaseAge: 4320
 overrides:
   # satori pins fflate 0.7.3 (GHSA-px8p-9vwx-vf98, malformed ZIP64 loop); 0.7.5 is the patched release.
   fflate@>=0.7.0 <0.7.5: 0.7.5
+  # GHSA-68fv-2mgg-jv7q (event-loop denial of service), reached through @tailwindcss/vite and vite.
+  source-map-js@<1.2.2: 1.2.2

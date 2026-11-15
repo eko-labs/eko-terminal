@@ -46,5 +46,5 @@ describe('Blue chip operator report',()=>{
       expect(largest).toHaveLength(15);expect(largest[0]).toMatchObject({name:'Sample coin',symbol:'SAMPLE',liquidity_usd:122000});
       expect((await db.sql.query('SELECT count(*) AS n FROM read_blue_chip')).rows[0].n).toBe(21999);
     } finally {await db.close();}
-  });
+  }, 120_000); // builds a 22,000-coin model in PGlite: about 10 s here, nearly 40 s on a 2-vCPU CI runner
 });

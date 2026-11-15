@@ -102,8 +102,11 @@ export class ReceiptWorker {
       else if (BigInt(anchor.data.blockNumber) <= finalized) await this.journal.anchorEvent(anchor.id,'finalized');
     }
     // Honor anchors written before 080 without changing Guard's immutable bytes.
+    // The chain id is read before the transaction opens: the metered RPC client records each call in the database, so
+    // on a single-connection database (PGlite) a call made inside the transaction waits on it forever.
+    const chainId = await this.chain.getChainId();
     const reader: GuardRegistryReader = {
-      getChainId: () => this.chain.getChainId(),
+      getChainId: async () => chainId,
       getBlock: async ({blockNumber}) => ({hash:await this.chain.block(blockNumber)}),
       getTransactionReceipt: async ({hash}) => {const tx=await this.chain.receipt(hash);if (!tx) throw new Error('Receipt unavailable');return tx;},
     };

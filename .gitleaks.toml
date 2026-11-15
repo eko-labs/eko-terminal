@@ -119,3 +119,12 @@ condition = "AND"
 paths = ['''^packages/chain/test/fixtures/4663/v3\-pool\.json$''']
 regexTarget = "secret"
 regexes = ['''^0x11094228B5F9D7011F6F7f9c523c03A31E85341E$''']
+
+# Public token-contract address in a recorded Montra launch event.
+[[allowlists]]
+description = "Public token-contract address in the Montra launch-event fixture."
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^packages/chain/test/fixtures/99901/montra\-launch\.json$''']
+regexTarget = "secret"
+regexes = ['''^0x2Fd8Ed57C5FD829F042911996EAA4C591FFc0bB2$''']
