@@ -115,7 +115,7 @@ it('journals an opted-in private entry, anchors a mixed batch, recovers after re
     ...built.ctx.receipts.reader, getChainId:chain.getChainId,
     getTransactionReceipt:({hash}) => built.ctx.receipts.reader.getTransactionReceipt({hash}),
     getBlock:async () => ({hash:chain.canonical}),
-    readContract:async ({args}) => chain.batches.get(args[0]),
+    readContract:async ({functionName,args}) => functionName==='revoked' ? false : chain.batches.get(args[0]),
   });
   expect(verified.status).toBe('commitment');expect(verified.steps.map(s => s.status)).toEqual(['commitment','passed','passed']);
   const publication=(await db.sql.query<{data:unknown;canonical_payload:string}>('SELECT * FROM receipt_items WHERE id=$1',[entry.id])).rows;

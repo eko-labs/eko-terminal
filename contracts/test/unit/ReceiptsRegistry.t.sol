@@ -13,6 +13,7 @@ contract ReceiptsRegistryTest is ReceiptFixture {
 
     event CommitterChanged(address indexed previous, address indexed next);
     event BatchCommitted(uint64 indexed batchId, bytes32 indexed root, uint32 leafCount, address indexed committer);
+    event BatchRevoked(uint64 indexed batchId);
 
     function setUp() public {
         owner = makeAddr("cold-owner");
@@ -319,5 +320,70 @@ contract ReceiptsRegistryTest is ReceiptFixture {
             assertEq(registry.committer(), committer);
         }
         assertEq(commitFixture(), 1);
+    }
+
+    /// A batch a leaked committer appended stops verifying once the owner revokes it (audit F-1).
+    function testOwnerRevokesBatchAndItsProofsStopVerifying() public {
+        uint64 id = commitFixture();
+        assertTrue(registry.verify(id, fixtureLeaves[0], fixtureProofs[0]));
+        vm.prank(owner);
+        registry.setCommitter(nextCommitter);
+        vm.expectEmit(true, false, false, true, address(registry));
+        emit BatchRevoked(id);
+        vm.prank(owner);
+        registry.revokeBatch(id);
+        assertTrue(registry.revoked(id));
+        for (uint256 i; i < fixtureLeaves.length; ++i) {
+            assertFalse(registry.verify(id, fixtureLeaves[i], fixtureProofs[i]));
+        }
+        // The batch stays readable for audit, and later batches are unaffected.
+        assertEq(registry.batch(id).root, fixtureRoot);
+        vm.prank(nextCommitter);
+        uint64 next = registry.commit(fixtureRoot, uint32(fixtureLeaves.length));
+        assertFalse(registry.revoked(next));
+        assertTrue(registry.verify(next, fixtureLeaves[0], fixtureProofs[0]));
+    }
+
+    function testOnlyOwnerRevokes() public {
+        uint64 id = commitFixture();
+        for (uint256 i; i < 2; ++i) {
+            address caller = i == 0 ? committer : makeAddr("stranger");
+            vm.prank(caller);
+            vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, caller));
+            registry.revokeBatch(id);
+        }
+        assertFalse(registry.revoked(id));
+        assertTrue(registry.verify(id, fixtureLeaves[0], fixtureProofs[0]));
+    }
+
+    function testRevokeRejectsUnknownAndRepeatedBatches() public {
+        vm.startPrank(owner);
+        vm.expectRevert(ReceiptsRegistry.UnknownBatch.selector);
+        registry.revokeBatch(0);
+        vm.expectRevert(ReceiptsRegistry.UnknownBatch.selector);
+        registry.revokeBatch(1);
+        vm.stopPrank();
+        uint64 id = commitFixture();
+        vm.startPrank(owner);
+        vm.expectRevert(ReceiptsRegistry.UnknownBatch.selector);
+        registry.revokeBatch(id + 1);
+        registry.revokeBatch(id);
+        vm.expectRevert(ReceiptsRegistry.AlreadyRevoked.selector);
+        registry.revokeBatch(id);
+        vm.stopPrank();
+        assertFalse(registry.revoked(0));
+    }
+
+    /// Any committed batch can be revoked, not only the newest, and only that batch stops verifying.
+    function testRevokesAnOlderBatchAndLeavesNewerOnes() public {
+        uint64 first = commitFixture();
+        uint64 second = commitFixture();
+        assertEq(registry.lastBatchId(), second);
+        vm.prank(owner);
+        registry.revokeBatch(first);
+        assertTrue(registry.revoked(first));
+        assertFalse(registry.revoked(second));
+        assertFalse(registry.verify(first, fixtureLeaves[0], fixtureProofs[0]));
+        assertTrue(registry.verify(second, fixtureLeaves[0], fixtureProofs[0]));
     }
 }

@@ -248,7 +248,7 @@ describe('coin onboarding', () => {
     // Twenty launches by the same sender already on record this week.
     expect(await launched(mint, 3, async db => { for (let i = 0; i < 20; i++) await db.sql.query(`INSERT INTO coin_onboarding(coin,status,data,created_at) VALUES($1,'done',$2::jsonb,$3)`,
       [binary(address(0x7000 + i)), JSON.stringify({ sender: launcher }), new Date(now - 3_600_000)]); })).toEqual({ deployer: coin, shared: 'many_launches', sender: launcher });
-  });
+  }, 120_000); // heavy fixture: about 4 s here, just over 30 s on a 2-vCPU CI runner
   it('does nothing while the indexer is behind, and resumes once it has caught up', async () => {
     const db = await open(), events: string[] = [];
     await swap(db, 900, 60, 1, '1000');

@@ -23,9 +23,11 @@ function setup() {
   const batch = { root: current.root as Hex, leafCount: current.items.length, committedAt: 123n, committer };
   const reader = {
     getChainId: vi.fn(async () => 4663), getBlock: vi.fn(async () => ({ hash: blockHash })),
-    getTransactionReceipt: vi.fn(async () => transaction), readContract: vi.fn(async () => batch),
+    getTransactionReceipt: vi.fn(async () => transaction),
+    readContract: vi.fn(async (input: { functionName: 'batch' | 'revoked' }) => input.functionName === 'revoked' ? state.revoked : batch),
   } satisfies RegistryReader;
-  return { receipt, reader, log, transaction, batch };
+  const state = { revoked: false };
+  return { receipt, reader, log, transaction, batch, state };
 }
 describe('browser verifier', () => {
   it('packages exactly the published ABI and checks the exact historical registry batch', async () => {
@@ -33,6 +35,19 @@ describe('browser verifier', () => {
     const { receipt, reader } = setup();
     expect((await verifyReceipt(receipt, registry, reader)).status).toBe('verified');
     expect(reader.readContract).toHaveBeenCalledWith({ address: registry, abi: publishedAbi, functionName: 'batch', args: [1n], blockNumber: 100n });
+    expect(reader.readContract).toHaveBeenCalledWith({ address: registry, abi: publishedAbi, functionName: 'revoked', args: [1n] });
+  });
+  it('fails a receipt whose batch the registry owner revoked, and one it cannot confirm unrevoked (audit F-1)', async () => {
+    const { receipt, reader, state } = setup();
+    state.revoked = true;
+    const out = await verifyReceipt(receipt, registry, reader);
+    expect(out.status).toBe('failed');
+    expect(out.steps.at(-1)!.message).toBe('The registry owner revoked this batch.');
+    reader.readContract.mockImplementation(async (input: { functionName: 'batch' | 'revoked' }) => {
+      if (input.functionName === 'revoked') throw new Error('execution reverted'); // a registry without revocation
+      return setup().batch;
+    });
+    expect((await verifyReceipt(receipt, registry, reader)).status).toBe('failed');
   });
   it('keeps every V1 and V2 fixture leaf/proof and the raw V2 payloads', () => {
     for (const fixture of [legacy, current]) for (const [i, item] of fixture.items.entries()) {

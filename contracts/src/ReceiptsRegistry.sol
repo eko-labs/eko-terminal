@@ -7,7 +7,8 @@ import {Ownable, Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step
 /// @title ReceiptsRegistry
 /// @notice Append-only Merkle roots with contract-assigned sequential batch ids.
 /// @dev No cadence, leaf provenance or off-chain payload validation is enforced here.
-///      The committer can append arbitrary nonempty roots; the owner can rotate or disable it.
+///      The committer can append arbitrary nonempty roots; the owner can rotate or disable it,
+///      and revoke a committed batch (for example one a leaked committer key appended).
 ///      Inherited Ownable2Step exposes owner(), pendingOwner(), transferOwnership(),
 ///      acceptOwnership() and renounceOwnership(). Transfer requires pending-owner acceptance;
 ///      renunciation clears both owners and permanently removes rotation authority.
@@ -40,6 +41,7 @@ contract ReceiptsRegistry is Ownable2Step {
     /// @dev Incremented once per successful commit; reading requires no authorization.
     uint64 public lastBatchId;                            // sequence number of the newest batch; the first is 1
     mapping(uint64 => Batch) private _batches;
+    mapping(uint64 => bool) private _revoked;
 
     /// @notice Emitted on construction and each owner-authorized committer replacement.
     /// @dev Existing batches retain their original committer; zero next disables new commits.
@@ -53,6 +55,10 @@ contract ReceiptsRegistry is Ownable2Step {
     /// @param leafCount Supplied nonzero count; individual leaves are not inspected.
     /// @param committer Caller authorized when this batch was appended.
     event BatchCommitted(uint64 indexed batchId, bytes32 indexed root, uint32 leafCount, address indexed committer);
+    /// @notice Emitted when the owner revokes a committed batch.
+    /// @dev The batch stays stored and readable through batch(); verify() returns false for it from then on.
+    /// @param batchId Revoked batch id.
+    event BatchRevoked(uint64 indexed batchId);
 
     /// @notice The commit caller is not the currently configured committer.
     /// @dev Raised before checking the root or leaf count; no state is appended.
@@ -60,6 +66,12 @@ contract ReceiptsRegistry is Ownable2Step {
     /// @notice The supplied root is zero or the supplied leaf count is zero.
     /// @dev Raised after caller authorization and before allocating a batch id.
     error EmptyBatch();
+    /// @notice The batch id was never assigned.
+    /// @dev Raised by revokeBatch for zero or an id above lastBatchId; nothing is recorded.
+    error UnknownBatch();
+    /// @notice The batch is already revoked.
+    /// @dev Raised by revokeBatch on a repeat; revocation cannot be undone.
+    error AlreadyRevoked();
 
     /// @notice Assign the initial owner and committer and emit the initial role change.
     /// @dev Ownable rejects a zero owner with OwnableInvalidOwner; the committer may be zero
@@ -95,6 +107,26 @@ contract ReceiptsRegistry is Ownable2Step {
         committer = next;
     }
 
+    /// @notice Revoke a committed batch so that its proofs stop verifying.
+    /// @dev Only the owner may call; other callers revert with OwnableUnauthorizedAccount.
+    ///      UnknownBatch rejects an id never assigned and AlreadyRevoked a repeat. Revocation is
+    ///      permanent; the stored batch is kept for audit and new commits are unaffected.
+    /// @param batchId Committed batch to revoke.
+    function revokeBatch(uint64 batchId) external onlyOwner {
+        if (batchId == 0 || batchId > lastBatchId) revert UnknownBatch();
+        if (_revoked[batchId]) revert AlreadyRevoked();
+        _revoked[batchId] = true;
+        emit BatchRevoked(batchId);
+    }
+
+    /// @notice Read whether the owner revoked a batch, without caller authorization.
+    /// @dev False for every unassigned id.
+    /// @param batchId Id to read.
+    /// @return Whether revokeBatch was called for this id.
+    function revoked(uint64 batchId) external view returns (bool) {
+        return _revoked[batchId];
+    }
+
     /// @notice Read a stored batch without caller authorization.
     /// @dev An unassigned id returns a zero-initialized Batch rather than reverting.
     /// @param batchId Id to read; zero is never assigned by commit.
@@ -104,14 +136,14 @@ contract ReceiptsRegistry is Ownable2Step {
     }
 
     /// @notice Anyone can check a leaf against a committed root.
-    /// @dev Returns false for an unassigned batch or a nonmatching sorted-pair Merkle proof.
+    /// @dev Returns false for an unassigned or revoked batch or a nonmatching sorted-pair Merkle proof.
     ///      Does not validate payload content, leaf index or the reported leaf count.
     /// @param batchId Id of the batch whose root is used.
     /// @param leaf Already encoded leaf hash (off-chain encoding is the caller's responsibility).
     /// @param proof Sibling hashes ordered from the leaf toward the root.
-    /// @return Whether the proof resolves to this batch's nonzero stored root.
+    /// @return Whether the proof resolves to this batch's nonzero stored root and the batch is not revoked.
     function verify(uint64 batchId, bytes32 leaf, bytes32[] calldata proof) external view returns (bool) {
         bytes32 root = _batches[batchId].root;
-        return root != bytes32(0) && MerkleProof.verifyCalldata(proof, root, leaf);
+        return root != bytes32(0) && !_revoked[batchId] && MerkleProof.verifyCalldata(proof, root, leaf);
     }
 }

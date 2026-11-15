@@ -38,7 +38,7 @@ import { dirname, join } from 'node:path';
  *   TRADING          "off" keeps sign-in but turns wallet trading off
  *   MAX_TRADE_USD    largest trade the panel quotes (default 250)
  *   TRUST_PROXY_HOPS proxies in front of the edge whose X-Forwarded-For is trusted (default 1: Railway). Add one per extra proxy (e.g. Cloudflare).
- *   BUILD_COMMIT     the commit this runs, when build.json is absent (scripts/deploy-edge.mjs writes build.json)
+ *   BUILD_COMMIT     the commit this runs, when neither build.json nor Railway's RAILWAY_GIT_COMMIT_SHA says
  *   RPC_RELAY_URL    RPC the browser wallet relay (/v1/rpc) uses (default: the public RPC; never the paid one)
  *   EKO_FLAGS        features turned on, e.g. "leaderboards,referrals" (flags.ts; docs/FLAGS.md). Unset: none.
  */

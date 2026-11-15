@@ -147,6 +147,7 @@ describe('build identity (audit: no post-deploy check)', () => {
     const commit = 'a'.repeat(40);
     expect(loadBuild(new URL('file:///nonexistent/build.json'), { BUILD_COMMIT: commit })).toEqual({ commit, builtAt: null });
     expect(loadBuild(new URL('file:///nonexistent/build.json'), { BUILD_COMMIT: 'not-a-sha' }).commit).toBeNull();
+    expect(loadBuild(new URL('file:///nonexistent/build.json'), { RAILWAY_GIT_COMMIT_SHA: 'b'.repeat(40), BUILD_COMMIT: commit }).commit).toBe('b'.repeat(40));
     const { app } = server({ build: { commit, builtAt: '2026-11-14T00:00:00.000Z' } });
     expect((await app.inject({ url: '/health' })).json().build).toEqual({ commit, builtAt: '2026-11-14T00:00:00.000Z' });
   });

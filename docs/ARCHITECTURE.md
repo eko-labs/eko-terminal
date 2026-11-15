@@ -1,5 +1,8 @@
 # Architecture
 
+> The live service, EKO on Elysium, is `apps/edge`: see [apps/edge/ARCHITECTURE.md](../apps/edge/ARCHITECTURE.md). This
+> document describes the earlier Robinhood Chain server (`apps/server` and its roles), which is not deployed.
+
 ## Shape of the system
 
 ```

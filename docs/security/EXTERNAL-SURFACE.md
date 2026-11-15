@@ -105,7 +105,7 @@ are refreshed, without changing release settings or record semantics.
 
 <!-- generated census: node scripts/check-doc-surface.mjs --write -->
 
-Measured: **599/599 (100.00%)** documented. Minimum: **90%**.
+Measured: **604/604 (100.00%)** documented. Minimum: **90%**.
 
 | Entry | Kind | Source (file:line) | Doc comment |
 | --- | --- | --- | --- |
@@ -596,17 +596,22 @@ Measured: **599/599 (100.00%)** documented. Minimum: **90%**.
 | `TelegramLinkService.redeem` | method | [apps/server/src/telegram/link.ts:42](../../apps/server/src/telegram/link.ts#L42) | Yes |
 | `TelegramLinkService.unlink` | method | [apps/server/src/telegram/link.ts:68](../../apps/server/src/telegram/link.ts#L68) | Yes |
 | `advanceTelegramCursor` | function | [apps/server/src/telegram/link.ts:85](../../apps/server/src/telegram/link.ts#L85) | Yes |
-| `committer` | getter | [contracts/src/ReceiptsRegistry.sol:38](../../contracts/src/ReceiptsRegistry.sol#L38) | Yes |
-| `lastBatchId` | getter | [contracts/src/ReceiptsRegistry.sol:41](../../contracts/src/ReceiptsRegistry.sol#L41) | Yes |
-| `CommitterChanged` | event | [contracts/src/ReceiptsRegistry.sol:48](../../contracts/src/ReceiptsRegistry.sol#L48) | Yes |
-| `BatchCommitted` | event | [contracts/src/ReceiptsRegistry.sol:55](../../contracts/src/ReceiptsRegistry.sol#L55) | Yes |
-| `NotCommitter` | error | [contracts/src/ReceiptsRegistry.sol:59](../../contracts/src/ReceiptsRegistry.sol#L59) | Yes |
-| `EmptyBatch` | error | [contracts/src/ReceiptsRegistry.sol:62](../../contracts/src/ReceiptsRegistry.sol#L62) | Yes |
-| `constructor` | function | [contracts/src/ReceiptsRegistry.sol:69](../../contracts/src/ReceiptsRegistry.sol#L69) | Yes |
-| `commit` | function | [contracts/src/ReceiptsRegistry.sol:81](../../contracts/src/ReceiptsRegistry.sol#L81) | Yes |
-| `setCommitter` | function | [contracts/src/ReceiptsRegistry.sol:93](../../contracts/src/ReceiptsRegistry.sol#L93) | Yes |
-| `batch` | function | [contracts/src/ReceiptsRegistry.sol:102](../../contracts/src/ReceiptsRegistry.sol#L102) | Yes |
-| `verify` | function | [contracts/src/ReceiptsRegistry.sol:113](../../contracts/src/ReceiptsRegistry.sol#L113) | Yes |
+| `committer` | getter | [contracts/src/ReceiptsRegistry.sol:39](../../contracts/src/ReceiptsRegistry.sol#L39) | Yes |
+| `lastBatchId` | getter | [contracts/src/ReceiptsRegistry.sol:42](../../contracts/src/ReceiptsRegistry.sol#L42) | Yes |
+| `CommitterChanged` | event | [contracts/src/ReceiptsRegistry.sol:50](../../contracts/src/ReceiptsRegistry.sol#L50) | Yes |
+| `BatchCommitted` | event | [contracts/src/ReceiptsRegistry.sol:57](../../contracts/src/ReceiptsRegistry.sol#L57) | Yes |
+| `BatchRevoked` | event | [contracts/src/ReceiptsRegistry.sol:61](../../contracts/src/ReceiptsRegistry.sol#L61) | Yes |
+| `NotCommitter` | error | [contracts/src/ReceiptsRegistry.sol:65](../../contracts/src/ReceiptsRegistry.sol#L65) | Yes |
+| `EmptyBatch` | error | [contracts/src/ReceiptsRegistry.sol:68](../../contracts/src/ReceiptsRegistry.sol#L68) | Yes |
+| `UnknownBatch` | error | [contracts/src/ReceiptsRegistry.sol:71](../../contracts/src/ReceiptsRegistry.sol#L71) | Yes |
+| `AlreadyRevoked` | error | [contracts/src/ReceiptsRegistry.sol:74](../../contracts/src/ReceiptsRegistry.sol#L74) | Yes |
+| `constructor` | function | [contracts/src/ReceiptsRegistry.sol:81](../../contracts/src/ReceiptsRegistry.sol#L81) | Yes |
+| `commit` | function | [contracts/src/ReceiptsRegistry.sol:93](../../contracts/src/ReceiptsRegistry.sol#L93) | Yes |
+| `setCommitter` | function | [contracts/src/ReceiptsRegistry.sol:105](../../contracts/src/ReceiptsRegistry.sol#L105) | Yes |
+| `revokeBatch` | function | [contracts/src/ReceiptsRegistry.sol:115](../../contracts/src/ReceiptsRegistry.sol#L115) | Yes |
+| `revoked` | function | [contracts/src/ReceiptsRegistry.sol:126](../../contracts/src/ReceiptsRegistry.sol#L126) | Yes |
+| `batch` | function | [contracts/src/ReceiptsRegistry.sol:134](../../contracts/src/ReceiptsRegistry.sol#L134) | Yes |
+| `verify` | function | [contracts/src/ReceiptsRegistry.sol:145](../../contracts/src/ReceiptsRegistry.sol#L145) | Yes |
 | `inertAuthority` | function | [packages/chain/src/control/collector.ts:20](../../packages/chain/src/control/collector.ts#L20) | Yes |
 | `controlWordAddress` | function | [packages/chain/src/control/collector.ts:25](../../packages/chain/src/control/collector.ts#L25) | Yes |
 | `observedControlSelectors` | function | [packages/chain/src/control/collector.ts:37](../../packages/chain/src/control/collector.ts#L37) | Yes |

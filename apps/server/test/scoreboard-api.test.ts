@@ -141,7 +141,7 @@ it('grades accepted mature 051 outcomes, retains original publications, and reje
   const fixture = { ...measured, origin: 'fixture' as const, coin: address(40) };
   await enqueueOutcomeLabels(db(), fixture, 'a'.repeat(40)); await runOutcomeMaturityQueue(db(), matureCut);
   await expect(service().acceptOutcome(outcomeStreamKey(fixture), matureCut, [hash('fixture-review')])).rejects.toThrow('measured');
-});
+}, 120_000); // heavy fixture: about 4 s here, just over 30 s on a 2-vCPU CI runner
 it('publishes all-launch and Clear cohorts at the known-at cut, with censoring, immature members and metric denominators', async () => {
   const censored = { ...structuredClone(measured), coin: address(30) }; censored.coverage.archive = false;
   await enqueueOutcomeLabels(db(), censored, 'a'.repeat(40)); await runOutcomeMaturityQueue(db(), matureCut);
@@ -174,7 +174,7 @@ it('publishes all-launch and Clear cohorts at the known-at cut, with censoring, 
     expect((await fresh.list('calls')).rows.some(r=>r.detail.event==='grade' && r.grade==='hit')).toBe(true);
   } finally {db().sql.query=query;}
 
-});
+}, 120_000); // heavy fixture: about 4 s here, just over 30 s on a 2-vCPU CI runner
 it('retains original calls and grades and appends corrections after withdrawal and source invalidation', async () => {
   const original = (await db().sql.query('SELECT * FROM receipt_publications WHERE id=$1', ['call-fixture'])).rows;
   await db().sql.query(`INSERT INTO verdicts(id,coin,valid_from_block,rules_version,signature,data) VALUES($1,$2,100,'1.0.0','fixture',$3)`, ['call-fixture', binary(coin), JSON.stringify({ coin, level: 'clear', reasons: [], playbooks: [], schemaVersion: '1.0.0', asOfBlock: 100, receipt: { id: 'call-fixture', hash: hash('call-fixture'), status:'pending' } })]);

@@ -203,12 +203,16 @@ or `setCommitter(freshGasOnlySigner)`. Confirm `CommitterChanged` and
 `committer()` before restarting. Replace the host-secret environment and
 restart, or rotate the mounted `RECEIPTS_COMMITTER_KEY_FILE`, which the service
 re-reads for each fresh attempt. Retain pending transaction evidence: rotation
-does not rewrite already committed batches. Review/mark junk evidence and fund
-only gas on the replacement signer (BACKEND §§13, 18).
+does not rewrite already committed batches. Then call `revokeBatch(id)` (same
+Safe approvals) for every batch the leaked key appended: compare `BatchCommitted`
+events with the receipts service's own journal from the suspected compromise
+onward. `verify` and the off-chain verifier refuse a revoked batch; confirm
+`BatchRevoked` and `revoked(id)`. Revocation is permanent and leaves other
+batches untouched. Fund only gas on the replacement signer (BACKEND §§13, 18).
 
 **Never call `renounceOwnership()` on ReceiptsRegistry.** The inherited call
 sets owner to zero and clears any pending owner. It permanently removes
-`setCommitter` and ownership-transfer authority: a leaked committer could no
+`setCommitter`, `revokeBatch` and ownership-transfer authority: a leaked committer could no
 longer be rotated, or a zero committer could no longer be replaced. Existing
 roots and public verification remain readable. BACKEND §14.9's later Burn
 Engine renunciation is a different contract and does not apply here.

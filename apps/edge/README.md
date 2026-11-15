@@ -1,8 +1,11 @@
 # @eko/edge — EKO on Elysium
 
-One small stateless service: it follows Montra launches on Elysium (chain 99901) in memory, checks each coin, and
-serves the read API the EKO web app already speaks, plus the built web app and landing site. No database, no signing
-keys, nothing to back up. A restart replays the last `BACKFILL_BLOCKS` of chain history.
+One service: it follows Montra launches on Elysium (chain 99901), checks each coin, and serves the API the EKO web
+app speaks, the built web app and landing site, wallet sign-in, trade preparation and the agent connector (MCP). Its
+state is one SQLite file on a volume; it holds no signing keys. A restart replays the last `BACKFILL_BLOCKS` of chain
+history.
+
+**Who can do what, what it holds and what it trusts: [ARCHITECTURE.md](ARCHITECTURE.md).**
 
 ## What it does
 
@@ -24,7 +27,7 @@ apps/edge/scripts/dev.sh          # http://localhost:5185, keyless dRPC
 pnpm --filter @eko/edge test
 ```
 
-Production builds `Dockerfile.edge` (Railway: `RAILWAY_DOCKERFILE_PATH=Dockerfile.edge`).
+Production builds `Dockerfile.edge` (Railway: `RAILWAY_DOCKERFILE_PATH=Dockerfile.edge`). Railway deploys `main` from GitHub once CI passes.
 
 ## Settings
 
@@ -39,6 +42,5 @@ Production builds `Dockerfile.edge` (Railway: `RAILWAY_DOCKERFILE_PATH=Dockerfil
 
 ## Not done yet
 
-Wallet labels (agent / crew / human), holder and depth figures, deployer and crew history (the builder and its
-snapshot), the second-largest launchpad (unbranded hook on a second PoolManager) and Ascend, trading, the agent
-connector (MCP), and the v2 Guard assessment. See `docs/elysium/`.
+Wallet labels (agent / crew / human), holder and depth figures, crew history, the second-largest launchpad (unbranded hook on a
+second PoolManager) and Ascend, and the v2 Guard assessment. See `docs/elysium/`.

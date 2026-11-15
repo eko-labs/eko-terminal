@@ -215,16 +215,18 @@ try {
   // Reviewed equivalences are pinned to the exact source hash and exact edit.
   // Do not generalize these arguments to other variables, types or contracts.
   const equivalences = [
-    [83, '==', '<=', 'bytes32 is an unsigned 256-bit value: root <= bytes32(0) iff root == bytes32(0), including a zero root. No state, event, return or revert behavior changes.'],
-    [83, '==', '<=', 'leafCount is uint32: leafCount <= 0 iff leafCount == 0 for every representable input. The rejection condition and its short-circuit behavior are unchanged.'],
-    [115, '!=', '>', 'bytes32 is unsigned: root > bytes32(0) iff root != bytes32(0) for every stored or default root. The identical predicate preserves short-circuit proof evaluation and all observable results.'],
+    [95, '==', '<=', 'bytes32 is an unsigned 256-bit value: root <= bytes32(0) iff root == bytes32(0), including a zero root. No state, event, return or revert behavior changes.'],
+    [95, '==', '<=', 'leafCount is uint32: leafCount <= 0 iff leafCount == 0 for every representable input. The rejection condition and its short-circuit behavior are unchanged.'],
+    [116, '==', '<=', 'batchId is uint64: batchId <= 0 iff batchId == 0 for every representable input. revokeBatch rejects exactly the same ids with the same error, and the second condition is evaluated in the same cases.'],
+    [147, '!=', '>', 'bytes32 is unsigned: root > bytes32(0) iff root != bytes32(0) for every stored or default root. The identical predicate preserves short-circuit proof evaluation and all observable results.'],
   ];
-  const reviewedSourceHash = "c8cc2e8dc778a2a70e14ffa7f0c5859b8876988c65bd3d3dac64bb0b949e79e4";
+  const reviewedSourceHash = "37efc3e8af8719424dbdd0d8a7b3aa62b8163c3f24d0368cfb572dc90fbb6223";
   for (const result of results.filter(r => r.outcome === 'survived')) {
     const source = sourceTexts.get(result.file);
     const site = source.slice(0, result.offset).split('\n').at(-1).trim();
     const equivalence = equivalences.find(([line, original, replacement, argument]) => line === result.line && original === result.original && replacement === result.replacement &&
-      ((argument.startsWith('leafCount') && site.endsWith('leafCount')) || (argument.startsWith('bytes32') && site.endsWith('root'))));
+      ((argument.startsWith('leafCount') && site.endsWith('leafCount')) || (argument.startsWith('bytes32') && site.endsWith('root'))
+      || (argument.startsWith('batchId') && site.endsWith('batchId'))));
     if (result.file === 'src/ReceiptsRegistry.sol' && hash(source) === reviewedSourceHash && equivalence) result.disposition = { kind: 'equivalent', argument: equivalence[3] };
     else result.disposition = { kind: 'unresolved', argument: 'Requires a behavior test or a separately reviewed equivalence argument.' };
   }

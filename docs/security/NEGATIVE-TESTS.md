@@ -2,7 +2,7 @@
 
 Candidate: `c5c048a456af52c7a0787ee4450cd9e4514be9e7` plus uncommitted evidence-maintenance changes, measured 2026-10-03.
 
-**Covered: 69/69 entry points (100%); missing: 0.** This is a test inventory, not a statement about branch coverage or live deployment security.
+**Covered: 70/70 entry points (100%); missing: 0.** This is a test inventory, not a statement about branch coverage or live deployment security.
 
 The denominator counts implemented network/session boundaries, the production receipt signer/worker and its lease-protected mutation actions. It includes constructor admission, inherited ownership, implicit GET mutations, legacy paper paths in the mixed execution service, demo cookie issuance, and prepared/injected MCP/OAuth boundaries even where production registration is disabled. Internal auth/key/cleanup/SQL helpers reached through those boundaries are not counted again. Pure policy evaluators do not change external state. Preferences/layout/telemetry/backtest/dev fixtures outside authentication, trading and private journal are excluded. Read-only RPC and receipt reads, unsupported MCP DELETE, UI, tests, mocks, deployment scripts and generated code are excluded. Additional refusal regressions below supplement this boundary census without adding duplicate entries.
 
@@ -14,12 +14,13 @@ Spec basis: FACTS §7; BACKEND §§3.5, 9.1, 9.6–9.9, 12.2–12.4, 13, 14.2 an
 
 | External entry/action | Implementation file:line | Negative test file:line — exact test name |
 | --- | --- | --- |
-| `constructor(owner,committer)` | `contracts/src/ReceiptsRegistry.sol:69` | `contracts/test/unit/ReceiptsRegistry.t.sol:39` — `testConstructorRejectsZeroOwner` |
-| `commit(bytes32,uint32)` | `contracts/src/ReceiptsRegistry.sol:81` | `contracts/test/unit/ReceiptsRegistry.t.sol:58` — `testNonCommitterReverts` |
-| `setCommitter(address)` | `contracts/src/ReceiptsRegistry.sol:93` | `contracts/test/unit/ReceiptsRegistry.t.sol:128` — `testOnlyOwnerRotates` |
-| `transferOwnership(address)` | `contracts/node_modules/@openzeppelin/contracts/access/Ownable2Step.sol:43` | `contracts/test/unit/ReceiptsRegistry.t.sol:158` — `testOnlyOwnerTransfersOwnership` |
-| `acceptOwnership()` | `contracts/node_modules/@openzeppelin/contracts/access/Ownable2Step.sol:60` | `contracts/test/unit/ReceiptsRegistry.t.sol:135` — `testOwnershipTransferRequiresAcceptance` |
-| `renounceOwnership()` | `contracts/node_modules/@openzeppelin/contracts/access/Ownable.sol:76` | `contracts/test/unit/ReceiptsRegistry.t.sol:308` — `testNonOwnerCannotRenounceOwnership` |
+| `constructor(owner,committer)` | `contracts/src/ReceiptsRegistry.sol:81` | `contracts/test/unit/ReceiptsRegistry.t.sol:40` — `testConstructorRejectsZeroOwner` |
+| `commit(bytes32,uint32)` | `contracts/src/ReceiptsRegistry.sol:93` | `contracts/test/unit/ReceiptsRegistry.t.sol:59` — `testNonCommitterReverts` |
+| `setCommitter(address)` | `contracts/src/ReceiptsRegistry.sol:105` | `contracts/test/unit/ReceiptsRegistry.t.sol:129` — `testOnlyOwnerRotates` |
+| `revokeBatch(uint64)` | `contracts/src/ReceiptsRegistry.sol:115` | `contracts/test/unit/ReceiptsRegistry.t.sol:347` — `testOnlyOwnerRevokes`<br>`contracts/test/unit/ReceiptsRegistry.t.sol:359` — `testRevokeRejectsUnknownAndRepeatedBatches` |
+| `transferOwnership(address)` | `contracts/node_modules/@openzeppelin/contracts/access/Ownable2Step.sol:43` | `contracts/test/unit/ReceiptsRegistry.t.sol:159` — `testOnlyOwnerTransfersOwnership` |
+| `acceptOwnership()` | `contracts/node_modules/@openzeppelin/contracts/access/Ownable2Step.sol:60` | `contracts/test/unit/ReceiptsRegistry.t.sol:136` — `testOwnershipTransferRequiresAcceptance` |
+| `renounceOwnership()` | `contracts/node_modules/@openzeppelin/contracts/access/Ownable.sol:76` | `contracts/test/unit/ReceiptsRegistry.t.sol:309` — `testNonOwnerCannotRenounceOwnership` |
 | `GET /api/session` | `apps/server/src/http/routes.ts:145` | `apps/server/test/core-mutations-negative.test.ts:42` — `implicit session GETs reject forged session identity by creating distinct guests` |
 | `GET /api/auth/nonce` | `apps/server/src/http/routes.ts:178` | `apps/server/test/core-mutations-negative.test.ts:28` — `refuses nonce issuance without a valid session and persists no challenge` |
 | `POST /api/auth/logout` | `apps/server/src/http/routes.ts:198` | `apps/server/test/core-mutations-negative.test.ts:35` — `invalid logout cookies cannot revoke another session; logout remains idempotent` |

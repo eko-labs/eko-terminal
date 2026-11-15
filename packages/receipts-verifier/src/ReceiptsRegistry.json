@@ -148,6 +148,38 @@
   },
   {
     "type": "function",
+    "name": "revokeBatch",
+    "inputs": [
+      {
+        "name": "batchId",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "revoked",
+    "inputs": [
+      {
+        "name": "batchId",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "setCommitter",
     "inputs": [
       {
@@ -234,6 +266,19 @@
   },
   {
     "type": "event",
+    "name": "BatchRevoked",
+    "inputs": [
+      {
+        "name": "batchId",
+        "type": "uint64",
+        "indexed": true,
+        "internalType": "uint64"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "CommitterChanged",
     "inputs": [
       {
@@ -291,6 +336,11 @@
   },
   {
     "type": "error",
+    "name": "AlreadyRevoked",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "EmptyBatch",
     "inputs": []
   },
@@ -320,5 +370,10 @@
         "internalType": "address"
       }
     ]
+  },
+  {
+    "type": "error",
+    "name": "UnknownBatch",
+    "inputs": []
   }
 ]

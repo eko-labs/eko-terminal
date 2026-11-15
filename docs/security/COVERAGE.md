@@ -120,6 +120,8 @@ An independent path reconciliation expanded every `coreFiles` include and the ex
 
 Solidity counters from this invocation: authored `src/ReceiptsRegistry.sol` **17/17**, inherited `Ownable2Step.sol` **12/12**, inherited `Ownable.sol` **17/21**. The four uncovered inherited ownership lines remain counted. The authored subtotal is already part of the 46/50 subtotal and is never added twice.
 
+**2026-11-15 update:** after `revokeBatch` and `revoked` were added (audit Path to 9, item 14), `pnpm --filter @eko/contracts coverage` reports authored `src/ReceiptsRegistry.sol` **24/24** lines, **29/29** statements, **4/4** branches and **7/7** functions (inherited counters unchanged). The repository totals above are from the earlier run and were not re-measured.
+
 The earlier diagnostic run passed at 7,530/7,792, but started before the census review finished; those counters are superseded by the complete final run above. An initial new WAL fixture used a symlinked temporary path and was correctly refused by the isolation guard; the fixture now uses its canonical path. No production refusal was relaxed.
 
 ## Verification

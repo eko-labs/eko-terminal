@@ -14,6 +14,9 @@ via_ir = false
 bytecode_hash = "ipfs"
 cbor_metadata = true
 offline = true
+# Only the remappings below: newer Forge adds an "@openzeppelin/=" auto-remapping that changes the metadata hash,
+# so the release build record would not reproduce across Forge versions.
+auto_detect_remappings = false
 remappings = [
   "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
   "forge-std/=lib/forge-std/src/",

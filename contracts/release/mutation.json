@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "scope": "All authored Solidity in contracts/src; dependencies, scripts and tests are not mutated.",
   "environment": {
-    "node": "v26.0.0",
+    "node": "v26.13.0",
     "forge": [
-      "forge Version: 1.7.1-Homebrew",
-      "Commit SHA: 4072e48705af9d93e3c0f6e29e93b5e9a40caed8",
-      "Build Timestamp: 2026-05-08T07:44:24.000000000Z (1778226264)",
-      "Build Profile: release"
+      "forge Version: 1.8.7",
+      "Commit SHA: 985eeea031d79922cd654d4e94e6c3701e1c7d73",
+      "Build Timestamp: 2026-10-29T15:03:05.234633000Z (1793286185)",
+      "Build Profile: dist"
     ],
     "solc": "0.8.26+commit.8a97fa7a",
     "settings": {
@@ -24,7 +24,7 @@
     "sources": [
       {
         "file": "src/ReceiptsRegistry.sol",
-        "sha256": "c8cc2e8dc778a2a70e14ffa7f0c5859b8876988c65bd3d3dac64bb0b949e79e4"
+        "sha256": "37efc3e8af8719424dbdd0d8a7b3aa62b8163c3f24d0368cfb572dc90fbb6223"
       }
     ],
     "tests": [
@@ -58,7 +58,7 @@
       },
       {
         "file": "test/unit/ReceiptsRegistry.t.sol",
-        "sha256": "59114a89c91795dcc880388556f461d436cb7b4c6a888beb091fa45e82f824d9"
+        "sha256": "9df77181f54da0b48df3d75ea7cb3cd3afa3c481096087ec56285f07335ad30f"
       }
     ],
     "scripts": [
@@ -67,11 +67,11 @@
         "sha256": "28e1c670f95a14b2e9713d94faa4884a5078f3712da0acf18169d8cdc2162a9b"
       }
     ],
-    "foundryTomlSha256": "bb75af3d917f4865fef94079c36a2fd96da309daa305ba779bc753435c9242f7",
-    "runnerSha256": "ccaf1676d4b34100b0c9eb13a1ca0f606418d575adc88b5833487f9f98624a82",
+    "foundryTomlSha256": "d1f250d2ad0e63179a18ea877a8fa78f447527fc7c36eead35db4f4794a51793",
+    "runnerSha256": "096daf843dbd457159d2e5109e77970ed91fa7e803bdbdec3adcad4bef3c8797",
     "forgeStdSha256": "e833ab28657f93785891f9547c6724a7b72fee8bf7dc19ad33ea423c3ed21289",
     "openZeppelinSha256": "3416396cd17b354691307b51fe54eff11dd367590e5787ae4f689623598c0a3b",
-    "fixturesSha256": "028165fffb440391a70f234316c0dcca1fbd1dd9760dcbf80b982a830d86414e"
+    "fixturesSha256": "ac75d2acc971e5ca5ada36baea3ed6b3dc56f5819d2c7b129b168323eeebfdad"
   },
   "operators": [
     "relational-replacement",
@@ -97,25 +97,25 @@
     "skipped": [
       "test/fork/ReceiptsRegistry.fork.t.sol:ReceiptsRegistryForkTest::testForkCommitAndVerifyFixture()"
     ],
-    "passed": 38
+    "passed": 39
   },
-  "generatedCandidates": 70,
-  "admittedMutants": 62,
+  "generatedCandidates": 104,
+  "admittedMutants": 92,
   "counts": {
-    "killed": 50,
-    "survived": 3,
-    "compile-failed": 9
+    "killed": 76,
+    "survived": 4,
+    "compile-failed": 12
   },
-  "equivalent": 3,
-  "nonEquivalentDenominator": 50,
+  "equivalent": 4,
+  "nonEquivalentDenominator": 76,
   "score": 1,
   "rejectedVisibility": [
     {
       "id": "M0005",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "visibility-tightening",
-      "line": 81,
-      "offset": 5751,
+      "line": 93,
+      "offset": 6470,
       "original": "external",
       "replacement": "internal",
       "outcome": "compile-failed",
@@ -128,8 +128,8 @@
       "id": "M0006",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "visibility-tightening",
-      "line": 81,
-      "offset": 5751,
+      "line": 93,
+      "offset": 6470,
       "original": "external",
       "replacement": "private",
       "outcome": "compile-failed",
@@ -142,8 +142,8 @@
       "id": "M0042",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "visibility-tightening",
-      "line": 93,
-      "offset": 6571,
+      "line": 105,
+      "offset": 7290,
       "original": "external",
       "replacement": "internal",
       "outcome": "compile-failed",
@@ -156,8 +156,8 @@
       "id": "M0043",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "visibility-tightening",
-      "line": 93,
-      "offset": 6571,
+      "line": 105,
+      "offset": 7290,
       "original": "external",
       "replacement": "private",
       "outcome": "compile-failed",
@@ -170,8 +170,64 @@
       "id": "M0047",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "visibility-tightening",
-      "line": 102,
-      "offset": 7015,
+      "line": 115,
+      "offset": 7840,
+      "original": "external",
+      "replacement": "internal",
+      "outcome": "compile-failed",
+      "compilerErrors": [
+        "9582 Member \"revokeBatch\" not found or not visible after argument-dependent lookup in contract ReceiptsRegistry.",
+        "Compiler run failed:"
+      ]
+    },
+    {
+      "id": "M0048",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "visibility-tightening",
+      "line": 115,
+      "offset": 7840,
+      "original": "external",
+      "replacement": "private",
+      "outcome": "compile-failed",
+      "compilerErrors": [
+        "9582 Member \"revokeBatch\" not found or not visible after argument-dependent lookup in contract ReceiptsRegistry.",
+        "Compiler run failed:"
+      ]
+    },
+    {
+      "id": "M0072",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "visibility-tightening",
+      "line": 126,
+      "offset": 8330,
+      "original": "external",
+      "replacement": "internal",
+      "outcome": "compile-failed",
+      "compilerErrors": [
+        "9582 Member \"revoked\" not found or not visible after argument-dependent lookup in contract ReceiptsRegistry.",
+        "Compiler run failed:"
+      ]
+    },
+    {
+      "id": "M0073",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "visibility-tightening",
+      "line": 126,
+      "offset": 8330,
+      "original": "external",
+      "replacement": "private",
+      "outcome": "compile-failed",
+      "compilerErrors": [
+        "9582 Member \"revoked\" not found or not visible after argument-dependent lookup in contract ReceiptsRegistry.",
+        "Compiler run failed:"
+      ]
+    },
+    {
+      "id": "M0079",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "visibility-tightening",
+      "line": 134,
+      "offset": 8744,
       "original": "external",
       "replacement": "internal",
       "outcome": "compile-failed",
@@ -181,11 +237,11 @@
       ]
     },
     {
-      "id": "M0048",
+      "id": "M0080",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "visibility-tightening",
-      "line": 102,
-      "offset": 7015,
+      "line": 134,
+      "offset": 8744,
       "original": "external",
       "replacement": "private",
       "outcome": "compile-failed",
@@ -195,11 +251,11 @@
       ]
     },
     {
-      "id": "M0054",
+      "id": "M0086",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "visibility-tightening",
-      "line": 113,
-      "offset": 7731,
+      "line": 145,
+      "offset": 9500,
       "original": "external",
       "replacement": "internal",
       "outcome": "compile-failed",
@@ -209,11 +265,11 @@
       ]
     },
     {
-      "id": "M0055",
+      "id": "M0087",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "visibility-tightening",
-      "line": 113,
-      "offset": 7731,
+      "line": 145,
+      "offset": 9500,
       "original": "external",
       "replacement": "private",
       "outcome": "compile-failed",
@@ -228,8 +284,8 @@
       "id": "M0001",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "assignment-removal",
-      "line": 70,
-      "offset": 5052,
+      "line": 82,
+      "offset": 5771,
       "original": "committer = committer_;",
       "replacement": "",
       "outcome": "killed",
@@ -239,8 +295,8 @@
       "id": "M0002",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "emit-removal",
-      "line": 71,
-      "offset": 5084,
+      "line": 83,
+      "offset": 5803,
       "original": "emit CommitterChanged(address(0), committer_);",
       "replacement": "",
       "outcome": "killed",
@@ -250,8 +306,8 @@
       "id": "M0003",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "constant-replacement",
-      "line": 71,
-      "offset": 5114,
+      "line": 83,
+      "offset": 5833,
       "original": "0",
       "replacement": "type(uint160).max",
       "outcome": "killed",
@@ -261,8 +317,8 @@
       "id": "M0004",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "constant-replacement",
-      "line": 71,
-      "offset": 5114,
+      "line": 83,
+      "offset": 5833,
       "original": "0",
       "replacement": "uint160(1)",
       "outcome": "killed",
@@ -272,8 +328,8 @@
       "id": "M0007",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "guard-removal",
-      "line": 82,
-      "offset": 5795,
+      "line": 94,
+      "offset": 6514,
       "original": "if (msg.sender != committer) revert NotCommitter();",
       "replacement": "",
       "outcome": "killed",
@@ -283,19 +339,19 @@
       "id": "M0008",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "if-negation",
-      "line": 82,
-      "offset": 5799,
+      "line": 94,
+      "offset": 6518,
       "original": "msg.sender != committer",
       "replacement": "!(msg.sender != committer)",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantIdsRiseExactlyOnePerSuccessfulCommit()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0009",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "relational-replacement",
-      "line": 82,
-      "offset": 5810,
+      "line": 94,
+      "offset": 6529,
       "original": "!=",
       "replacement": "<",
       "outcome": "killed",
@@ -305,30 +361,30 @@
       "id": "M0010",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "relational-replacement",
-      "line": 82,
-      "offset": 5810,
+      "line": 94,
+      "offset": 6529,
       "original": "!=",
       "replacement": "<=",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantIdsRiseExactlyOnePerSuccessfulCommit()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0011",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "relational-replacement",
-      "line": 82,
-      "offset": 5810,
+      "line": 94,
+      "offset": 6529,
       "original": "!=",
       "replacement": "==",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantIdsRiseExactlyOnePerSuccessfulCommit()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0012",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "relational-replacement",
-      "line": 82,
-      "offset": 5810,
+      "line": 94,
+      "offset": 6529,
       "original": "!=",
       "replacement": ">",
       "outcome": "killed",
@@ -338,19 +394,19 @@
       "id": "M0013",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "relational-replacement",
-      "line": 82,
-      "offset": 5810,
+      "line": 94,
+      "offset": 6529,
       "original": "!=",
       "replacement": ">=",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantIdsRiseExactlyOnePerSuccessfulCommit()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0014",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "guard-removal",
-      "line": 82,
-      "offset": 5824,
+      "line": 94,
+      "offset": 6543,
       "original": "revert NotCommitter();",
       "replacement": "{}",
       "outcome": "killed",
@@ -360,52 +416,52 @@
       "id": "M0015",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "guard-removal",
-      "line": 83,
-      "offset": 5855,
+      "line": 95,
+      "offset": 6574,
       "original": "if (root == bytes32(0) || leafCount == 0) revert EmptyBatch();",
       "replacement": "",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantEveryStoredBatchIsNonempty()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0016",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "if-negation",
-      "line": 83,
-      "offset": 5859,
+      "line": 95,
+      "offset": 6578,
       "original": "root == bytes32(0) || leafCount == 0",
       "replacement": "!(root == bytes32(0) || leafCount == 0)",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantEveryStoredBatchIsNonempty()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0017",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "relational-replacement",
-      "line": 83,
-      "offset": 5864,
+      "line": 95,
+      "offset": 6583,
       "original": "==",
       "replacement": "!=",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantEveryStoredBatchIsNonempty()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0018",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "relational-replacement",
-      "line": 83,
-      "offset": 5864,
+      "line": 95,
+      "offset": 6583,
       "original": "==",
       "replacement": "<",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantEveryStoredBatchIsNonempty()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0019",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "relational-replacement",
-      "line": 83,
-      "offset": 5864,
+      "line": 95,
+      "offset": 6583,
       "original": "==",
       "replacement": "<=",
       "outcome": "survived",
@@ -419,85 +475,85 @@
       "id": "M0020",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "relational-replacement",
-      "line": 83,
-      "offset": 5864,
+      "line": 95,
+      "offset": 6583,
       "original": "==",
       "replacement": ">",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantEveryStoredBatchIsNonempty()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0021",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "relational-replacement",
-      "line": 83,
-      "offset": 5864,
+      "line": 95,
+      "offset": 6583,
       "original": "==",
       "replacement": ">=",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantIdsRiseExactlyOnePerSuccessfulCommit()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0022",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "constant-replacement",
-      "line": 83,
-      "offset": 5875,
+      "line": 95,
+      "offset": 6594,
       "original": "0",
       "replacement": "type(uint256).max",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantEveryStoredBatchIsNonempty()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0023",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "constant-replacement",
-      "line": 83,
-      "offset": 5875,
+      "line": 95,
+      "offset": 6594,
       "original": "0",
       "replacement": "uint256(1)",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantEveryStoredBatchIsNonempty()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0024",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "logical-replacement",
-      "line": 83,
-      "offset": 5878,
+      "line": 95,
+      "offset": 6597,
       "original": "||",
       "replacement": "&&",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantEveryStoredBatchIsNonempty()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0025",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "relational-replacement",
-      "line": 83,
-      "offset": 5891,
+      "line": 95,
+      "offset": 6610,
       "original": "==",
       "replacement": "!=",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantEveryStoredBatchIsNonempty()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0026",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "relational-replacement",
-      "line": 83,
-      "offset": 5891,
+      "line": 95,
+      "offset": 6610,
       "original": "==",
       "replacement": "<",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantEveryStoredBatchIsNonempty()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0027",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "relational-replacement",
-      "line": 83,
-      "offset": 5891,
+      "line": 95,
+      "offset": 6610,
       "original": "==",
       "replacement": "<=",
       "outcome": "survived",
@@ -511,107 +567,107 @@
       "id": "M0028",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "relational-replacement",
-      "line": 83,
-      "offset": 5891,
+      "line": 95,
+      "offset": 6610,
       "original": "==",
       "replacement": ">",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantEveryStoredBatchIsNonempty()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0029",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "relational-replacement",
-      "line": 83,
-      "offset": 5891,
+      "line": 95,
+      "offset": 6610,
       "original": "==",
       "replacement": ">=",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantIdsRiseExactlyOnePerSuccessfulCommit()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0030",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "constant-replacement",
-      "line": 83,
-      "offset": 5894,
+      "line": 95,
+      "offset": 6613,
       "original": "0",
       "replacement": "1",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantEveryStoredBatchIsNonempty()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0031",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "constant-replacement",
-      "line": 83,
-      "offset": 5894,
+      "line": 95,
+      "offset": 6613,
       "original": "0",
       "replacement": "type(uint256).max",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantEveryStoredBatchIsNonempty()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0032",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "guard-removal",
-      "line": 83,
-      "offset": 5897,
+      "line": 95,
+      "offset": 6616,
       "original": "revert EmptyBatch();",
       "replacement": "{}",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantEveryStoredBatchIsNonempty()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0033",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "assignment-removal",
-      "line": 84,
-      "offset": 5926,
+      "line": 96,
+      "offset": 6645,
       "original": "batchId = ++lastBatchId;",
       "replacement": "",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantIdsRiseExactlyOnePerSuccessfulCommit()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0034",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "increment-replacement",
-      "line": 84,
-      "offset": 5936,
+      "line": 96,
+      "offset": 6655,
       "original": "++",
       "replacement": "",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantIdsRiseExactlyOnePerSuccessfulCommit()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0035",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "increment-replacement",
-      "line": 84,
-      "offset": 5936,
+      "line": 96,
+      "offset": 6655,
       "original": "++",
       "replacement": "--",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantIdsRiseExactlyOnePerSuccessfulCommit()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0036",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "increment-replacement",
-      "line": 84,
-      "offset": 5936,
+      "line": 96,
+      "offset": 6655,
       "original": "++lastBatchId",
       "replacement": "lastBatchId++",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantEveryStoredBatchIsNonempty()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
       "id": "M0037",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "assignment-removal",
-      "line": 85,
-      "offset": 6039,
+      "line": 97,
+      "offset": 6758,
       "original": "_batches[batchId] = Batch(root, leafCount, uint64(block.timestamp), msg.sender);",
       "replacement": "",
       "outcome": "killed",
@@ -621,8 +677,8 @@
       "id": "M0038",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "emit-removal",
-      "line": 86,
-      "offset": 6128,
+      "line": 98,
+      "offset": 6847,
       "original": "emit BatchCommitted(batchId, root, leafCount, msg.sender);",
       "replacement": "",
       "outcome": "killed",
@@ -632,8 +688,8 @@
       "id": "M0039",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "return-replacement",
-      "line": 87,
-      "offset": 6191,
+      "line": 99,
+      "offset": 6910,
       "original": "",
       "replacement": "return 0;\n    ",
       "outcome": "killed",
@@ -643,8 +699,8 @@
       "id": "M0040",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "return-replacement",
-      "line": 87,
-      "offset": 6191,
+      "line": 99,
+      "offset": 6910,
       "original": "",
       "replacement": "return 1;\n    ",
       "outcome": "killed",
@@ -654,8 +710,8 @@
       "id": "M0041",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "return-replacement",
-      "line": 87,
-      "offset": 6191,
+      "line": 99,
+      "offset": 6910,
       "original": "",
       "replacement": "return type(uint64).max;\n    ",
       "outcome": "killed",
@@ -665,8 +721,8 @@
       "id": "M0044",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "modifier-removal",
-      "line": 93,
-      "offset": 6580,
+      "line": 105,
+      "offset": 7299,
       "original": "onlyOwner",
       "replacement": "",
       "outcome": "killed",
@@ -676,8 +732,8 @@
       "id": "M0045",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "emit-removal",
-      "line": 94,
-      "offset": 6600,
+      "line": 106,
+      "offset": 7319,
       "original": "emit CommitterChanged(committer, next);",
       "replacement": "",
       "outcome": "killed",
@@ -687,8 +743,8 @@
       "id": "M0046",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "assignment-removal",
-      "line": 95,
-      "offset": 6648,
+      "line": 107,
+      "offset": 7367,
       "original": "committer = next;",
       "replacement": "",
       "outcome": "killed",
@@ -697,9 +753,330 @@
     {
       "id": "M0049",
       "file": "src/ReceiptsRegistry.sol",
+      "operator": "modifier-removal",
+      "line": 115,
+      "offset": 7849,
+      "original": "onlyOwner",
+      "replacement": "",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testOnlyOwnerRevokes()"
+    },
+    {
+      "id": "M0050",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "guard-removal",
+      "line": 116,
+      "offset": 7869,
+      "original": "if (batchId == 0 || batchId > lastBatchId) revert UnknownBatch();",
+      "replacement": "",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testRevokeRejectsUnknownAndRepeatedBatches()"
+    },
+    {
+      "id": "M0051",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "if-negation",
+      "line": 116,
+      "offset": 7873,
+      "original": "batchId == 0 || batchId > lastBatchId",
+      "replacement": "!(batchId == 0 || batchId > lastBatchId)",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testOwnerRevokesBatchAndItsProofsStopVerifying()"
+    },
+    {
+      "id": "M0052",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "relational-replacement",
+      "line": 116,
+      "offset": 7881,
+      "original": "==",
+      "replacement": "!=",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testOwnerRevokesBatchAndItsProofsStopVerifying()"
+    },
+    {
+      "id": "M0053",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "relational-replacement",
+      "line": 116,
+      "offset": 7881,
+      "original": "==",
+      "replacement": "<",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testRevokeRejectsUnknownAndRepeatedBatches()"
+    },
+    {
+      "id": "M0054",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "relational-replacement",
+      "line": 116,
+      "offset": 7881,
+      "original": "==",
+      "replacement": "<=",
+      "outcome": "survived",
+      "killingTest": null,
+      "disposition": {
+        "kind": "equivalent",
+        "argument": "batchId is uint64: batchId <= 0 iff batchId == 0 for every representable input. revokeBatch rejects exactly the same ids with the same error, and the second condition is evaluated in the same cases."
+      }
+    },
+    {
+      "id": "M0055",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "relational-replacement",
+      "line": 116,
+      "offset": 7881,
+      "original": "==",
+      "replacement": ">",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testOwnerRevokesBatchAndItsProofsStopVerifying()"
+    },
+    {
+      "id": "M0056",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "relational-replacement",
+      "line": 116,
+      "offset": 7881,
+      "original": "==",
+      "replacement": ">=",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testOwnerRevokesBatchAndItsProofsStopVerifying()"
+    },
+    {
+      "id": "M0057",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "constant-replacement",
+      "line": 116,
+      "offset": 7884,
+      "original": "0",
+      "replacement": "1",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testOwnerRevokesBatchAndItsProofsStopVerifying()"
+    },
+    {
+      "id": "M0058",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "constant-replacement",
+      "line": 116,
+      "offset": 7884,
+      "original": "0",
+      "replacement": "type(uint256).max",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testRevokeRejectsUnknownAndRepeatedBatches()"
+    },
+    {
+      "id": "M0059",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "logical-replacement",
+      "line": 116,
+      "offset": 7886,
+      "original": "||",
+      "replacement": "&&",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testRevokeRejectsUnknownAndRepeatedBatches()"
+    },
+    {
+      "id": "M0060",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "relational-replacement",
+      "line": 116,
+      "offset": 7897,
+      "original": ">",
+      "replacement": "!=",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testRevokesAnOlderBatchAndLeavesNewerOnes()"
+    },
+    {
+      "id": "M0061",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "relational-replacement",
+      "line": 116,
+      "offset": 7897,
+      "original": ">",
+      "replacement": "<",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testRevokeRejectsUnknownAndRepeatedBatches()"
+    },
+    {
+      "id": "M0062",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "relational-replacement",
+      "line": 116,
+      "offset": 7897,
+      "original": ">",
+      "replacement": "<=",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testOwnerRevokesBatchAndItsProofsStopVerifying()"
+    },
+    {
+      "id": "M0063",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "relational-replacement",
+      "line": 116,
+      "offset": 7897,
+      "original": ">",
+      "replacement": "==",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testOwnerRevokesBatchAndItsProofsStopVerifying()"
+    },
+    {
+      "id": "M0064",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "relational-replacement",
+      "line": 116,
+      "offset": 7897,
+      "original": ">",
+      "replacement": ">=",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testOwnerRevokesBatchAndItsProofsStopVerifying()"
+    },
+    {
+      "id": "M0065",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "guard-removal",
+      "line": 116,
+      "offset": 7912,
+      "original": "revert UnknownBatch();",
+      "replacement": "{}",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testRevokeRejectsUnknownAndRepeatedBatches()"
+    },
+    {
+      "id": "M0066",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "guard-removal",
+      "line": 117,
+      "offset": 7943,
+      "original": "if (_revoked[batchId]) revert AlreadyRevoked();",
+      "replacement": "",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testRevokeRejectsUnknownAndRepeatedBatches()"
+    },
+    {
+      "id": "M0067",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "if-negation",
+      "line": 117,
+      "offset": 7947,
+      "original": "_revoked[batchId]",
+      "replacement": "!(_revoked[batchId])",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testOwnerRevokesBatchAndItsProofsStopVerifying()"
+    },
+    {
+      "id": "M0068",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "guard-removal",
+      "line": 117,
+      "offset": 7966,
+      "original": "revert AlreadyRevoked();",
+      "replacement": "{}",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testRevokeRejectsUnknownAndRepeatedBatches()"
+    },
+    {
+      "id": "M0069",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "assignment-removal",
+      "line": 118,
+      "offset": 7999,
+      "original": "_revoked[batchId] = true;",
+      "replacement": "",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testOwnerRevokesBatchAndItsProofsStopVerifying()"
+    },
+    {
+      "id": "M0070",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "boolean-flip",
+      "line": 118,
+      "offset": 8019,
+      "original": "true",
+      "replacement": "false",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testOwnerRevokesBatchAndItsProofsStopVerifying()"
+    },
+    {
+      "id": "M0071",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "emit-removal",
+      "line": 119,
+      "offset": 8033,
+      "original": "emit BatchRevoked(batchId);",
+      "replacement": "",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testOwnerRevokesBatchAndItsProofsStopVerifying()"
+    },
+    {
+      "id": "M0074",
+      "file": "src/ReceiptsRegistry.sol",
       "operator": "return-replacement",
-      "line": 103,
-      "offset": 7069,
+      "line": 127,
+      "offset": 8376,
+      "original": "_revoked[batchId]",
+      "replacement": "0",
+      "outcome": "compile-failed",
+      "compilerErrors": [
+        "6359 Return argument type int_const 0 is not implicitly convertible to expected type (type of first return variable) bool.",
+        "Compiler run failed:"
+      ]
+    },
+    {
+      "id": "M0075",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "return-replacement",
+      "line": 127,
+      "offset": 8376,
+      "original": "_revoked[batchId]",
+      "replacement": "1",
+      "outcome": "compile-failed",
+      "compilerErrors": [
+        "6359 Return argument type int_const 1 is not implicitly convertible to expected type (type of first return variable) bool.",
+        "Compiler run failed:"
+      ]
+    },
+    {
+      "id": "M0076",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "return-replacement",
+      "line": 127,
+      "offset": 8376,
+      "original": "_revoked[batchId]",
+      "replacement": "false",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testOwnerRevokesBatchAndItsProofsStopVerifying()"
+    },
+    {
+      "id": "M0077",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "return-replacement",
+      "line": 127,
+      "offset": 8376,
+      "original": "_revoked[batchId]",
+      "replacement": "true",
+      "outcome": "killed",
+      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testOnlyOwnerRevokes()"
+    },
+    {
+      "id": "M0078",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "return-replacement",
+      "line": 127,
+      "offset": 8376,
+      "original": "_revoked[batchId]",
+      "replacement": "type(uint256).max",
+      "outcome": "compile-failed",
+      "compilerErrors": [
+        "6359 Return argument type uint256 is not implicitly convertible to expected type (type of first return variable) bool.",
+        "Compiler run failed:"
+      ]
+    },
+    {
+      "id": "M0081",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "return-replacement",
+      "line": 135,
+      "offset": 8798,
       "original": "_batches[batchId]",
       "replacement": "0",
       "outcome": "compile-failed",
@@ -709,11 +1086,11 @@
       ]
     },
     {
-      "id": "M0050",
+      "id": "M0082",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "return-replacement",
-      "line": 103,
-      "offset": 7069,
+      "line": 135,
+      "offset": 8798,
       "original": "_batches[batchId]",
       "replacement": "1",
       "outcome": "compile-failed",
@@ -723,11 +1100,11 @@
       ]
     },
     {
-      "id": "M0051",
+      "id": "M0083",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "return-replacement",
-      "line": 103,
-      "offset": 7069,
+      "line": 135,
+      "offset": 8798,
       "original": "_batches[batchId]",
       "replacement": "false",
       "outcome": "compile-failed",
@@ -737,11 +1114,11 @@
       ]
     },
     {
-      "id": "M0052",
+      "id": "M0084",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "return-replacement",
-      "line": 103,
-      "offset": 7069,
+      "line": 135,
+      "offset": 8798,
       "original": "_batches[batchId]",
       "replacement": "true",
       "outcome": "compile-failed",
@@ -751,11 +1128,11 @@
       ]
     },
     {
-      "id": "M0053",
+      "id": "M0085",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "return-replacement",
-      "line": 103,
-      "offset": 7069,
+      "line": 135,
+      "offset": 8798,
       "original": "_batches[batchId]",
       "replacement": "type(uint256).max",
       "outcome": "compile-failed",
@@ -765,11 +1142,11 @@
       ]
     },
     {
-      "id": "M0056",
+      "id": "M0088",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "assignment-removal",
-      "line": 114,
-      "offset": 7770,
+      "line": 146,
+      "offset": 9539,
       "original": "bytes32 root = _batches[batchId].root;",
       "replacement": "",
       "outcome": "compile-failed",
@@ -779,23 +1156,23 @@
       ]
     },
     {
-      "id": "M0057",
+      "id": "M0089",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "assignment-removal",
-      "line": 114,
-      "offset": 7783,
+      "line": 146,
+      "offset": 9552,
       "original": "= _batches[batchId].root",
       "replacement": "",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantVerificationMatchesCommittedState()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
-      "id": "M0058",
+      "id": "M0090",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "return-replacement",
-      "line": 115,
-      "offset": 7824,
-      "original": "root != bytes32(0) && MerkleProof.verifyCalldata(proof, root, leaf)",
+      "line": 147,
+      "offset": 9593,
+      "original": "root != bytes32(0) && !_revoked[batchId] && MerkleProof.verifyCalldata(proof, root, leaf)",
       "replacement": "0",
       "outcome": "compile-failed",
       "compilerErrors": [
@@ -804,12 +1181,12 @@
       ]
     },
     {
-      "id": "M0059",
+      "id": "M0091",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "return-replacement",
-      "line": 115,
-      "offset": 7824,
-      "original": "root != bytes32(0) && MerkleProof.verifyCalldata(proof, root, leaf)",
+      "line": 147,
+      "offset": 9593,
+      "original": "root != bytes32(0) && !_revoked[batchId] && MerkleProof.verifyCalldata(proof, root, leaf)",
       "replacement": "1",
       "outcome": "compile-failed",
       "compilerErrors": [
@@ -818,34 +1195,34 @@
       ]
     },
     {
-      "id": "M0060",
+      "id": "M0092",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "return-replacement",
-      "line": 115,
-      "offset": 7824,
-      "original": "root != bytes32(0) && MerkleProof.verifyCalldata(proof, root, leaf)",
+      "line": 147,
+      "offset": 9593,
+      "original": "root != bytes32(0) && !_revoked[batchId] && MerkleProof.verifyCalldata(proof, root, leaf)",
       "replacement": "false",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantVerificationMatchesCommittedState()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
-      "id": "M0061",
+      "id": "M0093",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "return-replacement",
-      "line": 115,
-      "offset": 7824,
-      "original": "root != bytes32(0) && MerkleProof.verifyCalldata(proof, root, leaf)",
+      "line": 147,
+      "offset": 9593,
+      "original": "root != bytes32(0) && !_revoked[batchId] && MerkleProof.verifyCalldata(proof, root, leaf)",
       "replacement": "true",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantVerificationMatchesCommittedState()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
-      "id": "M0062",
+      "id": "M0094",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "return-replacement",
-      "line": 115,
-      "offset": 7824,
-      "original": "root != bytes32(0) && MerkleProof.verifyCalldata(proof, root, leaf)",
+      "line": 147,
+      "offset": 9593,
+      "original": "root != bytes32(0) && !_revoked[batchId] && MerkleProof.verifyCalldata(proof, root, leaf)",
       "replacement": "type(uint256).max",
       "outcome": "compile-failed",
       "compilerErrors": [
@@ -854,44 +1231,44 @@
       ]
     },
     {
-      "id": "M0063",
+      "id": "M0095",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "relational-replacement",
-      "line": 115,
-      "offset": 7829,
+      "line": 147,
+      "offset": 9598,
       "original": "!=",
       "replacement": "<",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantVerificationMatchesCommittedState()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
-      "id": "M0064",
+      "id": "M0096",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "relational-replacement",
-      "line": 115,
-      "offset": 7829,
+      "line": 147,
+      "offset": 9598,
       "original": "!=",
       "replacement": "<=",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantVerificationMatchesCommittedState()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
-      "id": "M0065",
+      "id": "M0097",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "relational-replacement",
-      "line": 115,
-      "offset": 7829,
+      "line": 147,
+      "offset": 9598,
       "original": "!=",
       "replacement": "==",
       "outcome": "killed",
-      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantVerificationMatchesCommittedState()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
-      "id": "M0066",
+      "id": "M0098",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "relational-replacement",
-      "line": 115,
-      "offset": 7829,
+      "line": 147,
+      "offset": 9598,
       "original": "!=",
       "replacement": ">",
       "outcome": "survived",
@@ -902,44 +1279,66 @@
       }
     },
     {
-      "id": "M0067",
+      "id": "M0099",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "relational-replacement",
-      "line": 115,
-      "offset": 7829,
+      "line": 147,
+      "offset": 9598,
       "original": "!=",
       "replacement": ">=",
       "outcome": "killed",
       "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testZeroLeafAndEmptyProofNeverVerifyUnknownBatch()"
     },
     {
-      "id": "M0068",
+      "id": "M0100",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "constant-replacement",
-      "line": 115,
-      "offset": 7840,
+      "line": 147,
+      "offset": 9609,
       "original": "0",
       "replacement": "type(uint256).max",
       "outcome": "killed",
-      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testSingleLeafBoundaryRootsCountsAndTimestamps()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
-      "id": "M0069",
+      "id": "M0101",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "constant-replacement",
-      "line": 115,
-      "offset": 7840,
+      "line": 147,
+      "offset": 9609,
       "original": "0",
       "replacement": "uint256(1)",
       "outcome": "killed",
-      "killingTest": "test/unit/ReceiptsRegistry.t.sol:ReceiptsRegistryTest::testSingleLeafBoundaryRootsCountsAndTimestamps()"
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
     },
     {
-      "id": "M0070",
+      "id": "M0102",
       "file": "src/ReceiptsRegistry.sol",
       "operator": "logical-replacement",
-      "line": 115,
-      "offset": 7843,
+      "line": 147,
+      "offset": 9612,
+      "original": "&&",
+      "replacement": "||",
+      "outcome": "killed",
+      "killingTest": "test/unit/GuardReceiptCompatibility.t.sol:GuardReceiptCompatibilityTest::testMixedV1V2RawPayloadsUseExistingRegistry()"
+    },
+    {
+      "id": "M0103",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "not-removal",
+      "line": 147,
+      "offset": 9615,
+      "original": "!",
+      "replacement": "",
+      "outcome": "killed",
+      "killingTest": "test/invariant/ReceiptsRegistry.invariant.t.sol:ReceiptsRegistryInvariantTest::invariantCommittedRootsNeverChange()"
+    },
+    {
+      "id": "M0104",
+      "file": "src/ReceiptsRegistry.sol",
+      "operator": "logical-replacement",
+      "line": 147,
+      "offset": 9634,
       "original": "&&",
       "replacement": "||",
       "outcome": "killed",

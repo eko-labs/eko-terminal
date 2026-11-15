@@ -12,7 +12,8 @@ export interface RegistryReader {
     status: string; transactionHash: Hex; blockNumber: bigint; blockHash: Hex;
     logs: readonly { address: Address; data: Hex; topics: readonly Hex[]; logIndex: number | null; removed?: boolean }[];
   }>;
-  readContract(input: { address: Address; abi: Abi; functionName: 'batch'; args: readonly [bigint]; blockNumber: bigint }): Promise<unknown>;
+  /** `batch` is read at the commit block; `revoked` at the latest block (a revocation comes after the commit). */
+  readContract(input: { address: Address; abi: Abi; functionName: 'batch' | 'revoked'; args: readonly [bigint]; blockNumber?: bigint }): Promise<unknown>;
 }
 export type VerificationStep = { status: 'passed' | 'failed' | 'skipped' | 'commitment'; message: string };
 export type VerificationResult = { status: 'pending' | 'failed' | 'verified' | 'commitment'; steps: VerificationStep[] };
@@ -72,6 +73,9 @@ export async function verifyReceipt(raw: unknown, trustedRegistry: Address | nul
       } catch { return false; }
     });
     if (matches.length !== 1) return fail('The exact transaction event does not bind this batch and root.');
+    // The owner revokes a batch a leaked committer key appended; its proofs stop counting from then on.
+    const revoked = await reader.readContract({ address: trustedRegistry, abi: receiptsRegistryAbi, functionName: 'revoked', args: [BigInt(receipt.batchId)] });
+    if (revoked !== false) return fail('The registry owner revoked this batch.');
     steps.push({ status: 'passed', message: 'The registry root and exact commit event match on chain 4663.' });
     return { status: commitmentOnly ? 'commitment' : 'verified', steps };
   } catch { return fail('The keyless RPC could not confirm the registry. Retry when chain reads are available.'); }

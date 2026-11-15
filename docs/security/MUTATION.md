@@ -19,7 +19,34 @@ node contracts/scripts/mutate.mjs
 node contracts/scripts/mutate.mjs --list
 ```
 
-The current measurement ran `node contracts/scripts/mutate.mjs` offline on
+## Current measurement (2026-11-15, after `revokeBatch`)
+
+The registry gained owner-only `revokeBatch(uint64)` and `revoked(uint64)`, and `verify` now refuses a revoked
+batch (audit Path to 9, item 14). `node contracts/scripts/mutate.mjs` ran offline on 2026-11-15 against that source
+(SHA-256 `37efc3e8af8719424dbdd0d8a7b3aa62b8163c3f24d0368cfb572dc90fbb6223`) with Node **26.13.0**, Forge **1.8.7**
+(commit `985eeea0`), solc **0.8.26+commit.8a97fa7a** and the same settings, now with `auto_detect_remappings = false`
+pinned in `foundry.toml`. Baseline: 39 passed, 0 failed, 1 optional RPC fork skipped.
+
+- **104 generated candidates; 12 visibility candidates rejected (they cannot compile); 92 admitted mutants.**
+- Of the 92: **12 fail to compile, 76 are killed, 4 survive.**
+- Conservative score including every compiling survivor: **76 / 80 = 95.0%**.
+- Reviewed equivalent survivors excluded: **4**. **Non-equivalent denominator: 76; killed: 76; mutation score: 100%.**
+
+| ID | Line | Original → replacement | Equivalence argument |
+| --- | ---: | --- | --- |
+| M0019 | 95 | root `==` bytes32(0) → `<=` | bytes32 is unsigned: its only value ≤ zero is zero. Same as the earlier M0019 at line 83. |
+| M0027 | 95 | leafCount `==` 0 → `<=` | leafCount is uint32: ≤ zero iff zero. Same as the earlier M0027 at line 83. |
+| M0054 | 116 | batchId `==` 0 → `<=` | batchId is uint64: ≤ zero iff zero; `revokeBatch` rejects exactly the same ids with the same error. New with this change. |
+| M0098 | 147 | root `!=` bytes32(0) → `>` | Unsigned bytes32 is nonzero iff greater than zero. Same as the earlier M0066 at line 115. |
+
+One real survivor appeared in the first run of this change and was closed by a test: `batchId > lastBatchId` → `!=`
+(refusing to revoke any batch but the newest) survived until
+`testRevokesAnOlderBatchAndLeavesNewerOnes` revoked an older batch while a newer one exists. The equivalences above
+are pinned in the runner to the exact source hash and edits; any other survivor fails the command.
+
+The sections below describe the method (unchanged) and the earlier 2026-10-03 measurement.
+
+The 2026-10-03 measurement ran `node contracts/scripts/mutate.mjs` offline on
 2026-10-03 at base commit `c5c048a456af52c7a0787ee4450cd9e4514be9e7` plus
 uncommitted evidence-maintenance changes. The JSON hashes pin the exact current
 source, tests, runner, configuration and dependencies independently of that base.
