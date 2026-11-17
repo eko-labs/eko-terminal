@@ -23,7 +23,7 @@ async function shareMetadata(page: Page) {
   // Packet 111: metadata is a separate public projection, independent of private holdings.
   await page.route('**/v1/share-meta?*', route => {
     const origin = new URL(route.request().url()).origin;
-    return route.fulfill({ json: { title: 'EKO · Shared bag report', description: '1 coins · 1 flagged · 1 danger · DYOR · Not financial advice · AI-generated analysis', url: `${origin}/bags/r/${id}`, image: `${origin}/og/bags/${id}.png` } });
+    return route.fulfill({ json: { title: 'EKO · Shared bag report', description: '1 coins · 1 flagged · 1 danger · DYOR · Not financial advice', url: `${origin}/bags/r/${id}`, image: `${origin}/og/bags/${id}.png` } });
   });
 }
 // API responses and wallet below are synthetic; no live wallet, RPC, billing or SIWE verification evidence.

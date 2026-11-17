@@ -22,9 +22,9 @@ needs a change to shared code, make that change generic (nothing that names the 
 1. Branch from `main`: `git switch -c update/<flag>`.
 2. Build it in its folders. To try it locally, set `EKO_FLAGS=<flag>` when starting the edge.
 3. Open a pull request into `main`; the other developer reviews it; merge when the tests pass.
-4. Merging ships it. Railway's `eko-edge` service is linked to `main` with "Wait for CI" on, so it deploys each push
-   once CI passes, and https://ekoterminal.com/health then reports that commit (`node scripts/verify-edge.mjs --commit
-   <sha>` checks it). The same CI pass makes `.github/workflows/release.yml` update the public copy. Nobody runs anything;
+4. Merging ships it. Railway's `eko-edge` service is linked to `main` and deploys each push (with "Wait for CI" on, the
+   intended setting, only once CI passes), and https://ekoterminal.com/health then reports that commit
+   (`node scripts/verify-edge.mjs --commit <sha>` checks it and the live trading config). The same CI pass makes `.github/workflows/release.yml` update the public copy. Nobody runs anything;
    `node scripts/deploy-edge.mjs` remains for a manual upload. The flag is still off: users see no change, and the
    feature's code is held back from the public copy.
 5. Double-click **`Turn EKO features on or off.command`**, tick the feature and press Save. The site restarts with it on

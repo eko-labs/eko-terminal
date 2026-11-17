@@ -23,20 +23,20 @@ describe('versioned launch policy drafts', () => {
     expect((await resolved!.route.load()).default).toBe(Legal);
   });
 
-  it('marks only Terms and Privacy as approved by the owner on 2026-10-05', () => {
+  it('marks only Terms and Privacy as approved by the owner on 2026-11-16', () => {
     expect(POLICY_DRAFTS.filter((policy) => isApprovedPolicy(policy.slug)).map((policy) => policy.slug)).toEqual(['terms', 'privacy']);
-    expect(POLICY_APPROVAL).toMatchObject({ version: '2026-10-05', approvedAt: '2026-10-05' });
+    expect(POLICY_APPROVAL).toMatchObject({ version: '2026-11-16', approvedAt: '2026-11-16' });
     expect(isApprovedPolicy('__proto__')).toBe(false); expect(isApprovedPolicy('TERMS')).toBe(false);
   });
 
   it.each(POLICY_DRAFTS)('renders $slug with its version, approval state, contact and required disclaimers', (policy) => {
     const html = render(policy.slug);
     expect(html).toContain(`<h1>${policy.title}</h1>`);
-    expect(html).toContain('dateTime="2026-10-05"');
+    expect(html).toContain('dateTime="2026-11-16"');
     if (isApprovedPolicy(policy.slug)) {
       expect(html).toContain(`<h2>${LEGAL_COPY.approved}</h2>`);
       expect(html).toContain(`<dt>${LEGAL_COPY.version}</dt><dd>${POLICY_APPROVAL.version}</dd>`);
-      expect(html).toContain(`<dt>${LEGAL_COPY.approvalDate}</dt><dd><time dateTime="2026-10-05">2026-10-05</time></dd>`);
+      expect(html).toContain(`<dt>${LEGAL_COPY.approvalDate}</dt><dd><time dateTime="2026-11-16">2026-11-16</time></dd>`);
       expect(html).not.toMatch(/draft|pending/i);
     } else {
       expect(html).toContain(POLICY_REVIEW.version);
@@ -112,25 +112,31 @@ describe('versioned launch policy drafts', () => {
 
   it('states launch limits and staged economics without claiming unconfirmed decisions', () => {
     const terms = render('terms'), privacy = render('privacy');
-    expect(terms).toContain('Terminal fee: 0% during launch week');
-    expect(terms).toContain('Live trading can be paused at any time');
-    expect(terms).toContain('From token day, any terminal fee will be published before it starts.');
-    expect(terms).toContain('Pons-curve trades carry no terminal fee at launch');
-    expect(terms).toContain('EKO pays nothing to token holders');
-    expect(terms).toContain('OFAC sanctions list');
-    expect(terms).toContain('EKO never receives your Robinhood login details');
-    expect(privacy).toContain('journal is opt-in');
-    expect(privacy).toContain('separate opt-in');
-    expect(privacy).toContain('is not available yet');
-    // Deletion copy names the real Settings control and what it keeps.
+    // Each claim matches the Elysium build: no EKO fee (feeBps 0), the per-trade cap, the honeypot refusal, no sanctions or
+    // AI claims; privacy names the real providers, the 30-day session, the real deletion and the real limits.
+    expect(terms).toContain('EKO charges no fee on trades right now');
+    expect(terms).toContain('shown in every quote before you sign');
+    expect(terms).toContain('Each trade has a size limit, shown in the app');
+    expect(terms).toContain('EKO refuses to prepare a buy of it');
+    expect(terms).toContain('These checks are advisory: an agent can ignore them');
+    const text = (slug: string) => findPolicy(slug)!.sections.flatMap((section) => [section.title, ...section.paragraphs]).join('\n');
+    expect(text('terms')).not.toMatch(/OFAC|Robinhood|token day|Pons|AI-generated/);
+    expect(privacy).toContain('Sessions last 30 days');
+    expect(privacy).toContain('EKO does not save it');
+    for (const provider of ['Railway', 'Kinetiq', 'Hyperliquid']) expect(privacy).toContain(provider);
+    expect(text('privacy')).not.toMatch(/Robinhood|Telegram for alerts|encrypted|will be published here once/);
+    // Deletion copy names the real Settings control.
     const privacyText = findPolicy('privacy')!.sections.flatMap((section) => section.paragraphs).join('\n');
     expect(privacyText).toContain(`${SETTINGS_COPY.privacy}, “${SETTINGS_COPY.deleteTitle}”`);
-    expect(privacy).toContain('It keeps your sign-in record, your trade records and any public receipt hashes');
-    for (const open of ['The list of providers will be published here once it is confirmed', 'Server log and backup retention periods will be published here once they are confirmed',
-      'For privacy questions, contact the official EKO X or Telegram account listed on the Official project links page (/official)']) expect(privacy).toContain(open);
+    expect(privacy).toContain('Your trades themselves are public transactions on Elysium');
+    expect(privacy).toContain('For privacy questions, contact the official EKO X or Telegram account listed on the Official project links page (/official)');
     expect(render('risk')).toContain('Advisory:');
     expect(render('kol')).toContain('#ad must be the first line');
-    expect(render('sanctions')).toContain('there is no permissive fallback');
+    expect(render('sanctions')).toContain('EKO does not currently screen wallets');
+    expect(render('ai')).toContain('No AI model writes or changes them');
+    // Every policy describes the Elysium build: no Robinhood, OFAC screening or AI-analysis claims, no past-due approval date.
+    for (const policy of POLICY_DRAFTS) expect(text(policy.slug), policy.slug).not.toMatch(/Robinhood|brokerage|OFAC|AI-generated|token day|Pons/);
+    for (const policy of POLICY_DRAFTS.filter((p) => !isApprovedPolicy(p.slug))) expect(render(policy.slug)).not.toContain(LEGAL_COPY.approvalDue);
   });
 
   it('contains no retired brand or forbidden claims in served policy content', () => {

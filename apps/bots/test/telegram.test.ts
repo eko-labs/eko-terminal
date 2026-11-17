@@ -127,7 +127,7 @@ describe('durable webhook fixture processing (no Telegram sends)', () => {
     const reply = f.send.mock.calls[0][0];
     expect(reply.image).toBeUndefined(); expect(reply.text).toContain('Verdict image unavailable');
     expect(reply.text).toContain('Shadow assessment'); expect(reply.text).toContain('Not fully checked');
-    expect(reply.text).toContain('DYOR · Not financial advice · AI-generated analysis');
+    expect(reply.text).toContain('DYOR · Not financial advice');
     expect(reply.text).toContain('Not affiliated with');
   });
   it('prepares a repeatable image/text/record reply from injected snapshots', async () => {

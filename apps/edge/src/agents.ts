@@ -4,6 +4,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { getAddress, isAddress, type Address } from 'viem';
 import { PolicySchema, type Agent, type AgentDetail, type Approval, type JournalEntry, type Pack, type Policy, type PreflightResult, type Verdict } from '@eko/shared';
 import type { Account } from './accounts.js';
+import { assertStorage } from './storage-guard.js';
 import type { Assessment } from './assess.js';
 import type { CoinState } from './tracker.js';
 
@@ -21,6 +22,11 @@ export const PRESETS: { name: 'Safe' | 'Balanced' | 'Degen'; policy: Policy }[] 
 const MAX_AGENTS = 3, APPROVAL_TTL_SEC = 900;
 /** Storage bounds: rows kept per agent, their age, notes an account's agents may write a day, approvals waiting per agent. */
 export const JOURNAL_KEEP = 1_000, JOURNAL_DAYS = 90, NOTES_PER_ACCOUNT_DAY = 500, MAX_PENDING_APPROVALS = 20;
+/** Live keys per agent, key rows kept per agent (revoked ones beyond this are deleted), agents kept per account (the oldest
+ * disconnected agent and its rows go first) and settled approvals kept per agent: so no account can grow storage without bound. */
+export const MAX_KEYS_PER_AGENT = 5, KEY_ROWS_KEPT = 20, AGENTS_KEPT = 10, APPROVALS_KEPT = 200;
+/** Journal rows of every kind (EKO's decisions included) an account's agents may cause in a day. */
+export const AGENT_ROWS_PER_ACCOUNT_DAY = 2_000;
 const sha = (s: string) => createHash('sha256').update(s).digest('hex');
 const now = () => Math.floor(Date.now() / 1000);
 const iso = (sec: number) => new Date(sec * 1000).toISOString();
@@ -52,6 +58,11 @@ export class AgentStore {
   get(accountId: string, id: string) { const r = this.db.prepare('SELECT * FROM agents WHERE id = ? AND account_id = ?').get(id, accountId) as Record<string, unknown> | undefined; return r ? this.row(r) : null; }
   byId(id: string) { const r = this.db.prepare('SELECT * FROM agents WHERE id = ?').get(id) as Record<string, unknown> | undefined; return r ? this.row(r) : null; }
   create(accountId: string, name: string, kind: Agent['kind'], policy: Policy): AgentRow {
+    // Hard-killed agents stay listed for their history, up to AGENTS_KEPT per account; past that the oldest goes, with its rows.
+    const gone = this.db.prepare(`SELECT id FROM agents WHERE account_id = ? AND status = 'disconnected' ORDER BY created_at, rowid`).all(accountId) as { id: string }[];
+    const total = (this.db.prepare('SELECT count(*) AS n FROM agents WHERE account_id = ?').get(accountId) as { n: number }).n;
+    for (const { id: old } of gone.slice(0, Math.max(0, total - AGENTS_KEPT + 1))) this.purge(old);
+    assertStorage();
     const id = `agt_${randomBytes(8).toString('hex')}`;
     this.db.prepare('INSERT INTO agents(id, account_id, name, kind, wallet, status, policy, created_at) VALUES(?, ?, ?, ?, NULL, ?, ?, ?)').run(id, accountId, name, kind, 'active', JSON.stringify(policy), now());
     return this.byId(id)!;
@@ -63,10 +74,25 @@ export class AgentStore {
   setWallet(id: string, wallet: Address | null) { this.db.prepare('UPDATE agents SET wallet = ? WHERE id = ?').run(wallet ? wallet.toLowerCase() : null, id); }
   touch(id: string) { this.db.prepare('UPDATE agents SET last_seen = ? WHERE id = ?').run(now(), id); }
 
+  /** Keys an agent can still use. */
+  liveKeys(agentId: string): number { return (this.db.prepare('SELECT count(*) AS n FROM agent_keys WHERE agent_id = ? AND revoked_at IS NULL').get(agentId) as { n: number }).n; }
   createKey(agentId: string) {
+    assertStorage();
     const secret = `eko_${randomBytes(24).toString('base64url')}`, keyId = `key_${randomBytes(6).toString('hex')}`, prefix = secret.slice(0, 10);
     this.db.prepare('INSERT INTO agent_keys(key_id, agent_id, prefix, hash, created_at) VALUES(?, ?, ?, ?, ?)').run(keyId, agentId, prefix, sha(secret), now());
+    this.db.prepare(`DELETE FROM agent_keys WHERE agent_id = ? AND revoked_at IS NOT NULL AND key_id NOT IN
+      (SELECT key_id FROM agent_keys WHERE agent_id = ? ORDER BY created_at DESC, rowid DESC LIMIT ?)`).run(agentId, agentId, KEY_ROWS_KEPT);
     return { keyId, prefix, secret };
+  }
+  /** Orders trade_prepare made for an agent are stored under `agent:<id>` (the trading table exists only with trading on). */
+  private eraseAgentOrders(agentId: string) {
+    if (this.db.prepare(`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'orders'`).get()) this.db.prepare('DELETE FROM orders WHERE account_id = ?').run(`agent:${agentId}`);
+  }
+  /** Delete an agent and everything stored for it. */
+  private purge(agentId: string) {
+    for (const t of ['agent_keys', 'journal', 'approvals']) this.db.prepare(`DELETE FROM ${t} WHERE agent_id = ?`).run(agentId);
+    this.eraseAgentOrders(agentId);
+    this.db.prepare('DELETE FROM agents WHERE id = ?').run(agentId);
   }
   keys(agentId: string) {
     return (this.db.prepare('SELECT * FROM agent_keys WHERE agent_id = ? ORDER BY created_at DESC').all(agentId) as Record<string, number | string | null>[]).map(k => ({
@@ -90,6 +116,7 @@ export class AgentStore {
   }
 
   journal(agentId: string, kind: JournalEntry['kind'], payload: Record<string, unknown>, preflightId?: string, share = false): JournalEntry {
+    assertStorage();
     const id = randomUUID(), ts = now(), body = JSON.stringify(payload);
     const commitment = `0x${sha(`${id}:${agentId}:${ts}:${kind}:${body}`)}`;
     this.db.prepare('INSERT INTO journal(id, agent_id, ts, kind, payload, preflight_id, share, commitment) VALUES(?, ?, ?, ?, ?, ?, ?, ?)').run(id, agentId, ts, kind, body, preflightId ?? null, share ? 1 : 0, commitment);
@@ -105,6 +132,10 @@ export class AgentStore {
   /** Rows an account's agents wrote themselves (not EKO's decisions and orders) in the last day. */
   agentNotesToday(accountId: string): number {
     return (this.db.prepare('SELECT count(*) AS n FROM journal j JOIN agents a ON a.id = j.agent_id WHERE a.account_id = ? AND j.ts > ? AND j.preflight_id IS NULL').get(accountId, now() - 86_400) as { n: number }).n;
+  }
+  /** Journal rows of every kind for an account's agents in the last day. */
+  agentRowsToday(accountId: string): number {
+    return (this.db.prepare('SELECT count(*) AS n FROM journal j JOIN agents a ON a.id = j.agent_id WHERE a.account_id = ? AND j.ts > ?').get(accountId, now() - 86_400) as { n: number }).n;
   }
   /** Approvals still waiting on the owner for one agent. */
   pendingApprovals(agentId: string): number {
@@ -159,14 +190,18 @@ export class AgentStore {
     return !!this.db.prepare(`SELECT 1 FROM journal WHERE agent_id = ? AND kind = 'order' AND preflight_id IS NOT NULL AND json_extract(payload, '$.clientOrderRef') = ? LIMIT 1`).get(agentId, clientRef);
   }
   requestApproval(agent: AgentRow, preflightId: string, clientRef: string, summary: string, detail: Approval['detail']): Approval {
+    assertStorage();
     const id = `apr_${randomBytes(8).toString('hex')}`;
     this.db.prepare(`INSERT INTO approvals(id, agent_id, account_id, preflight_id, client_ref, summary, status, detail, expires_at) VALUES(?, ?, ?, ?, ?, ?, 'pending', ?, ?)`)
       .run(id, agent.id, agent.accountId, preflightId, clientRef, summary, JSON.stringify(detail ?? null), now() + APPROVAL_TTL_SEC);
+    // Settled approvals (decided, expired or used) are kept for the owner's history, the newest APPROVALS_KEPT per agent.
+    this.db.prepare(`DELETE FROM approvals WHERE agent_id = ? AND status != 'pending' AND id NOT IN
+      (SELECT id FROM approvals WHERE agent_id = ? AND status != 'pending' ORDER BY expires_at DESC, rowid DESC LIMIT ?)`).run(agent.id, agent.id, APPROVALS_KEPT);
     return this.approval(agent.accountId, id)!;
   }
   private expire() { this.db.prepare(`UPDATE approvals SET status = 'expired' WHERE (status = 'pending' OR (status = 'approved' AND used_at IS NULL)) AND expires_at < ?`).run(now()); }
   erase(accountId: string) {
-    for (const a of this.list(accountId)) { for (const t of ['agent_keys', 'journal']) this.db.prepare(`DELETE FROM ${t} WHERE agent_id = ?`).run(a.id); }
+    for (const a of this.list(accountId)) { for (const t of ['agent_keys', 'journal']) this.db.prepare(`DELETE FROM ${t} WHERE agent_id = ?`).run(a.id); this.eraseAgentOrders(a.id); }
     this.db.prepare('DELETE FROM approvals WHERE account_id = ?').run(accountId);
     this.db.prepare('DELETE FROM agents WHERE account_id = ?').run(accountId);
   }
@@ -329,6 +364,7 @@ export function registerAgentRoutes(app: FastifyInstance, agents: AgentStore, au
   app.post<{ Params: { id: string } }>('/v1/agents/:id/keys', async (req, reply) => {
     const a = mine(req, reply); if (!a) return reply;
     if (a.status === 'disconnected') return fail(reply, 409, 'conflict', 'This agent is disconnected.');
+    if (agents.liveKeys(a.id) >= MAX_KEYS_PER_AGENT) return fail(reply, 400, 'limit_reached', `Up to ${MAX_KEYS_PER_AGENT} keys per agent. Revoke one first.`);
     return agents.createKey(a.id);
   });
   app.delete<{ Params: { id: string; keyId: string } }>('/v1/agents/:id/keys/:keyId', async (req, reply) => {

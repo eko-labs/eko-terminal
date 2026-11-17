@@ -5,7 +5,7 @@ export const SECURITY_SITE = 'https://ekoterminal.com';
 /** Role mailbox (owner-confirmed forwarding, 2026-10-04). Never a personal address. */
 export const SECURITY_MAILBOX = 'security@ekoterminal.com';
 /** GitHub private vulnerability reporting on the public repository (enabled). */
-export const SECURITY_ADVISORY_URL = 'https://github.com/EkoTerminal/eko/security/advisories/new';
+export const SECURITY_ADVISORY_URL = 'https://github.com/eko-labs/eko-terminal/security/advisories/new';
 /**
  * RFC 9116 asks for less than a year ahead. Fixed at release so a stale file visibly expires;
  * renew it (and this constant) before this date.

@@ -50,7 +50,8 @@ export async function registerRealtime(app: FastifyInstance, edge: Edge, opts: {
         const subs = clients.get(socket)!;
         for (const ch of msg.ch.slice(0, 64)) {
           if (typeof ch !== 'string' || ch.length > 80 || (PRIVATE.has(ch) && !owner.has(socket))) continue;
-          if (msg.op === 'sub') { subs.add(ch); send(socket, { t: 'ack', ch, seq }); } else subs.delete(ch);
+          // At most 64 channels per socket in all, not only per message.
+          if (msg.op === 'sub') { if (!subs.has(ch) && subs.size >= 64) continue; subs.add(ch); send(socket, { t: 'ack', ch, seq }); } else subs.delete(ch);
         }
       }
     });

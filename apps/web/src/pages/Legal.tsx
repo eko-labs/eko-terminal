@@ -14,7 +14,6 @@ function Draft() {
   return <aside className="legal-review" aria-label={C.draft}><h2>{C.draft}</h2><p>{C.review}</p><dl>
     <div><dt>{C.version}</dt><dd>{POLICY_REVIEW.version}</dd></div>
     <div><dt>{C.drafted}</dt><dd><time dateTime={POLICY_REVIEW.draftedAt}>{POLICY_REVIEW.draftedAt}</time></dd></div>
-    <div><dt>{C.approvalDue}</dt><dd><time dateTime={POLICY_REVIEW.ownerApproval.dueAt}>{POLICY_REVIEW.ownerApproval.dueAt}</time></dd></div>
     <div><dt>{C.approvalDate}</dt><dd>{C.pending}</dd></div>
     <div><dt>{C.approvalEvidence}</dt><dd>{C.pending}</dd></div>
   </dl></aside>;

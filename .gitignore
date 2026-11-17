@@ -34,3 +34,4 @@ infra/vps/secrets/
 # Local pnpm package cache (pnpm 11 may place it in the repo)
 .pnpm-store
 .solidity-auditor/
+.claude/settings.local.json

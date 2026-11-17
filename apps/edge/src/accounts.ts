@@ -1,3 +1,4 @@
+import { assertStorage } from './storage-guard.js';
 import { createHash, randomBytes } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -13,6 +14,7 @@ import type { Rpc } from './tracker.js';
  */
 export const SESSION_COOKIE = 'eko_session';
 const SESSION_DAYS = 30, NONCE_TTL_SEC = 600;
+export const SESSIONS_KEPT = 20, NEW_ACCOUNTS_PER_ADDRESS_DAY = 10;
 export interface Account { id: string; wallet: Address; createdAt: number }
 
 const sha = (s: string) => createHash('sha256').update(s).digest('hex');
@@ -47,10 +49,12 @@ export class AccountStore {
     return Number(r.changes) === 1;
   }
 
+  hasAccount(wallet: Address): boolean { return !!this.db.prepare('SELECT 1 FROM accounts WHERE wallet = ?').get(wallet.toLowerCase()); }
   accountFor(wallet: Address): Account {
     const w = wallet.toLowerCase();
     const found = this.db.prepare('SELECT * FROM accounts WHERE wallet = ?').get(w) as { id: string; wallet: string; created_at: number } | undefined;
     if (found) return { id: found.id, wallet: getAddress(found.wallet), createdAt: found.created_at };
+    assertStorage(); // a new account is new user content; an existing wallet still signs in
     const id = `acct_${randomBytes(9).toString('hex')}`;
     this.db.prepare('INSERT INTO accounts(id, wallet, created_at) VALUES(?, ?, ?)').run(id, w, nowSec());
     return { id, wallet: getAddress(w), createdAt: nowSec() };
@@ -58,6 +62,10 @@ export class AccountStore {
   openSession(accountId: string): string {
     const token = randomBytes(32).toString('base64url');
     this.db.prepare('INSERT INTO sessions(token_hash, account_id, created_at, expires_at) VALUES(?, ?, ?, ?)').run(sha(token), accountId, nowSec(), nowSec() + SESSION_DAYS * 86_400);
+    // Expired sessions go, and one wallet keeps its newest SESSIONS_KEPT (signing in again on more devices signs the oldest out).
+    this.db.prepare('DELETE FROM sessions WHERE expires_at <= ?').run(nowSec());
+    this.db.prepare(`DELETE FROM sessions WHERE account_id = ? AND rowid NOT IN (SELECT rowid FROM sessions WHERE account_id = ? ORDER BY created_at DESC, rowid DESC LIMIT ?)`)
+      .run(accountId, accountId, SESSIONS_KEPT);
     return token;
   }
   closeSession(token: string) { this.db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(sha(token)); }
@@ -126,7 +134,7 @@ const fail = (reply: FastifyReply, status: number, error: string, message: strin
 /** Auth, profile, preferences and watchlist routes, plus `account(req)` for other modules. */
 export function registerAccountRoutes(app: FastifyInstance, ctx: AuthContext) {
   const { store } = ctx;
-  const nonceLimit = limiter(30, 60_000), verifyLimit = limiter(20, 60_000);
+  const nonceLimit = limiter(30, 60_000), verifyLimit = limiter(20, 60_000), newAccountLimit = limiter(NEW_ACCOUNTS_PER_ADDRESS_DAY, 86_400_000);
   app.addHook('onRequest', async (req, reply) => {
     if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) || !req.url.startsWith('/v1/') || req.url.startsWith('/v1/rpc')) return;
     if (!sameOrigin(req)) return fail(reply, 403, 'forbidden', 'Cross-site requests are refused.');
@@ -164,6 +172,8 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AuthContext) {
       } catch { ok = false; }
     }
     if (!ok) return fail(reply, 401, 'unauthorized', 'The signature does not match the wallet.');
+    // A wallet seen before always signs in; new accounts are limited per address a day (free accounts are not free to mint).
+    if (!store.hasAccount(getAddress(message.address)) && !newAccountLimit(req.ip)) return fail(reply, 429, 'rate_limited', 'Too many new accounts from this address today.');
     const a = store.accountFor(getAddress(message.address));
     reply.header('set-cookie', sessionCookie(req, store.openSession(a.id), SESSION_DAYS * 86_400));
     return me(a);
@@ -186,6 +196,7 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AuthContext) {
     const a = need(req, reply); if (!a) return reply;
     const p = PreferencesSchema.safeParse(req.body);
     if (!p.success) return fail(reply, 400, 'bad_request', 'Invalid preferences.');
+    assertStorage();
     store.db.prepare('INSERT INTO preferences(account_id, data) VALUES(?, ?) ON CONFLICT(account_id) DO UPDATE SET data = excluded.data').run(a.id, JSON.stringify(p.data));
     return p.data;
   });
@@ -197,6 +208,7 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AuthContext) {
   app.put<{ Body: { optedIn?: unknown } }>('/v1/me/journal-consent', async (req, reply) => {
     const a = need(req, reply); if (!a) return reply;
     if (typeof req.body?.optedIn !== 'boolean') return fail(reply, 400, 'bad_request', 'optedIn must be true or false.');
+    assertStorage();
     store.db.prepare('INSERT INTO consents(account_id, journal) VALUES(?, ?) ON CONFLICT(account_id) DO UPDATE SET journal = excluded.journal').run(a.id, req.body.optedIn ? 1 : 0);
     return { optedIn: req.body.optedIn };
   });
@@ -225,6 +237,7 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AuthContext) {
     const target = w.data.kind === 'crew' ? w.data.target : w.data.target.toLowerCase();
     const count = (store.db.prepare('SELECT count(*) AS n FROM watch WHERE account_id = ?').get(a.id) as { n: number }).n;
     if (count >= 500) return fail(reply, 400, 'limit_reached', 'The watchlist holds up to 500 items.');
+    assertStorage();
     store.db.prepare('INSERT INTO watch(account_id, kind, target, created_at) VALUES(?, ?, ?, ?) ON CONFLICT DO NOTHING').run(a.id, w.data.kind, target, nowSec());
     return { kind: w.data.kind, target };
   });
@@ -247,6 +260,7 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AuthContext) {
     const a = need(req, reply); if (!a) return reply;
     const p = AlertSettingsSchema.safeParse(req.body);
     if (!p.success) return fail(reply, 400, 'bad_request', 'Invalid alert settings.');
+    assertStorage();
     store.db.prepare('INSERT INTO alert_settings(account_id, data) VALUES(?, ?) ON CONFLICT(account_id) DO UPDATE SET data = excluded.data').run(a.id, JSON.stringify(p.data));
     return p.data;
   });

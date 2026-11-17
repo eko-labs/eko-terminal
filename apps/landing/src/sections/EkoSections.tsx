@@ -687,7 +687,7 @@ export function Footer() {
       </div>
       <div className="eko-footer-bottom">
         <span>© 2026 EKO</span>
-        <p>DYOR · Not financial advice · AI-generated analysis</p>
+        <p>DYOR · Not financial advice</p>
         <a href="#top" aria-label="Back to top">
           ↑
         </a>

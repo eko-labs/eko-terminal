@@ -193,7 +193,8 @@ it('copies every current workspace manifest before frozen image installation and
   const dockerfile = readFileSync(new URL('Dockerfile', root), 'utf8');
   const beforeInstall = dockerfile.split('RUN pnpm install --frozen-lockfile')[0];
   for (const parent of ['apps', 'packages']) {
-    for (const name of readdirSync(new URL(`${parent}/`, root))) {
+    // Hidden entries (editor or tool folders) are not workspaces.
+    for (const name of readdirSync(new URL(`${parent}/`, root)).filter(n => !n.startsWith('.'))) {
       expect(beforeInstall).toContain(`COPY ${parent}/${name}/package.json ${parent}/${name}/`);
     }
   }

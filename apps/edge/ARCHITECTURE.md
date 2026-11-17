@@ -13,7 +13,7 @@ Robinhood Chain stack. It is not deployed for Elysium.
 
 | Part | Where | Notes |
 | --- | --- | --- |
-| Process | Railway service `eko-edge`, image `Dockerfile.edge` | Deployed by Railway from GitHub `eko-labs/eko`, branch `main`, after CI passes ("Wait for CI"). `/health` reports the commit (`build.ts`). |
+| Process | Railway service `eko-edge`, image `Dockerfile.edge` | Deployed by Railway from GitHub `eko-labs/eko`, branch `main`, on each push; with "Wait for CI" on (the intended setting) only after CI passes. `/health` reports the commit (`build.ts`); `scripts/verify-edge.mjs` checks it and the live trading config. |
 | State | One SQLite file on the service's volume (`HISTORY_DB`) | Accounts, sessions, preferences, watchlists, agents, keys, journals, approvals, orders, and EKO's chain memory (launches, outcomes, funders). Nothing in it is a signing key. |
 | Chain reads | `RPC_HTTP_URL` (paid, read-only key) or the public RPC | Through the metered layer (`@eko/chain`): budgets, timeouts, back-off. The browser relay `/v1/rpc` has its own public-RPC client (`relay.ts`) and never uses the paid lane. |
 | Other reads | Elysium Blockscout (`explorer.ts`), Hyperliquid `allMids` (`hype.ts`) | Funder history for deployers; HYPE's USD price. Both keyless. |
@@ -23,7 +23,7 @@ Robinhood Chain stack. It is not deployed for Elysium.
 | Actor | How it is identified | Can | Cannot |
 | --- | --- | --- | --- |
 | Visitor | nothing | Read routes (`/v1/feed`, coins, verdicts, deployers, config, `/health`), quotes (`POST /v1/trade/quote`, no wallet), the read-only relay (`POST /v1/rpc`, allowlisted methods, no full blocks), the websocket (public channels), MCP read tools (`coin_verdict`, `coin_card`, `playbook_match`, `deployer_history`, `new_launches`) | Any write that needs a wallet (401). Private socket channels. |
-| Wallet | SIWE on chain 99901, then a session cookie (`HttpOnly; SameSite=Lax`, 30 days) | Its own preferences, watchlist, alert settings, journal consent, data deletion; trade orders from its own quotes, and marking its own orders submitted or rejected; up to 3 agents and their keys, policies, kill switches and approvals | Another account's anything: every read and write is filtered by the session's account (404, or 403 for another wallet's quote). Writes from another site's page (403, `sameOrigin`). |
+| Wallet | SIWE on chain 99901, then a session cookie (`HttpOnly; SameSite=Lax`, 30 days) | Its own preferences, watchlist, alert settings, journal consent, data deletion; trade orders from its own quotes, and marking its own orders submitted or rejected; up to 3 active agents (10 kept in all, the oldest hard-killed one deleted first) with up to 5 live keys each, their policies, kill switches and approvals | Another account's anything: every read and write is filtered by the session's account (404, or 403 for another wallet's quote). Writes from another site's page (403, `sameOrigin`). |
 | Agent | Bearer key `eko_…` on `POST /mcp` (stored as a SHA-256 hash, shown once) | `preflight` against its owner's policy, `trade_prepare` (an unsigned swap for the wallet its owner set), `journal` (notes, session starts, outcomes) | Write decisions or orders into its own journal; trade without a fresh EKO-recorded allow; choose its own wallet; trade above its policy, slippage cap or `MAX_TRADE_USD`; act after its owner pauses or kills it, or after its key is revoked (401). |
 | Owner (a wallet, over its agents) | the wallet's session | Approve or deny an agent's pending order (bound to that exact order, one use, 15 minutes), pause, resume, hard-kill (revokes every key), set policy and wallet | Approve orders of another account's agents (404). |
 | Operator | Railway project access, GitHub `main` | Deploy (merging to `main`), set environment and flags (`EKO_FLAGS`), read the volume | — |
@@ -59,11 +59,22 @@ The publishing secrets (`PUBLIC_DEPLOY_KEY`, `PRIVATE_DENYLIST`) live in GitHub 
 
 ## Limits that keep one client from taking the service
 
-Request bodies 16 KB (49 KB for SIWE, 64 KB for MCP); sign-in 30 nonces and 20 verifications a minute per address;
-MCP 120 calls a minute per agent or address, counting each batch entry; the relay 120 calls a minute per address,
-600 in all, 16 in flight; 20 websockets per address, idle ones closed after 2 minutes; funder lookups from page views
-in their own bounded lane behind live deployers; journals keep 1,000 rows and 90 days per agent, 500 notes per
-account a day, 20 pending approvals per agent. Tests: `test/limits.test.ts`.
+Request bodies 16 KB (49 KB for SIWE, 64 KB for MCP); sign-in 30 nonces and 20 verifications a minute per address,
+and 10 new accounts a day per address (known wallets always sign in). Trading has its own share of the paid RPC lane:
+240 calls a minute and 8 in flight for quotes, order simulations and receipt checks from every route together, so no
+number of accounts or agents can starve the tracker; within it, signed-out quotes share 40 a minute in all, quotes are 30 a minute per address and per wallet,
+orders 20 a minute per account or agent (60 per address), 10 in flight per account. Receipt checks have a reserved
+slice (60 a minute), and sign-in's contract-wallet check its own (60 a minute), so neither can be crowded out or crowd out
+the tracker. MCP 120 calls a minute per agent
+or address, counting each batch entry, and 600 per address across agents; the relay 120 calls a minute per address,
+600 in all, 16 in flight; 20 websockets per address, 64 channels per socket, idle ones closed after 2 minutes; funder
+lookups from page views in their own bounded lane behind live deployers. Stored per account: 3 active and 10 kept
+agents, 5 live keys and 20 key rows per agent, journals of 1,000 rows and 90 days per agent, 2,000 journal rows (500
+of them notes) per account a day, 20 pending and 200 settled approvals per agent, 20 sessions, 500 settled orders,
+500 watchlist items. Across all accounts, the storage guard (`src/storage-guard.ts`) refuses every write of user
+content (new accounts, agents, keys, journal rows, approvals, orders, watchlist, preferences, alert settings, consent)
+with 507 while the database volume has less than `STORE_MIN_FREE_MB` (512 MB) free, keeping that reserve for EKO's
+chain memory and existing sign-ins. Tests: `test/limits.test.ts`.
 
 ## Tests by concern
 

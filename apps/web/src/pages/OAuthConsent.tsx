@@ -34,7 +34,7 @@ export function ConsentForm({ request, agents, busy, submit }: { request: OAuthR
     {confirm ? <div role="group" aria-label="Confirm connector consent"><p>Allow this client to use the selected scopes as this agent?</p><button className="btn btn-primary" disabled={busy} onClick={() => decision('approve')}>Confirm approval</button><button className="btn" disabled={busy} onClick={() => setConfirm(false)}>Back</button></div>
       : <button className="btn btn-primary" disabled={busy || !selected} onClick={() => setConfirm(true)}>Approve</button>}
     <button className="btn" disabled={busy} onClick={() => decision('deny')}>Deny</button>
-    <p>EKO never receives your Robinhood credentials. Your agent keeps its own Robinhood connection.</p><p>{ADVISORY}</p><p>{NON_AFFILIATION}</p>
+    <p>EKO never receives your agent’s wallet keys. Your agent signs its own trades.</p><p>{ADVISORY}</p><p>{NON_AFFILIATION}</p>
   </div></section>;
 }
 export default function OAuthConsentPage() {

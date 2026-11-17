@@ -23,7 +23,7 @@ describe('RFC 9116 security.txt', () => {
   it('names the role mailbox, the private advisory form, policy, language, canonical URL and expiry', () => {
     expect(fields(SECURITY_TXT)).toEqual([
       ['Contact', 'mailto:security@ekoterminal.com'],
-      ['Contact', 'https://github.com/EkoTerminal/eko/security/advisories/new'],
+      ['Contact', 'https://github.com/eko-labs/eko-terminal/security/advisories/new'],
       ['Expires', SECURITY_TXT_EXPIRES],
       ['Preferred-Languages', 'en'],
       ['Canonical', 'https://ekoterminal.com/.well-known/security.txt'],

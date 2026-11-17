@@ -79,3 +79,37 @@ html,body,#root{height:auto;min-height:100%;overflow:visible}body{overflow:auto;
 .eko-shell[data-density=compact] .table td,.eko-shell[data-density=compact] .table th{padding-top:6px;padding-bottom:6px}
 /* Panes: the expand control shows its word next to the icon, so it reads as "open this bigger". */
 .insp-bar .iconbtn.insp-expand{width:auto;min-width:0;display:inline-flex;align-items:center;gap:6px;padding:0 10px;font-size:13px;text-decoration:none;white-space:nowrap}
+
+/* Sidebar plan card: a lit edge, a phosphor dot field like the chart plates, and an arrow to the plan page. */
+.side-foot .plan-card{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:5px 10px;padding:12px 12px 12px 15px;overflow:hidden;
+ background:linear-gradient(180deg,#06111a,var(--panel));border-color:var(--edge);transition:border-color .2s,background .2s}
+.side-foot .plan-card::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.55;
+ background-image:radial-gradient(color-mix(in srgb,var(--accent) 30%,transparent) .7px,transparent .8px);background-size:4px 4px;
+ -webkit-mask-image:linear-gradient(100deg,transparent 35%,#000);mask-image:linear-gradient(100deg,transparent 35%,#000)}
+.side-foot .plan-card::after{content:"";position:absolute;left:0;top:11px;bottom:11px;width:2px;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+.side-foot .plan-card>*{position:relative}
+.plan-kick{grid-column:1;display:flex;align-items:center;gap:7px;font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.plan-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);animation:plan-pulse 2.4s ease-in-out infinite}
+.side-foot .plan-card .trial-top{grid-column:1;color:var(--ink);font-size:14px;line-height:1.3}
+.plan-go{grid-column:2;grid-row:1/3;color:var(--muted);font-size:15px;transition:transform .25s var(--e-out),color .2s}
+.side-foot .plan-card:hover{border-color:var(--rule3);background:linear-gradient(180deg,#0a1822,var(--panel))}
+.side-foot .plan-card:hover .plan-go{transform:translateX(3px);color:var(--ink)}
+.side-foot .plan-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@keyframes plan-pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* Risk mode: a section label like the nav groups, and taller choices with a 1-3 bar level glyph; the chosen one is lit. */
+.side-risk{gap:8px}
+.side-risk .side-label{font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--faint);padding-left:2px}
+.side-risk .seg{padding:3px;background:var(--plate);border-color:var(--edge)}
+.side-risk .seg button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:9px 0 8px;font-size:12.5px;color:var(--muted);letter-spacing:.01em}
+.side-risk .seg button:hover{color:var(--ink)}
+.side-risk .seg button[aria-pressed=true]{color:var(--ink);background:none}
+.side-risk .seg-ind{background:linear-gradient(180deg,#0f1d27,#0a141b);
+ box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 55%,transparent),0 0 14px -4px color-mix(in srgb,var(--accent) 60%,transparent)}
+.risk-level{display:inline-flex;align-items:flex-end;gap:2px;height:10px}
+.risk-level i{width:3px;border-radius:1px;background:var(--rule2);transition:background .2s,box-shadow .2s}
+.risk-level i:nth-child(1){height:4px}.risk-level i:nth-child(2){height:7px}.risk-level i:nth-child(3){height:10px}
+.risk-level i.on{background:var(--rule3)}
+.side-risk .seg button:hover .risk-level i.on{background:var(--muted)}
+.side-risk .seg button[aria-pressed=true] .risk-level i.on{background:var(--accent);box-shadow:0 0 5px color-mix(in srgb,var(--accent) 70%,transparent)}
+@media (prefers-reduced-motion:reduce){.plan-dot{animation:none}.plan-go,.risk-level i{transition:none}}

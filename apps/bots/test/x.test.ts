@@ -76,7 +76,7 @@ it('resumes a paginated window after restart and deduplicates a mention without 
   expect(f.transport.mentions.mock.calls[2][0]).toEqual({ max_results: 10, since_id: newer.id });
   expect(f.transport.reply.mock.calls[0][0].text).toBe(f.transport.reply.mock.calls[1][0].text);
   const reply = f.transport.reply.mock.calls[0][0];
-  expect(reply.text).toContain('Shadow assessment'); expect(reply.text).toContain('DYOR · Not financial advice · AI-generated analysis');
+  expect(reply.text).toContain('Shadow assessment'); expect(reply.text).toContain('DYOR · Not financial advice');
   expect(reply.text.length).toBeLessThanOrEqual(280);
   expect(reply.text).not.toMatch(/https?:|\/coin\/|hostile|untrusted instructions/);
   expect(f.transport.upload.mock.calls[0][0]).toEqual(png());

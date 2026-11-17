@@ -84,7 +84,7 @@ export const TERMS = [
   ['Needs approval', 'An order above your approval limit. It waits for you here; if you don’t answer before it expires, the agent is told no.'],
   ['Advisory or enforced', 'Advisory: the agent is expected to follow EKO’s answer. Enforced: an on-chain session-key policy enforces the limits.'],
   ['Order without a check', 'An order the agent reported that never asked EKO first. Worth a look: it means the agent skipped the step.'],
-  ['Pause or disconnect', 'Pause makes every preflight return deny until you resume. Disconnect revokes the agent’s EKO keys. Robinhood-connected agents must also be disconnected in Robinhood.'],
+  ['Pause or disconnect', 'Pause makes every preflight return deny until you resume. Disconnect revokes the agent’s EKO keys. Your agent can still trade from its own wallet; stop it there too.'],
   ['Activity log (Flight Recorder)', 'Every check, order and decision, kept private to you and committed on-chain as a hash.'],
 ];
 export function useNow() { const [now, setNow] = useState(serverNow); useEffect(() => { const timer = setInterval(() => setNow(serverNow()), 1000); return () => clearInterval(timer); }, []); return now; }

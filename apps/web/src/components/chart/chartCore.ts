@@ -1,5 +1,5 @@
 import type { Bar } from '@eko/shared';
-import { formatCoinPrice } from '../../lib/format';
+import { formatCoinPrice, formatCompactUsd } from '../../lib/format';
 import { paintArea, paintCandles, paintVolume, sweep } from '../../lib/phosphor';
 import { clampView, panView, zoomView, stretchScale, type View, type CoinTimeframe } from './coinMath';
 
@@ -73,9 +73,9 @@ export class ChartCore {
     if(this.mode==='Line')paintArea(this.canvas,g,this.progress);else paintCandles(this.canvas,g,this.progress);
     paintVolume(this.canvas,{...g,B:this.mainPaneHeight(),volumes:bars.map(b=>b.vUsd)},this.progress);
     const c=this.canvas.getContext('2d');if(!c)return;c.save();c.font='12px sans-serif';c.fillStyle='#71879a';c.strokeStyle='rgba(150,190,235,.08)';const r=this.priceRange();
-    for(let i=0;i<5;i++){const p=r.lo+(r.hi-r.lo)*i/4,y=this.yForPrice(p)!;c.beginPath();c.moveTo(this.L,y);c.lineTo(this.width-this.R,y);c.stroke();const value=p*this.axisSupply;c.fillText(this.axisSupply===1?formatCoinPrice(value):`$${(value/1e6).toFixed(2)}M`,this.width-this.R+10,y+4);}
+    for(let i=0;i<5;i++){const p=r.lo+(r.hi-r.lo)*i/4,y=this.yForPrice(p)!;c.beginPath();c.moveTo(this.L,y);c.lineTo(this.width-this.R,y);c.stroke();const value=p*this.axisSupply;c.fillText(this.axisSupply===1?formatCoinPrice(value):formatCompactUsd(value,(r.hi-r.lo)/4*this.axisSupply),this.width-this.R+10,y+4);}
     const last=this.data.at(-1)!,lastY=this.yForPrice(last.c)!;
-    if(lastY>=this.T&&lastY<=B&&this.xForTime(last.ts)!<=this.width-this.R){c.strokeStyle='rgba(200,232,252,.5)';c.setLineDash([2,3]);c.beginPath();c.moveTo(this.L,lastY);c.lineTo(this.width-this.R,lastY);c.stroke();c.setLineDash([]);c.fillStyle='#c8e8fc';c.fillRect(this.width-this.R+2,lastY-9,this.R-4,18);c.fillStyle='#04111a';const value=last.c*this.axisSupply;c.fillText(this.axisSupply===1?formatCoinPrice(value):`$${(value/1e6).toFixed(2)}M`,this.width-this.R+8,lastY+4);c.fillStyle='#71879a';}
+    if(lastY>=this.T&&lastY<=B&&this.xForTime(last.ts)!<=this.width-this.R){c.strokeStyle='rgba(200,232,252,.5)';c.setLineDash([2,3]);c.beginPath();c.moveTo(this.L,lastY);c.lineTo(this.width-this.R,lastY);c.stroke();c.setLineDash([]);c.fillStyle='#c8e8fc';c.fillRect(this.width-this.R+2,lastY-9,this.R-4,18);c.fillStyle='#04111a';const value=last.c*this.axisSupply;c.fillText(this.axisSupply===1?formatCoinPrice(value):formatCompactUsd(value),this.width-this.R+8,lastY+4);c.fillStyle='#71879a';}
     const hovered=this.data[this.hoverIndex];if(hovered){const x=this.xForTime(hovered.ts)!;if(x>=this.L&&x<=this.width-this.R){c.strokeStyle='rgba(200,232,252,.3)';c.beginPath();c.moveTo(x,this.T);c.lineTo(x,B);c.stroke();}}
     for(const f of [.08,.36,.64,.92]){const i=Math.floor(this.view.s+f*(this.view.e-this.view.s));const bar=this.data[i];if(bar){c.textAlign='center';c.fillText(new Date(bar.ts*1000).toISOString().slice(11,16),this.xForTime(bar.ts)!,this.height-10);}}c.restore();
     this.el.dataset.scale=String(this.scale);this.el.dataset.slot=String(slot);

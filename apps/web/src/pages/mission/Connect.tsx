@@ -71,7 +71,7 @@ export function ConnectScreen({ packs, presets, flags, phase }: { packs: Pack[];
   const select = (platform: Platform) => { if (busy) return; generation.current++; key.current = ''; setVisibleKey(''); setKeyIssued(false); setAgent(null); setError(''); setWaiting(false); setConnected(false); setSessionConfirmed(false); setSelected(platform); };
   const ensureAgent = async () => {
     if (agent) return agent;
-    const a = await createAgent(agentName, selected === 'onchain' ? 'onchain' : 'robinhood_mcp', preset.toLowerCase());
+    const a = await createAgent(agentName, selected === 'onchain' ? 'onchain' : 'other', preset.toLowerCase());
     if (mounted.current) setAgent(a); return a;
   };
   const issue = async () => {

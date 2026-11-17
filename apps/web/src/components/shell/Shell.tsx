@@ -47,8 +47,11 @@ export function PlanChip({ compact = false }: { compact?: boolean }) {
   const trial = !!config?.flags.trial && left !== null;
   const tier = me?.entitlements.tier ?? 'listener';
   const label = config?.phase === 'launch_week' ? compact ? 'Free · launch week' : C.free : config?.phase === 'token_live' ? C.tokenLive : tier[0].toUpperCase() + tier.slice(1);
-  return <Link className={`trial${trial ? ' trial-active' : ''}`} to="/settings/plan">
+  const card = !compact && !trial;
+  return <Link className={`trial${trial ? ' trial-active' : ''}${card ? ' plan-card' : ''}`} to="/settings/plan">
+    {card && <span className="plan-kick"><i className="plan-dot" aria-hidden="true" />{C.plan}</span>}
     <span className="trial-top">{trial ? <>Trial <b className="num">{Math.floor(left! / 60)}:{String(left! % 60).padStart(2, '0')}</b></> : label}</span>
+    {card && <span className="plan-go" aria-hidden="true">→</span>}
     {trial && <span className="trial-bar"><i style={{ width: `${Math.min(100, left! / 1800 * 100)}%` }} /></span>}
   </Link>;
 }
@@ -69,9 +72,13 @@ function Navigation({ onDone }: { onDone?: () => void }) {
     {items.filter(([to]) => resolveRoute(to, flags)).map(([to, label, Icon]) => { return <Link data-tour={to === "/mission" ? "mission" : undefined} to={to} key={to} className="side-item" onClick={onDone} aria-current={isCurrent(to, path) ? 'page' : undefined}><Icon size={16} />{label}{to === '/mission/approvals' && approvals > 0 && <b className="side-badge" aria-label={`${approvals} waiting`}>{approvals}</b>}</Link>; })}
   </div>)}</nav>;
 }
+/** One to three rising bars: how much risk a mode accepts, relative to the others. Decorative; the label names the mode. */
+function RiskLevel({ level }: { level: number }) {
+  return <span className="risk-level" aria-hidden="true">{[1, 2, 3].map((n) => <i key={n} className={n <= level ? 'on' : undefined} />)}</span>;
+}
 export function Sidebar() {
   const risk = useUi((s) => s.riskMode), setUi = useUi((s) => s.set), path = usePath();
-  return <aside className="side"><ScanBox /><Navigation /><div className="side-foot"><PlanChip /><div data-tour="mode" className="side-risk"><span className="side-label">{C.risk}</span><Seg options={RISK_OPTIONS} value={risk} onChange={(value) => setUi({ riskMode: value as typeof risk })} label={C.risk} /></div><button className="btn" onClick={() => window.dispatchEvent(new Event('eko:open-alerts'))}>Alerts</button><WalletButton /><LegalLine pageHasAnalysis={path.startsWith('/coin/')} /></div></aside>;
+  return <aside className="side"><ScanBox /><Navigation /><div className="side-foot"><PlanChip /><div data-tour="mode" className="side-risk"><span className="side-label">{C.risk}</span><Seg options={RISK_OPTIONS.map((o, i) => ({ value: o.value, label: <><RiskLevel level={i + 1} />{o.label}</> }))} value={risk} onChange={(value) => setUi({ riskMode: value as typeof risk })} label={C.risk} /></div><button className="btn" onClick={() => window.dispatchEvent(new Event('eko:open-alerts'))}>Alerts</button><WalletButton /><LegalLine pageHasAnalysis={path.startsWith('/coin/')} /></div></aside>;
 }
 export function Header() {
   const path = usePath(), config = useShell((s) => s.config), state = useShell((s) => s.wsState), block = useShell((s) => s.headBlock), delay = useShell((s) => s.delayedSec), now = useNow();

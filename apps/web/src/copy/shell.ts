@@ -16,7 +16,7 @@ export const SHELL_COPY = {
   free: 'Free during launch week', tokenLive: 'Tiers start tomorrow', listener: 'Listener',
   preview: 'This screen is being built.', how: 'How it works', skeleton: 'The shell is ready. Data and actions arrive with this screen.',
   notFound: 'Page not found', back: 'Back to Radar', connect: 'Connect and verify your wallet to use this page.',
-  wallet: 'Connect wallet', risk: 'Risk mode', open: 'Open the full page', close: 'Close inspector',
+  wallet: 'Connect wallet', risk: 'Risk mode', plan: 'Plan', open: 'Open the full page', close: 'Close inspector',
   select: 'Inspector preview', inspector: 'Inspector', planDormant: 'Tiers and trials are planned. Free during launch week.',
   configError: 'Configuration unavailable. Optional routes are hidden.', retry: 'Retry',
   connectGate: 'Give your trading agent EKO’s checks before each order, through Claude Code or another MCP client. You supervise it in Mission Control.',

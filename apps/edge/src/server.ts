@@ -1,3 +1,4 @@
+import { storageOk } from './storage-guard.js';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import Fastify, { type FastifyInstance, type FastifyReply } from 'fastify';
@@ -14,12 +15,13 @@ import type { Historian } from './historian.js';
 import type { FunderTracer } from './funders.js';
 import { registerMemoryRoutes } from './memory-routes.js';
 import { registerAccountRoutes, type AccountStore } from './accounts.js';
-import { registerTradeRoutes, type Trading } from './trade.js';
+import { budgetedRpc, registerTradeRoutes, type Trading } from './trade.js';
 import { AgentStore, registerAgentRoutes } from './agents.js';
 import { registerMcp } from './mcp.js';
 import type { Approval } from '@eko/shared';
 import type { BuildInfo } from './build.js';
 import { RelayBusy, relayFromRpc, type RelayClient } from './relay.js';
+import { registerSecurityTxt } from './security-txt.js';
 
 const fail = (reply: FastifyReply, status: number, error: ErrorCode, message: string) => reply.code(status).send({ error, message });
 const LIMIT = 100;
@@ -41,7 +43,9 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
   app.get('/health', async () => {
     const t = edge.tracker;
     return { ok: t.cursor > 0n, build: opts.build ?? { commit: null, builtAt: null }, head: Number(t.head), cursor: Number(t.cursor), lagBlocks: Number(t.head - t.cursor), coins: t.coins.size,
-      assessed: edge.assessedCount, hypeUsd: edge.hype.latest, counters: edge.counters, memory: opts.store ? { historian: opts.historian?.status() ?? null, funderQueue: opts.funders?.pending ?? null } : null };
+      assessed: edge.assessedCount, hypeUsd: edge.hype.latest, counters: edge.counters,
+      // 'low' means the storage guard is refusing new user content (monitoring alerts on it; the free space itself is not shown).
+      storage: storageOk() ? 'ok' : 'low', memory: opts.store ? { historian: opts.historian?.status() ?? null, funderQueue: opts.funders?.pending ?? null } : null };
   });
 
   const coinOr404 = (address: string, reply: FastifyReply) => {
@@ -62,7 +66,8 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
   const agents = opts.accounts ? new AgentStore(opts.accounts.db) : undefined;
   let auth: ReturnType<typeof registerAccountRoutes> | undefined;
   if (opts.accounts && agents) {
-    auth = registerAccountRoutes(app, { store: opts.accounts, ...(opts.rpc ? { rpc: opts.rpc } : {}), onErase: (id) => agents.erase(id) });
+    // Sign-in's contract-wallet check gets its own small slice of the RPC, never the tracker's whole lane.
+    auth = registerAccountRoutes(app, { store: opts.accounts, ...(opts.rpc ? { rpc: budgetedRpc(opts.rpc, { perMin: 60, inFlight: 4 }) } : {}), onErase: (id) => { agents.erase(id); opts.trading?.erase(id); } });
     if (opts.trading) registerTradeRoutes(app, opts.trading, auth);
     registerAgentRoutes(app, agents, auth, { mcpUrl: (req) => `${req.protocol}://${req.headers['x-forwarded-host'] ?? req.headers.host}/mcp`, ...(opts.onApproval ? { onApproval: opts.onApproval } : {}) });
   } else app.get('/v1/me', async (_req, reply) => fail(reply, 401, 'wallet_auth_required', 'Accounts are not open on EKO for Elysium yet.'));
@@ -158,6 +163,7 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
   });
 
   app.get('/v2/ghost-reports', async () => ({ records: [] }));
+  registerSecurityTxt(app);
 
   // Post-launch features that are on (features/index.ts): their routes come before the catch-all below.
   for (const feature of opts.features ?? []) feature.register({ app, edge, ...(opts.store ? { store: opts.store } : {}), ...(opts.accounts ? { accounts: opts.accounts } : {}), ...(auth ? { auth } : {}) });

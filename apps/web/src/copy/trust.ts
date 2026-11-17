@@ -2,13 +2,13 @@
 // Only verified facts are stated as facts. Anything the owner has not published or confirmed is shown as
 // "Not published yet" or "Pending owner confirmation", never as a placeholder that looks real.
 
-/** Verified public links (checked 2026-10-05: public repository, private vulnerability reporting enabled). */
+/** Verified public links (checked 2026-11-16: public repository eko-labs/eko-terminal, private vulnerability reporting enabled). */
 export const PROJECT_LINKS = {
   site: 'https://ekoterminal.com',
-  repo: 'https://github.com/EkoTerminal/eko',
-  advisory: 'https://github.com/EkoTerminal/eko/security/advisories/new',
-  findings: 'https://github.com/EkoTerminal/eko/blob/main/contracts/review/findings.yaml',
-  securityPolicy: 'https://github.com/EkoTerminal/eko/blob/main/SECURITY.md',
+  repo: 'https://github.com/eko-labs/eko-terminal',
+  advisory: 'https://github.com/eko-labs/eko-terminal/security/advisories/new',
+  findings: 'https://github.com/eko-labs/eko-terminal/blob/main/contracts/review/findings.yaml',
+  securityPolicy: 'https://github.com/eko-labs/eko-terminal/blob/main/SECURITY.md',
   /** Role mailbox; forwarding confirmed by the owner on 2026-10-04. */
   mailbox: 'security@ekoterminal.com',
   /** Served by the API, not an SPA route. */
@@ -39,7 +39,7 @@ export const OFFICIAL_COPY = {
   verifiedTitle: 'Verified links',
   verified: [
     { label: 'Website', text: 'ekoterminal.com', href: PROJECT_LINKS.site, note: 'The terminal and these pages.' },
-    { label: 'Source code', text: 'github.com/EkoTerminal/eko', href: PROJECT_LINKS.repo, note: 'Public repository.' },
+    { label: 'Source code', text: 'github.com/eko-labs/eko-terminal', href: PROJECT_LINKS.repo, note: 'Public repository.' },
     { label: 'Security email', text: PROJECT_LINKS.mailbox, href: `mailto:${PROJECT_LINKS.mailbox}`, note: 'Role mailbox for private vulnerability reports.' },
     { label: 'Private report on GitHub', text: 'Report a vulnerability', href: PROJECT_LINKS.advisory, note: 'GitHub private vulnerability reporting for the public repository.' },
     { label: 'Security contact file', text: 'security.txt', href: PROJECT_LINKS.securityTxt, note: 'Machine-readable contact details.' },
@@ -63,25 +63,24 @@ export const TRANSPARENCY_COPY = {
     { label: 'Receipts registry', note: 'A contract on Elysium that records hashes of EKO’s published calls, so anyone can check them later. It holds no funds.' },
     { label: 'Registry owner', note: 'A cold wallet that can only change the registry’s settings, such as replacing the committer.' },
     { label: 'Registry committer', note: 'A hot wallet that posts new hashes to the registry. It holds gas only.' },
-    { label: 'Dev fee wallet', note: 'From token day, receives the creator fees and pays running costs.' },
+    { label: 'Dev fee wallet', note: 'Receives any creator fees and pays running costs.' },
   ],
   feesTitle: 'Fees',
   fees: [
-    'Terminal fee: 0% during launch week. Network, venue and token fees still apply.',
-    'From token day, any terminal fee will be published before it starts. Pons-curve trades carry no terminal fee at launch.',
+    'EKO charges no fee on trades right now. Network gas and Montra’s own fees still apply.',
+    'If EKO starts charging a fee, it will be announced before it starts and shown in every quote before you sign.',
   ],
   reviewTitle: 'Contract review',
   review: [
     'AI-assisted and automated review, not a professional audit.',
-    'Planned public code review: October 13, 2026, 13:00 UTC to October 16, 2026, 13:00 UTC. If a High or Medium issue is fixed during the window, the full 72 hours start again.',
-    'Findings as of October 5, 2026: three open (two Low, one Info), none High or Critical.',
+    'Every finding and its status is in the findings log.',
     'On-chain guardrails stay advisory until their configuration passes review.',
   ],
   findingsLink: 'Read the findings log',
-  tokenTitle: 'Token day',
+  tokenTitle: 'Token',
   token: [
     NO_TOKEN,
-    'A token is planned for October 20, 2026, and only if every public gate passes: zero honeypot fills, evaluation gates green and the receipts registry review done. If a gate fails, the token waits.',
+    'If a token is planned, it will be announced here first.',
   ],
   checkTitle: 'Check it yourself',
   check: [
@@ -95,7 +94,6 @@ export const SECURITY_COPY = {
   status: [
     'You can report a vulnerability now through either private channel below.',
     'There is no bug bounty, and EKO does not pay for reports.',
-    'The public code review is planned to start on October 13, 2026, at 13:00 UTC.',
   ],
   reportTitle: 'How to report privately',
   channels: [
@@ -111,13 +109,12 @@ export const SECURITY_COPY = {
   scopeTitle: 'In scope',
   scope: [
     'The receipts registry contract on Elysium (address not published yet).',
-    'The code in the public repository, github.com/EkoTerminal/eko, including the pre-trade guard (a bypass that lets a honeypot fill is Critical), the receipts verifier, wallet sign-in (SIWE), agent harness keys and the connector’s OAuth server.',
+    'The code in the public repository, github.com/eko-labs/eko-terminal, including the pre-trade guard (a bypass that lets a honeypot fill is Critical), the receipts verifier, wallet sign-in (SIWE), agent harness keys and the connector’s OAuth server.',
     'New contracts join the scope only when they are published.',
   ],
   outTitle: 'Out of scope',
   out: [
-    'Third-party contracts and services EKO builds on: Pons, Uniswap, multisig wallets and Zodiac modules.',
-    'Robinhood’s apps, brokerage and accounts.',
+    'Third-party contracts and services EKO builds on: Montra, Uniswap, multisig wallets and Zodiac modules.',
     'Social engineering, phishing and physical attacks.',
     'Denial of service, spam and load testing.',
   ],

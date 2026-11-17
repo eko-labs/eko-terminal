@@ -42,7 +42,8 @@
     "test:evals": "node --test evals/test/*.test.mjs",
     "packs:build": "node scripts/packs-build.mjs",
     "packs:check": "node scripts/packs-build.mjs --check",
-    "test:packs": "node --test scripts/test/packs.test.mjs && pnpm --filter @eko/server test test/packs-session.test.ts"
+    "test:packs": "node --test scripts/test/packs.test.mjs && pnpm --filter @eko/server test test/packs-session.test.ts",
+    "hooks:install": "sh scripts/hooks/install.sh"
   },
   "devDependencies": {
     "@fontsource/bricolage-grotesque": "^5.3.0",

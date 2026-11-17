@@ -1,0 +1,46 @@
+#!/bin/sh
+# EKO pre-push check: the fast part of CI, on your machine, before anything reaches GitHub or Railway.
+# Install once per clone with `sh scripts/hooks/install.sh` (or `pnpm hooks:install`).
+#
+# Always: workspace typecheck and the live service's tests (apps/edge). Plus the tests of every other workspace
+# package the pushed commits touch, and Foundry tests when contracts/ changed.
+# Skip in an emergency with EKO_SKIP_PUSH_CHECKS=1 (do not use --no-verify: it also skips any other pre-push hook).
+set -eu
+[ "${EKO_SKIP_PUSH_CHECKS:-}" = "1" ] && { echo "pre-push: EKO checks skipped (EKO_SKIP_PUSH_CHECKS=1)"; exit 0; }
+
+root=$(git rev-parse --show-toplevel)
+cd "$root"
+if command -v pnpm >/dev/null 2>&1; then PNPM="pnpm"; else PNPM="npx --yes pnpm@11.5.1"; fi
+
+# Files changed by the commits being pushed (stdin: <local ref> <local sha> <remote ref> <remote sha>).
+zero=0000000000000000000000000000000000000000
+changed=""
+while read -r _lref lsha _rref rsha; do
+  [ "$lsha" = "$zero" ] && continue
+  if [ "$rsha" = "$zero" ]; then base=$(git merge-base "$lsha" origin/main 2>/dev/null || git rev-list --max-parents=0 "$lsha" | tail -1)
+  else base=$rsha; fi
+  changed="$changed
+$(git diff --name-only "$base" "$lsha" 2>/dev/null || true)"
+done
+[ -z "$(printf '%s' "$changed" | tr -d '[:space:]')" ] && { echo "pre-push: nothing to check"; exit 0; }
+
+echo "pre-push: typecheck"
+$PNPM -s typecheck
+echo "pre-push: apps/edge tests"
+$PNPM -s --filter @eko/edge test
+
+# Every other workspace package with changes: run its own test script.
+for dir in $(printf '%s\n' "$changed" | sed -n 's#^\(apps/[^/]*\)/.*#\1#p; s#^\(packages/[^/]*\)/.*#\1#p' | sort -u); do
+  [ "$dir" = "apps/edge" ] && continue
+  [ -f "$dir/package.json" ] || continue
+  name=$(node -p "require('./$dir/package.json').name")
+  if node -e "process.exit(require('./$dir/package.json').scripts?.test ? 0 : 1)"; then
+    echo "pre-push: $name tests"
+    $PNPM -s --filter "$name" test
+  fi
+done
+if printf '%s\n' "$changed" | grep -q '^contracts/'; then
+  echo "pre-push: contracts (forge test)"
+  (cd contracts && forge test)
+fi
+echo "pre-push: all checks passed"

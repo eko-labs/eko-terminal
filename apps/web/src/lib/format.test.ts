@@ -1,5 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { formatAge, formatCoinPrice, formatFeedSize, formatUsd, formatUtcTime } from './format';
+import { formatAge, formatCoinPrice, formatCompactUsd, formatFeedSize, formatUsd, formatUtcTime } from './format';
+
+describe('compact USD (FDV axis and readout)', () => {
+  it('uses K, M and B with three significant digits instead of $0.00M for small values', () => {
+    expect([850, 2_314, 31_400, 412_000, 1_240_000, 3_100_000_000, 0, 7.5, -2_314].map(v => formatCompactUsd(v)))
+      .toEqual(['$850', '$2.31K', '$31.4K', '$412K', '$1.24M', '$3.10B', '$0.00', '$7.50', '-$2.31K']);
+    expect(formatCompactUsd(Number.NaN)).toBe('—');
+  });
+  it('gives neighbouring axis ticks distinct labels', () => {
+    // Five ticks across a narrow FDV range, as on a young coin's chart.
+    const lo = 2_900, hi = 3_300, step = (hi - lo) / 4;
+    const labels = Array.from({ length: 5 }, (_, i) => formatCompactUsd(lo + step * i, step));
+    expect(labels).toEqual(['$2.90K', '$3.00K', '$3.10K', '$3.20K', '$3.30K']);
+    const tight = Array.from({ length: 5 }, (_, i) => formatCompactUsd(1_240_000 + 500 * i, 500));
+    expect(new Set(tight).size).toBe(5);
+  });
+});
 
 describe('terminal age format', () => {
   it.each([

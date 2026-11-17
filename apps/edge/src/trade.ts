@@ -7,6 +7,8 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Assessment } from './assess.js';
 import type { CoinState, Rpc } from './tracker.js';
 import { swapAbi, TRANSFER_TOPIC } from './tracker.js';
+import { limiter } from './accounts.js';
+import { assertStorage } from './storage-guard.js';
 
 /**
  * Wallet trading on Elysium, no custody and no fee: EKO quotes a Montra coin on Uniswap v4, builds the Universal
@@ -42,6 +44,8 @@ export function buildSwap(key: V4PoolKey, side: 'buy' | 'sell', amountIn: bigint
 
 export interface TradeDeps {
   db: DatabaseSync; rpc: Rpc; registry: ElysiumRegistry;
+  /** Receipt checks run on their own reserved slice, so a flood of quotes cannot hold settlement back. Defaults to `rpc`. */
+  receiptRpc?: Rpc;
   coin: (address: string) => CoinState | undefined;
   /** A fresh check for the coin (pool key, verdict, probe); undefined when it cannot be checked now. */
   assess: (coin: CoinState) => Promise<Assessment | undefined>;
@@ -53,10 +57,42 @@ export interface TradeDeps {
 
 interface StoredQuote { quote: TradeQuote; key: V4PoolKey; amountIn: bigint; minOut: bigint; at: number }
 const QUOTE_TTL_MS = 30_000;
+/** Settled orders kept per account, and quotes per minute per address (each quote is two paid-lane RPC reads). */
+export const ORDERS_KEPT = 500, QUOTES_PER_MIN = 30;
+/** Orders per minute per account and per address (each new one is a paid-lane simulation), and orders in flight per account. */
+export const ORDERS_PER_MIN = 20, ORDERS_PER_MIN_PER_ADDRESS = 60, MAX_IN_FLIGHT = 10;
+/** Trading's whole share of the paid RPC lane: calls a minute and in flight, for every route and agent together. */
+export const TRADE_RPC_PER_MIN = 240, TRADE_RPC_IN_FLIGHT = 8;
+/** Quotes from signed-out clients, all together, a minute: they share a slice of trading's budget, never all of it. */
+export const ANON_QUOTES_PER_MIN = 40;
+
+/**
+ * Trading's own budget on the shared RPC: quotes, order simulations and receipt checks from every route (web, MCP)
+ * together make at most `perMin` calls a minute and `inFlight` at once, so no number of accounts or agents can starve the
+ * tracker and safety checks that share the lane. Past it, trading answers 429 "busy" instead of queueing.
+ */
+export const tradeRpc = (rpc: Rpc, limits: { perMin?: number; inFlight?: number } = {}): Rpc =>
+  budgetedRpc(rpc, { perMin: limits.perMin ?? TRADE_RPC_PER_MIN, inFlight: limits.inFlight ?? TRADE_RPC_IN_FLIGHT });
+/** A capped slice of a shared RPC: at most `perMin` calls a minute and `inFlight` at once; past it, a 429 "busy" error. */
+export function budgetedRpc(rpc: Rpc, limits: { perMin: number; inFlight: number }): Rpc {
+  const total = limiter(limits.perMin, 60_000), max = limits.inFlight;
+  let inFlight = 0;
+  return {
+    async request(input) {
+      if (inFlight >= max || !total('all')) throw Object.assign(new Error('Trading is busy right now. Try again in a moment.'), { code: 'rate_limited', status: 429 });
+      inFlight++;
+      try { return await rpc.request(input); } finally { inFlight--; }
+    },
+  };
+}
 const hex = (n: bigint) => `0x${n.toString(16)}`;
 
 export class Trading {
   private readonly quotes = new Map<string, StoredQuote>();
+  // Per wallet and per account (web or agent, `agent:<id>`): the same limits whichever route asks.
+  private readonly quoteLimit = limiter(QUOTES_PER_MIN, 60_000);
+  private readonly orderLimit = limiter(ORDERS_PER_MIN, 60_000);
+  private readonly anonQuotes = limiter(ANON_QUOTES_PER_MIN, 60_000);
   readonly router: Address; readonly permit2: Address;
   constructor(private readonly d: TradeDeps) {
     this.router = d.registry.address('uniswapV4.universalRouter212'); this.permit2 = d.registry.address('uniswapV4.permit2');
@@ -72,6 +108,8 @@ export class Trading {
   }
 
   async quote(input: TradeQuoteRequest, wallet: Address | null): Promise<TradeQuote> {
+    if (wallet && !this.quoteLimit(wallet.toLowerCase())) throw Object.assign(new Error('Too many quotes. Try again in a minute.'), { code: 'rate_limited', status: 429 });
+    if (!wallet && !this.anonQuotes('all')) throw Object.assign(new Error('Quotes are busy for signed-out visitors. Sign in to get one now.'), { code: 'rate_limited', status: 429 });
     const coin = this.d.coin(input.coin);
     if (!coin) throw Object.assign(new Error('EKO trades Montra coins it follows (launched in the last 24 hours).'), { code: 'not_found', status: 404 });
     const hypeUsd = this.d.hypeUsd();
@@ -155,8 +193,15 @@ export class Trading {
     const deadline = BigInt(Math.floor(this.now() / 1000) + 300);
     // The output goes to whoever signs (the Universal Router's MSG_SENDER), never to an address named in the request.
     const swap = buildSwap(q.key, q.quote.side, q.amountIn, q.minOut, MSG_SENDER, deadline);
-    // The exact call, from the wallet, now: it must not revert (the swap enforces the minimum out).
-    try { await this.call(this.router, swap.data, 'latest', wallet, swap.value); }
+    if (!prior) {
+      if (!this.orderLimit(accountId)) throw Object.assign(new Error('Too many orders. Try again in a minute.'), { code: 'rate_limited', status: 429 });
+      const open = (this.d.db.prepare(`SELECT count(*) AS n FROM orders WHERE account_id = ? AND status IN ('awaiting_signature','submitted')`).get(accountId) as { n: number }).n;
+      if (open >= MAX_IN_FLIGHT) throw Object.assign(new Error(`Up to ${MAX_IN_FLIGHT} orders can wait at once. Sign or cancel one first.`), { code: 'rate_limited', status: 429 });
+      assertStorage();
+    }
+    // The exact call, from the wallet, now: it must not revert (the swap enforces the minimum out). A repeated request for
+    // an order already made (same idempotency key) returns it without another simulation.
+    if (!prior) try { await this.call(this.router, swap.data, 'latest', wallet, swap.value); }
     catch (error) {
       const msg = String((error as Error).message);
       const code = /insufficient funds|balance/i.test(msg) ? 'insufficient_balance' : /allowance|permit|TRANSFER_FROM|AllowanceExpired|InsufficientAllowance/i.test(msg) ? 'approval_required' : 'simulation_failed';
@@ -166,6 +211,9 @@ export class Trading {
     const id = prior ? String(prior.id) : `ord_${randomBytes(10).toString('hex')}`;
     if (!prior) this.d.db.prepare(`INSERT INTO orders(id, account_id, wallet, quote_id, idem, coin, side, amount_in, min_out, status, created_at, updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`)
       .run(id, accountId, wallet.toLowerCase(), q.quote.id, body.idempotencyKey, q.quote.coin.toLowerCase(), q.quote.side, q.amountIn.toString(), q.minOut.toString(), 'awaiting_signature', t, t);
+    // Order history keeps each account's newest ORDERS_KEPT settled orders; nothing still in flight is deleted.
+    if (!prior) this.d.db.prepare(`DELETE FROM orders WHERE account_id = ? AND status NOT IN ('awaiting_signature','submitted') AND id NOT IN
+      (SELECT id FROM orders WHERE account_id = ? ORDER BY created_at DESC, rowid DESC LIMIT ?)`).run(accountId, accountId, ORDERS_KEPT);
     return { order: this.get(accountId, id)!, tx: { chainId: CHAIN_ID, to: this.router, data: swap.data, value: swap.value.toString() } };
   }
 
@@ -195,13 +243,19 @@ export class Trading {
   }
   private emit(accountId: string, id: string) { const o = this.get(accountId, id); if (o) this.d.onOrder?.(accountId, o); return o; }
 
+  /** Delete an account's orders (the account's "delete my data"). */
+  erase(accountId: string) { this.d.db.prepare('DELETE FROM orders WHERE account_id = ?').run(accountId); }
+
   /** Settle submitted orders from their receipts; orders never sent expire. Run every few seconds. */
   async reconcile() {
     const t = Math.floor(this.now() / 1000);
     this.d.db.prepare(`UPDATE orders SET status = 'expired', updated_at = ? WHERE status = 'awaiting_signature' AND created_at < ?`).run(t, t - 600);
     const open = this.d.db.prepare(`SELECT * FROM orders WHERE status = 'submitted' AND tx_hash IS NOT NULL ORDER BY updated_at LIMIT 20`).all() as Record<string, string | number | null>[];
     for (const r of open) {
-      const receipt = await this.d.rpc.request({ method: 'eth_getTransactionReceipt', params: [r.tx_hash] }).catch(() => null) as { status: Hex; logs: { address: string; topics: Hex[]; data: Hex }[] } | null;
+      // A receipt check that could not run (busy, RPC error) is skipped, never read as "not mined".
+      let unread = false;
+      const receipt = await (this.d.receiptRpc ?? this.d.rpc).request({ method: 'eth_getTransactionReceipt', params: [r.tx_hash] }).catch(() => { unread = true; return null; }) as SwapReceipt | null;
+      if (unread) continue;
       if (!receipt) { if (Number(r.updated_at) < t - 900) this.d.db.prepare(`UPDATE orders SET status = 'failed', error_code = 'not_mined', updated_at = ? WHERE id = ?`).run(t, r.id); continue; }
       let filledIn: string | null = null, filledOut: string | null = null;
       const wallet = String(r.wallet), coin = String(r.coin);
@@ -219,11 +273,34 @@ export class Trading {
         }
       }
       const ok = receipt.status === '0x1';
+      // The pool's Swap amount is before the launchpad's fee (Montra takes it from the HYPE side, both ways). Record what the
+      // wallet paid and got: a buy pays exactly the transaction's value; a sell's HYPE is the wallet's balance change.
+      if (ok && r.side === 'buy') filledIn = String(r.amount_in);
+      if (ok && r.side === 'sell' && filledOut) {
+        const got = await this.received(wallet as Address, receipt, BigInt(filledOut));
+        // Balances not readable (busy, RPC error): settle on a later pass; after a minute, record the pool's amount.
+        if (got === null && Number(r.updated_at) > t - 60) continue;
+        if (got !== null) filledOut = got.toString();
+      }
       this.d.db.prepare(`UPDATE orders SET status = ?, filled_in = ?, filled_out = ?, error_code = ?, updated_at = ? WHERE id = ?`).run(ok ? 'confirmed' : 'failed', filledIn, filledOut, ok ? null : 'reverted', t, r.id);
       this.emit(String(r.account_id), String(r.id));
     }
   }
+
+  /** HYPE a sell paid the wallet: its balance change over the block plus the gas it spent. The pool's amount when the change
+   *  makes no sense (other activity of the wallet in the same block); null when the balances could not be read. */
+  private async received(wallet: Address, receipt: SwapReceipt, poolAmount: bigint): Promise<bigint | null> {
+    try {
+      const rpc = this.d.receiptRpc ?? this.d.rpc, block = BigInt(receipt.blockNumber);
+      const bal = async (b: bigint) => BigInt(await rpc.request({ method: 'eth_getBalance', params: [wallet, hex(b)] }) as Hex);
+      const [before, after] = await Promise.all([bal(block - 1n), bal(block)]);
+      const got = after - before + BigInt(receipt.gasUsed) * BigInt(receipt.effectiveGasPrice ?? '0x0');
+      return got > 0n && got <= poolAmount ? got : poolAmount;
+    } catch { return null; }
+  }
 }
+
+interface SwapReceipt { status: Hex; blockNumber: Hex; gasUsed: Hex; effectiveGasPrice?: Hex; logs: { address: string; topics: Hex[]; data: Hex }[] }
 
 function toOrder(r: Record<string, string | number | null>): TradeOrder {
   return { id: String(r.id), quoteId: String(r.quote_id), status: r.status as TradeOrder['status'], coin: getAddress(String(r.coin)), side: r.side as 'buy' | 'sell', feeBps: 0,
@@ -237,15 +314,20 @@ export function registerTradeRoutes(app: FastifyInstance, trading: Trading, auth
     const e = error as { status?: number; code?: string; message?: string };
     return reply.code(e.status ?? 500).send({ error: e.code ?? 'internal_error', message: e.status ? e.message : 'Trading is unavailable right now.' });
   };
+  const quoteLimit = limiter(QUOTES_PER_MIN, 60_000);
   app.post('/v1/trade/quote', async (req, reply) => {
+    // Quotes are public, but each spends paid-lane RPC reads: limited per client address.
+    if (!quoteLimit(req.ip)) return reply.code(429).send({ error: 'rate_limited', message: 'Too many quotes. Try again in a minute.' });
     const parsed = TradeQuoteRequestSchema.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: 'bad_request', message: 'Malformed quote request.' });
     const a = auth.account(req);
     try { return await trading.quote(parsed.data, a?.wallet ?? null); } catch (error) { return send(reply, error); }
   });
+  const orderLimit = limiter(ORDERS_PER_MIN, 60_000), orderAddressLimit = limiter(ORDERS_PER_MIN_PER_ADDRESS, 60_000);
   app.post<{ Body: { quoteId?: unknown; idempotencyKey?: unknown; acknowledged?: unknown } }>('/v1/trade/order', async (req, reply) => {
     const a = auth.account(req);
     if (!a) return reply.code(401).send({ error: 'wallet_auth_required', message: 'Sign in with your wallet to trade.' });
+    if (!orderLimit(a.id) || !orderAddressLimit(req.ip)) return reply.code(429).send({ error: 'rate_limited', message: 'Too many orders. Try again in a minute.' });
     const b = req.body ?? {};
     if (typeof b.quoteId !== 'string' || typeof b.idempotencyKey !== 'string' || b.idempotencyKey.length > 80 || !Array.isArray(b.acknowledged) || !b.acknowledged.every(x => typeof x === 'string'))
       return reply.code(400).send({ error: 'bad_request', message: 'Malformed order.' });

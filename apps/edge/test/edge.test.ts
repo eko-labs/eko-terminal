@@ -213,6 +213,13 @@ describe('server', () => {
     expect(VerdictSchema.parse((await get(`/v1/coins/${token}/verdict`)).body).level).toBe('clear');
     expect((await get(`/v2/coins/${token}`)).body).toEqual({ version: 2, card: null });
     expect((await get(`/v1/coins/${token}/candles?tf=1m&from=0`)).body.bars.length).toBeGreaterThan(0);
+    // The RFC 9116 contact file: plain text, pointing at the public repository's private reporting.
+    const sec = await app.inject({ method: 'GET', url: '/.well-known/security.txt' });
+    expect(sec.statusCode).toBe(200);
+    expect(sec.headers['content-type']).toMatch(/^text\/plain/);
+    expect(sec.body).toContain('Contact: mailto:security@ekoterminal.com');
+    expect(sec.body).toContain('Contact: https://github.com/eko-labs/eko-terminal/security/advisories/new');
+    expect(sec.body).toMatch(/Expires: 2027-/);
     expect(ScoreboardResponseSchema.parse((await get('/v1/scoreboard')).body).counters.refused).toBe(0);
     expect((await get('/v1/coins/not-an-address')).status).toBe(400);
     expect((await get('/v1/coins/0x0000000000000000000000000000000000000001')).status).toBe(404);

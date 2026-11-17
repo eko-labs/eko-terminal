@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { createSiweMessage } from 'viem/siwe';
-import { getAddress, type Address } from 'viem';
+import { encodeAbiParameters, encodeEventTopics, getAddress, pad, toHex, type Address, type Hex } from 'viem';
 import { loadElysiumRegistry } from '@eko/chain';
 import { ELYSIUM_CHAIN_ID, MeSchema, PublicConfigSchema } from '@eko/shared';
 import swaps from './fixtures/ur-swaps.json' with { type: 'json' };
 import { buildSwap, Trading } from '../src/trade.js';
 import { AccountStore } from '../src/accounts.js';
 import { HistoryStore } from '../src/history.js';
-import { Tracker, type Rpc } from '../src/tracker.js';
+import { swapAbi, Tracker, TRANSFER_TOPIC, type Rpc } from '../src/tracker.js';
 import { Edge } from '../src/service.js';
 import { HypeUsd } from '../src/hype.js';
 import { buildServer } from '../src/server.js';
@@ -87,5 +87,46 @@ describe('wallet sign-in', () => {
     expect((await app.inject({ method: 'POST', url: '/v1/auth/logout', headers: { host, cookie } })).statusCode).toBe(200);
     expect((await app.inject({ url: '/v1/me', headers: authed })).statusCode).toBe(401);
     await app.close();
+  });
+});
+
+describe('order settlement records what the wallet paid and got (fork run: history showed the pool amount, before Montra\'s 1% fee)', () => {
+  const wallet = '0x00000000000000000000000000000000000a11ce', coin = '0xabababababababababababababababababababab';
+  const pm = registry.address('uniswapV4.poolManager');
+  const swapLog = (amount0: bigint, amount1: bigint) => ({ address: pm, topics: encodeEventTopics({ abi: swapAbi, eventName: 'Swap', args: { id: pad('0x01'), sender: registry.address('uniswapV4.universalRouter212') } }) as Hex[],
+    data: encodeAbiParameters([{ type: 'int128' }, { type: 'int128' }, { type: 'uint160' }, { type: 'uint128' }, { type: 'int24' }, { type: 'uint24' }], [amount0, amount1, 1n, 1n, 0, 0]) });
+  const transfer = (from: string, to: string, v: bigint) => ({ address: coin, topics: [TRANSFER_TOPIC, pad(from as Hex), pad(to as Hex)] as Hex[], data: pad(toHex(v)) });
+  const settle = async (side: 'buy' | 'sell', amountIn: bigint, logs: unknown[], balances?: Record<string, bigint> | 'unreadable', updatedAt = Math.floor(Date.now() / 1000)) => {
+    const store = new HistoryStore(':memory:');
+    const rpc: Rpc = { request: async ({ method, params }) => {
+      if (method === 'eth_getTransactionReceipt') return { status: '0x1', blockNumber: '0x64', gasUsed: '0x2710', effectiveGasPrice: '0x3', logs };
+      if (method === 'eth_getBalance' && balances && balances !== 'unreadable') return toHex(balances[(params as string[])[1]!]!);
+      throw new Error(`no ${method}`);
+    } };
+    const t = new Trading({ db: store.db, rpc, registry, coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 250 });
+    store.db.prepare(`INSERT INTO orders(id, account_id, wallet, quote_id, idem, coin, side, amount_in, min_out, status, tx_hash, created_at, updated_at)
+      VALUES('ord_1', 'acct_1', ?, 'q', 'i', ?, ?, ?, '1', 'submitted', ?, 0, ?)`).run(wallet, coin, side, amountIn.toString(), `0x${'1'.repeat(64)}`, updatedAt);
+    await t.reconcile();
+    return t.get('acct_1', 'ord_1')!;
+  };
+
+  it('a buy paid the whole transaction value, fee included, not just what reached the pool', async () => {
+    // Paid 1.0 HYPE; the pool took 0.99 after the 1% fee; the coins arrived at the wallet.
+    const o = await settle('buy', 10n ** 18n, [swapLog(-(99n * 10n ** 16n), 500n), transfer(pm, wallet, 500n)]);
+    expect(o).toMatchObject({ status: 'confirmed', filledIn: (10n ** 18n).toString(), filledOut: '500' });
+  });
+
+  it('a sell got the HYPE that reached the wallet (balance change plus gas), not the pool amount before the fee', async () => {
+    const gas = 0x2710n * 3n;
+    const o = await settle('sell', 500n, [transfer(wallet, pm, 500n), swapLog(10n ** 18n, -500n)], { '0x63': 5n * 10n ** 18n, '0x64': 5n * 10n ** 18n + 99n * 10n ** 16n - gas });
+    expect(o).toMatchObject({ status: 'confirmed', filledIn: '500', filledOut: (99n * 10n ** 16n).toString() });
+  });
+
+  it('retries unreadable balances on a later pass, then falls back to the pool amount; ignores changes that do not add up', async () => {
+    const sold = [transfer(wallet, pm, 500n), swapLog(10n ** 18n, -500n)];
+    expect(await settle('sell', 500n, sold, 'unreadable')).toMatchObject({ status: 'submitted' });
+    expect(await settle('sell', 500n, sold, 'unreadable', Math.floor(Date.now() / 1000) - 120)).toMatchObject({ status: 'confirmed', filledOut: (10n ** 18n).toString() });
+    // Other HYPE arrived in the same block: more than the pool paid out is not this sell's.
+    expect((await settle('sell', 500n, [transfer(wallet, pm, 500n), swapLog(10n ** 18n, -500n)], { '0x63': 0n, '0x64': 3n * 10n ** 18n })).filledOut).toBe((10n ** 18n).toString());
   });
 });

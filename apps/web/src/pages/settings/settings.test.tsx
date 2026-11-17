@@ -77,7 +77,8 @@ describe('task 119 settings (offline fixtures, no live account)', () => {
     expect((await resolveRoute('/settings')!.route.load()).default).toBe(Settings);
     expect((await resolveRoute('/settings/plan')!.route.load()).default).toBe(Plan);
     const html = render(<Settings />);
-    for (const copy of [C.title, C.display, C.about, C.connect, BUILT_ON, NON_AFFILIATION, ADVISORY, P.feeLaunch, P.feeCurve]) expect(html).toContain(copy);
+    for (const copy of [C.title, C.display, C.about, C.connect, BUILT_ON, NON_AFFILIATION, ADVISORY, P.feeLaunch]) expect(html).toContain(copy);
+    expect(html).not.toMatch(/Pons|token day/i);
     expect(html).not.toContain('aria-label="Trading preferences"');
     expect(html).not.toMatch(/Type DELETE|Web push|Redeem|Hold ≥|Trial ·/);
   });

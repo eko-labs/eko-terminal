@@ -9,7 +9,7 @@ export const SCAN_COPY = {
   refused: 'honeypots refused', missed: 'honeypots missed', since: 'Observed since', countersUnavailable: 'Observation counters are unavailable.',
   radar: 'Radar preview', radarEmpty: 'No indexed coins to preview yet.', radarError: 'Radar preview unavailable.',
   radarDelay: 'Data delay', openRadar: 'Open Radar', exit: 'Exit cost at $1K', flow: 'Buyer flow',
-  harness: 'Add EKO to your Robinhood-connected agent', harnessBody: 'Senses, Guardrails, Loop Lab, Flight Recorder and Mission Control. External-agent guardrails are advisory.',
+  harness: 'Add EKO to your AI agent', harnessBody: 'Senses, Guardrails, Loop Lab, Flight Recorder and Mission Control. External-agent guardrails are advisory.',
   connect: 'Connect an agent', drops: 'Weekly Drops', dropsBody: 'Explore planned features and their release gates.',
   result: 'Scan result', stale: 'Stale snapshot', refreshFailed: 'Refresh unavailable · prior snapshot retained',
   openCoin: 'Open coin', bags: 'Scan my bags', share: 'Share', copy: 'Copy link', copied: 'Link copied', copyFailed: 'Could not copy. Select the link below.',

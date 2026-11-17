@@ -3,7 +3,7 @@ import { WALLET_LABELS_LATER } from '../../copy/availability';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import type { Address, Bar, ChartMarker, WalletLabel } from '@eko/shared';
 import { Seg, WALLET_LABEL_WORD } from '../ui';
-import { formatCoinPrice } from '../../lib/format';
+import { formatCoinPrice, formatCompactUsd } from '../../lib/format';
 import { TimeframeControls } from './TimeframeControls';
 import { ChartCore } from './chartCore';
 import { COIN_TIMEFRAMES, type CoinTimeframe, type View } from './coinMath';
@@ -16,7 +16,7 @@ export function ChartStage(p:{market:string;timeframe:CoinTimeframe;onTimeframe:
  useLayoutEffect(()=>{const c=new ChartCore(plot.current!);setCore(c);if(import.meta.env.DEV)(plot.current as HTMLDivElement & { __ekoChartCore?:ChartCore }).__ekoChartCore=c;return()=>c.destroy();},[p.market]);
  useLayoutEffect(()=>{if(!core)return;const changed=lastTf.current!==p.timeframe;core.setData(p.bars,p.timeframe,!changed);if(changed&&p.bars.length)core.animate();if(p.bars.length)lastTf.current=p.timeframe;},[core,p.bars,p.timeframe]);
  useLayoutEffect(()=>{if(core){core.setMode(mode);core.axisSupply=axis==='Price'?1:p.supply;core.scheduleRedraw();}},[core,mode,axis,p.supply]);
- useLayoutEffect(()=>{if(!core)return;const sync=()=>{const b=core.data[core.hoverIndex]??core.data.at(-1);if(!b||!readout.current)return;const fmt=(v:number)=>axis==='Price'?formatCoinPrice(v):`$${(v*p.supply/1e6).toFixed(2)}M`;readout.current.textContent=`O ${fmt(b.o)} H ${fmt(b.h)} L ${fmt(b.l)} C ${fmt(b.c)}`;};sync();return core.onRedraw(sync);},[core,axis,p.supply]);
+ useLayoutEffect(()=>{if(!core)return;const sync=()=>{const b=core.data[core.hoverIndex]??core.data.at(-1);if(!b||!readout.current)return;const fmt=(v:number)=>axis==='Price'?formatCoinPrice(v):formatCompactUsd(v*p.supply);readout.current.textContent=`O ${fmt(b.o)} H ${fmt(b.h)} L ${fmt(b.l)} C ${fmt(b.c)}`;};sync();return core.onRedraw(sync);},[core,axis,p.supply]);
  useEffect(()=>{if(!core)return;const el=surface.current!,sc=scale.current!;
  const wheel=(e:WheelEvent)=>{e.preventDefault();const x=e.clientX-plot.current!.getBoundingClientRect().left;if(Math.abs(e.deltaX)>Math.abs(e.deltaY)&&!e.ctrlKey)core.pan(-e.deltaX);else core.zoom(Math.exp(e.deltaY*(e.ctrlKey?.01:.0018)),x);};
  const stretch=(e:WheelEvent)=>{e.preventDefault();core.stretch(e.deltaY);};el.addEventListener('wheel',wheel,{passive:false});sc.addEventListener('wheel',stretch,{passive:false});return()=>{el.removeEventListener('wheel',wheel);sc.removeEventListener('wheel',stretch);};},[core]);

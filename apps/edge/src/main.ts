@@ -12,10 +12,11 @@ import { Explorer } from './explorer.js';
 import { FunderTracer } from './funders.js';
 import { Historian } from './historian.js';
 import { AccountStore } from './accounts.js';
-import { Trading } from './trade.js';
+import { budgetedRpc, Trading, tradeRpc } from './trade.js';
 import { parseFlags } from './flags.js';
 import { loadFeatures } from './features/index.js';
 import { ColumnSnapshot } from './snapshot.js';
+import { freeSpaceCheck, setStorageGuard } from './storage-guard.js';
 import { dirname, join } from 'node:path';
 
 /**
@@ -40,6 +41,8 @@ import { dirname, join } from 'node:path';
  *   TRUST_PROXY_HOPS proxies in front of the edge whose X-Forwarded-For is trusted (default 1: Railway). Add one per extra proxy (e.g. Cloudflare).
  *   BUILD_COMMIT     the commit this runs, when neither build.json nor Railway's RAILWAY_GIT_COMMIT_SHA says
  *   RPC_RELAY_URL    RPC the browser wallet relay (/v1/rpc) uses (default: the public RPC; never the paid one)
+ *   STORE_MIN_FREE_MB  free space the database volume keeps: below it, new accounts, agents, keys, journal rows, approvals
+ *                    and orders are refused (507) until space returns; chain memory keeps writing (default 512)
  *   EKO_FLAGS        features turned on, e.g. "leaderboards,referrals" (flags.ts; docs/FLAGS.md). Unset: none.
  */
 const env = process.env;
@@ -55,6 +58,7 @@ const clients = createMeteredClients({ ...env, RPC_PUBLIC_HTTP_URL: env.RPC_PUBL
 // Plain JSON-RPC over the metered transport (budgets, timeouts and usage logs stay in force).
 const rpc: Rpc = { request: (input) => clients.public.request(input as Parameters<typeof clients.public.request>[0]) };
 const store = env.HISTORY_DB === 'off' ? null : new HistoryStore(env.HISTORY_DB ?? '.data/history.db');
+if (store) setStorageGuard(freeSpaceCheck(dirname(env.HISTORY_DB ?? '.data/history.db'), Number(env.STORE_MIN_FREE_MB ?? 512)));
 const tracker = new Tracker(rpc, registry, { backfillBlocks: Number(env.BACKFILL_BLOCKS ?? 32_400), chunk: Number(env.LOG_CHUNK ?? 2000),
   ...(store ? { onLaunch: (c) => { try { store.recordLaunch({ token: c.token, launchpad: c.launchpad, deployer: c.creator, poolId: c.poolId, createdBlock: c.block, createdTs: c.ts,
     tx: c.tx, name: c.name, symbol: c.symbol, supply: c.supply.toString() }); } catch (error) { log('launch_record_failed', { error: String((error as Error).message).slice(0, 160) }); } } } : {}) });
@@ -71,7 +75,7 @@ const edge = new Edge(tracker, rpc, registry, hype, { log, concurrency: Number(e
 const accounts = store && env.ACCOUNTS !== 'off' ? new AccountStore(store.db) : null;
 const maxTradeUsd = Number(env.MAX_TRADE_USD ?? 250);
 let pushTo: ((accountId: string, ch: string, kind: string, data: unknown) => void) | null = null;
-const trading = accounts && env.TRADING !== 'off' ? new Trading({ db: store!.db, rpc, registry, coin: (a) => tracker.coin(a), assess: (c) => edge.fresh(c), hypeUsd: () => hype.latest, maxTradeUsd,
+const trading = accounts && env.TRADING !== 'off' ? new Trading({ db: store!.db, rpc: tradeRpc(rpc), receiptRpc: budgetedRpc(rpc, { perMin: 60, inFlight: 4 }), registry, coin: (a) => tracker.coin(a), assess: (c) => edge.fresh(c), hypeUsd: () => hype.latest, maxTradeUsd,
   onOrder: (accountId, order) => pushTo?.(accountId, 'orders', 'order', { order }) }) : null;
 const flags = parseFlags(env.EKO_FLAGS);
 if (flags.unknown.length) log('flags_unknown', { names: flags.unknown });

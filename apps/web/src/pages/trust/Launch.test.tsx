@@ -43,14 +43,14 @@ describe('public trust pages', () => {
     expect(text(html)).toContain('treat it as unofficial');
   });
 
-  it('transparency explains wallet roles without addresses and keeps review, fees and token day staged', () => {
+  it('transparency explains wallet roles without addresses, the current fee and the token stance, with no past-dated plans', () => {
     const html = text(renderToStaticMarkup(<Transparency />));
     expect((html.match(new RegExp(NOT_PUBLISHED, 'g')) ?? []).length).toBe(4);
-    for (const line of ['AI-assisted and automated review, not a professional audit.', 'October 13, 2026, 13:00 UTC', 'October 16, 2026, 13:00 UTC',
-      'the full 72 hours start again', 'three open (two Low, one Info), none High or Critical', 'Terminal fee: 0% during launch week',
-      'any terminal fee will be published before it starts', 'no terminal fee at launch',
-      'It holds no funds.', 'only if every public gate passes', 'If a gate fails, the token waits.',
+    for (const line of ['AI-assisted and automated review, not a professional audit.', 'Every finding and its status is in the findings log.',
+      'EKO charges no fee on trades right now', 'announced before it starts and shown in every quote before you sign',
+      'It holds no funds.', 'If a token is planned, it will be announced here first.',
       'On-chain guardrails stay advisory']) expect(html).toContain(line);
+    expect(html).not.toMatch(/October \d+, 2026|token day|Pons/i);
     // Owner decision 2026-10-05: no burns, buybacks, milestone buys or bounty; fees name no destination.
     expect(html).not.toMatch(/burn|buyback|milestone|timelock|bounty|payout/i);
     expect(html).toContain('Read the findings log');
@@ -61,10 +61,11 @@ describe('public trust pages', () => {
     expect(html).toContain(`href="mailto:${PROJECT_LINKS.mailbox}"`);
     expect(html).toContain(`href="${PROJECT_LINKS.advisory}"`);
     expect(plain).toContain(`Good-faith research · ${PENDING_OWNER}`);
-    for (const line of ['Reporting is open', 'There is no bug bounty, and EKO does not pay for reports.', 'October 13, 2026, at 13:00 UTC',
-      'receipts registry contract on Elysium', 'github.com/EkoTerminal/eko',
+    for (const line of ['Reporting is open', 'There is no bug bounty, and EKO does not pay for reports.',
+      'receipts registry contract on Elysium', 'github.com/eko-labs/eko-terminal',
       'a bypass that lets a honeypot fill is Critical', 'Never post a vulnerability in a public issue', 'within 48 hours',
-      'Pons, Uniswap', 'Denial of service']) expect(plain).toContain(line);
+      'Montra, Uniswap', 'Denial of service']) expect(plain).toContain(line);
+    expect(plain).not.toMatch(/October \d+, 2026|Robinhood|Pons/);
     // Owner decision 2026-10-05: no rewards, payment, funding or payout terms.
     expect(plain.replace('There is no bug bounty', '')).not.toMatch(/bounty|reward|payout|paid|\$\d|USDC|creator fees|burn|<table/i);
     expect(html).not.toContain('<table');

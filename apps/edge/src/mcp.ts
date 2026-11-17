@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { getAddress, isAddress, type Address } from 'viem';
 import type { Assessment } from './assess.js';
-import { NOTES_PER_ACCOUNT_DAY, preflight, type AgentStore, type AgentRow } from './agents.js';
+import { AGENT_ROWS_PER_ACCOUNT_DAY, NOTES_PER_ACCOUNT_DAY, preflight, type AgentStore, type AgentRow } from './agents.js';
 import type { Edge } from './service.js';
 import type { Trading } from './trade.js';
 import type { HistoryStore } from './history.js';
@@ -82,6 +82,7 @@ export function mcpTools(d: McpDeps): Tool[] {
         notionalUsd: { type: 'number', exclusiveMinimum: 0, maximum: 1_000_000 } }, required: ['clientOrderRef', 'coin', 'side', 'notionalUsd'], additionalProperties: false },
       run: async (args, agent) => {
         if (!d.agents || !agent) throw new ToolError('preflight needs an agent key.');
+        if (d.agents.agentRowsToday(agent.accountId) >= AGENT_ROWS_PER_ACCOUNT_DAY) throw new ToolError(`Your owner's agents reached ${AGENT_ROWS_PER_ACCOUNT_DAY} journal rows in the last day; try again later.`);
         if (typeof args.clientOrderRef !== 'string' || !/^[A-Za-z0-9_.:-]{8,64}$/.test(args.clientOrderRef)) throw new ToolError('clientOrderRef must be 8-64 letters, digits or _.:-');
         if (typeof args.coin !== 'string' || !isAddress(args.coin, { strict: false }) || (args.side !== 'buy' && args.side !== 'sell') || !(Number(args.notionalUsd) > 0)) throw new ToolError('coin, side and notionalUsd are required.');
         return preflight({ agents: d.agents, coin: (x) => edge.tracker.coin(x), assess: (c) => edge.fresh(c) }, agent, args.clientOrderRef, { coin: getAddress(args.coin), side: args.side, notionalUsd: Number(args.notionalUsd) });
@@ -131,6 +132,7 @@ export function mcpTools(d: McpDeps): Tool[] {
         if (!d.agents || !agent) throw new ToolError('journal needs an agent key.');
         const kinds: readonly string[] = JOURNAL_KINDS;
         if (!kinds.includes(String(args.kind)) || typeof args.payload !== 'object' || args.payload === null || JSON.stringify(args.payload).length > 4000) throw new ToolError('kind and a payload object under 4 KB are required.');
+        if (d.agents.agentRowsToday(agent.accountId) >= AGENT_ROWS_PER_ACCOUNT_DAY) throw new ToolError(`Your owner's agents reached ${AGENT_ROWS_PER_ACCOUNT_DAY} journal rows in the last day; try again later.`);
         if (d.agents.agentNotesToday(agent.accountId) >= NOTES_PER_ACCOUNT_DAY) throw new ToolError(`Your owner's agents wrote ${NOTES_PER_ACCOUNT_DAY} notes in the last day; try again later.`);
         return d.agents.journal(agent.id, args.kind as never, args.payload as Record<string, unknown>);
       } },
@@ -140,7 +142,7 @@ export function mcpTools(d: McpDeps): Tool[] {
 
 export function registerMcp(app: FastifyInstance, d: McpDeps) {
   const tools = mcpTools(d), byName = new Map(tools.map(t => [t.name, t]));
-  const perClient = limiter(120, 60_000);
+  const perClient = limiter(120, 60_000), perAddress = limiter(600, 60_000);
   const rpc = (id: unknown, result: unknown) => ({ jsonrpc: '2.0', id, result });
   const err = (id: unknown, code: number, message: string) => ({ jsonrpc: '2.0', id: id ?? null, error: { code, message } });
 
@@ -152,7 +154,8 @@ export function registerMcp(app: FastifyInstance, d: McpDeps) {
     if (bearer && !agent) return reply.code(401).header('www-authenticate', 'Bearer').send(err(null, -32001, 'Unknown or revoked agent key.'));
     // Every message counts, including each entry of a batch.
     const key = agent?.id ?? req.ip, calls = Array.isArray(req.body) ? Math.max(1, Math.min(req.body.length, 21)) : 1;
-    for (let i = 0; i < calls; i++) if (!perClient(key)) return reply.code(429).send(err(null, -32002, 'Rate limited: 120 calls a minute.'));
+    // Per agent (or address without a key), and a ceiling per address across all agents.
+    for (let i = 0; i < calls; i++) if (!perClient(key) || (agent && !perAddress(req.ip))) return reply.code(429).send(err(null, -32002, 'Rate limited: 120 calls a minute.'));
     const handle = async (m: { jsonrpc?: string; id?: unknown; method?: string; params?: { name?: string; arguments?: Record<string, unknown>; protocolVersion?: string } }) => {
       if (!m || m.jsonrpc !== '2.0' || typeof m.method !== 'string') return err(m?.id, -32600, 'Invalid request.');
       const notification = m.id === undefined;
