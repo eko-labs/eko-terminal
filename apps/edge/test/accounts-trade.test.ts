@@ -29,7 +29,7 @@ describe('Universal Router swap', () => {
 
   it('guards: refuses buying a confirmed honeypot, warns on Danger, pending, the early-buy fee and large impact', () => {
     const store = new HistoryStore(':memory:');
-    const t = new Trading({ db: store.db, rpc: { request: async () => '0x' }, registry, coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 1000 });
+    const t = new Trading({ db: store.db, rpc: { request: async () => '0x' }, chain: registry, coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 1000 });
     const a = (level: string, playbooks: { id: string; level: string }[] = [], antiSnipe: Assessment['antiSnipe'] = null) => ({ verdict: { level, playbooks }, antiSnipe }) as unknown as Assessment;
     const codes = (checks: { code: string; status: string }[]) => checks.map(c => `${c.code}:${c.status}`);
     expect(codes(t.guard(a('danger', [{ id: 'honeypot', level: 'danger' }]), 0, true))).toEqual(['honeypot:refuse', 'verdict:warn']);
@@ -45,7 +45,7 @@ describe('wallet sign-in', () => {
     const rpc: Rpc = { request: async () => { throw new Error('no rpc'); } };
     const tracker = new Tracker(rpc, registry);
     const edge = new Edge(tracker, rpc, registry, new HypeUsd(async () => new Response('{}')));
-    const trading = new Trading({ db: store.db, rpc, registry, coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 500 });
+    const trading = new Trading({ db: store.db, rpc, chain: registry, coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 500 });
     const app = buildServer(edge, { store, accounts, trading, maxTradeUsd: 500 });
     const host = 'eko.test', headers = { host, 'content-type': 'application/json' };
     expect((await app.inject({ url: '/v1/me', headers: { host } })).statusCode).toBe(401);
@@ -103,12 +103,18 @@ describe('order settlement records what the wallet paid and got (fork run: histo
       if (method === 'eth_getBalance' && balances && balances !== 'unreadable') return toHex(balances[(params as string[])[1]!]!);
       throw new Error(`no ${method}`);
     } };
-    const t = new Trading({ db: store.db, rpc, registry, coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 250 });
+    const t = new Trading({ db: store.db, rpc, chain: registry, coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 250 });
     store.db.prepare(`INSERT INTO orders(id, account_id, wallet, quote_id, idem, coin, side, amount_in, min_out, status, tx_hash, created_at, updated_at)
       VALUES('ord_1', 'acct_1', ?, 'q', 'i', ?, ?, ?, '1', 'submitted', ?, 0, ?)`).run(wallet, coin, side, amountIn.toString(), `0x${'1'.repeat(64)}`, updatedAt);
     await t.reconcile();
     return t.get('acct_1', 'ord_1')!;
   };
+
+  it('built transactions are for Elysium (99901), the chain the wallet signs on', () => {
+    const t = new Trading({ db: new HistoryStore(':memory:').db, rpc: { request: async () => { throw new Error("none"); } }, chain: registry, coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 250 });
+    const txs = t.approvalTxs({ approvals: [{ kind: 'erc20', token: coin, spender: pm, amount: '1' }, { kind: 'permit2', token: coin, spender: pm, amount: '1', expiration: 1 }] } as never);
+    expect(txs.map(x => x.chainId)).toEqual([ELYSIUM_CHAIN_ID, ELYSIUM_CHAIN_ID]);
+  });
 
   it('a buy paid the whole transaction value, fee included, not just what reached the pool', async () => {
     // Paid 1.0 HYPE; the pool took 0.99 after the 1% fee; the coins arrived at the wallet.

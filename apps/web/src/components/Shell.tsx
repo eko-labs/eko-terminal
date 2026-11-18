@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { NETWORK_FOR_MODE, formatMs } from '@eko/shared';
+import { CHAIN_NETWORK, formatMs } from '@eko/shared';
 import { api } from '../lib/api';
 import { localStats } from '../lib/telemetry';
 import { useApp } from '../store/app';
 import { useOnboarding } from '../store/onboarding';
 import { useOutside } from './hooks';
 import { IconAlert, IconCheck, IconClose, IconInfo } from './icons';
+import { CHAIN_KEY } from '../lib/chain';
+import { CHAIN_COPY } from '../copy/chain';
 
 interface ServerMetric {
   metric: string;
@@ -37,13 +39,13 @@ function ConnectionStatus() {
   const tone = connected ? 'ok' : 'warn';
   const rtt = localStats('ws.rtt_ms');
   const aiOn = health?.providers.filter((p) => p.configured).length ?? 0;
-  const net = health?.networks.find((n) => n.id === NETWORK_FOR_MODE.live);
+  const net = health?.networks.find((n) => n.id === CHAIN_NETWORK[CHAIN_KEY]);
   const rows: [string, string][] = [
     ['Live stream', connected ? `Connected · ${rtt ? formatMs(rtt.p50) : '—'} round trip` : 'Reconnecting…'],
     ['Quotes (median)', formatMs(m['quote.latency_ms']?.p50)],
     ['Orders (median)', formatMs(m['order.submit_server_ms']?.p50)],
     ['AI providers', `${aiOn} connected`],
-    ['Elysium', net ? `${net.status}${net.blockNumber ? ` · block ${net.blockNumber.toLocaleString()}` : ''}` : '—'],
+    [CHAIN_COPY.network, net ? `${net.status}${net.blockNumber ? ` · block ${net.blockNumber.toLocaleString()}` : ''}` : '—'],
     ['Version', config?.version ?? '—'],
   ];
   return (

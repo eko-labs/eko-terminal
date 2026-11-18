@@ -1,5 +1,7 @@
 // Local draft scope from EKO Overview pp. 7–10, 17–19 and 23–24.
 // These are plans, not claims of released capabilities.
+import { pick } from "../chain";
+
 export const roadmapDrops = [
   {
     title: "Agent Flow Index", category: "INTELLIGENCE / DATA",
@@ -82,7 +84,10 @@ export const roadmapDrops = [
     summary: "Extend EKO’s reach to Base while keeping the evidence behind each reading visible.",
     intent: "A wider network, with the same demand for context.",
     scope: [
-      ["Additional chain", "HyperCore order books and perps follow once Elysium’s HyperCore link ships."],
+      ["Additional chain", pick({
+        elysium: "HyperCore order books and perps follow once Elysium’s HyperCore link ships.",
+        robinhood: "Base is the next planned network expansion after the initial Robinhood Chain focus.",
+      })],
       ["Coverage review", "The release demo will identify which readings and workflows are supported on the new network."],
       ["Clear boundaries", "Release notes will distinguish supported coverage from features that remain in development."],
     ],

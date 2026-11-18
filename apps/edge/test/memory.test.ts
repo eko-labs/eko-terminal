@@ -9,7 +9,7 @@ import { featuresAt, outcomeAt } from '../src/outcomes.js';
 import { Historian } from '../src/historian.js';
 import type { Explorer, ExplorerLog } from '../src/explorer.js';
 import { swapAbi, Tracker, TRANSFER_TOPIC, type CoinState, type Rpc } from '../src/tracker.js';
-import { excludedFor } from '../src/assess.js';
+import { excludedFor } from '../src/chains/elysium/assess.js';
 import { Edge } from '../src/service.js';
 import { HypeUsd } from '../src/hype.js';
 import { buildServer } from '../src/server.js';

@@ -13,7 +13,7 @@ import { useOnboarding } from '../../store/onboarding';
 import { useShell } from '../../store/shell';
 import { track } from '../../lib/telemetry';
 import { TRADE_COPY as C } from '../../copy/trade';
-import { CHAIN_ID } from '@eko/shared';
+import { BUILD_CHAIN_ID } from '../../lib/chain';
 
 function current() {
   const connection = getConnection(wagmiConfig), shell = useShell.getState();
@@ -27,11 +27,11 @@ export function WalletTradeProvider({ children }: { children: ReactNode }) {
   const flow = useMemo(() => new GuardedTradeFlow({
     current, client: guardedTradeClient, storage: localStorage, now: serverNow,
     approve: (step, account, check) => step.kind === 'permit2'
-      ? approveExactPermit2(step, current().config?.trading.permit2 ?? '', CHAIN_ID, account, check)
-      : approveExactToken(step, CHAIN_ID, account, check),
+      ? approveExactPermit2(step, current().config?.trading.permit2 ?? '', BUILD_CHAIN_ID, account, check)
+      : approveExactToken(step, BUILD_CHAIN_ID, account, check),
     send: async (tx, account, check) => {
       check();
-      return sendTransaction(wagmiConfig, { account: account as Address, to: tx.to as Address, data: tx.data as Hex, value: BigInt(tx.value), chainId: walletChainId(CHAIN_ID) });
+      return sendTransaction(wagmiConfig, { account: account as Address, to: tx.to as Address, data: tx.data as Hex, value: BigInt(tx.value), chainId: walletChainId(tx.chainId) });
     },
     onPhase: (_phase, message) => { if (identity === liveIdentity()) setFeedback({ identity, message }); },
     onOrder: order => { if (identity === liveIdentity()) { setFeedback({ identity, order, message: C.statuses[order.status] }); if (order.status === 'confirmed' && useOnboarding.getState().owner === me?.account.id) useOnboarding.getState().markStep('guarded_trade'); } },
@@ -46,11 +46,11 @@ export function WalletTradeProvider({ children }: { children: ReactNode }) {
     const recover = () => flow.recover().catch(error => {
       if (active && error instanceof TradeFlowError && identity === liveIdentity()) setFeedback({ identity, message: error.message });
     });
-    if (connection.chainId === CHAIN_ID && me?.account.wallet?.toLowerCase() === connection.address?.toLowerCase()) void recover();
+    if (connection.chainId === BUILD_CHAIN_ID && me?.account.wallet?.toLowerCase() === connection.address?.toLowerCase()) void recover();
     return () => { active = false; flow.clear(); };
   }, [flow, wsState]);
   useEffect(() => {
-    if (!realtime || !me?.account.wallet || connection.chainId !== CHAIN_ID || me.account.wallet.toLowerCase() !== connection.address?.toLowerCase()) return;
+    if (!realtime || !me?.account.wallet || connection.chainId !== BUILD_CHAIN_ID || me.account.wallet.toLowerCase() !== connection.address?.toLowerCase()) return;
     const receive = (order: TradeOrder) => {
       if (identity !== liveIdentity()) return;
       try { flow.reconcile(order); }

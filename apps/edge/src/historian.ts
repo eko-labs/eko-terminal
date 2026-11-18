@@ -1,17 +1,20 @@
 import type { Address, Hex } from 'viem';
 import type { ElysiumRegistry } from '@eko/chain';
-import { judge, excludedFor, type Probed } from './assess.js';
+import { judge, type Probed } from './assess.js';
+import { chainOf } from './chains/elysium/index.js';
+import type { ChainAdapter } from './chains/types.js';
 import type { Explorer, ExplorerLog } from './explorer.js';
 import type { FunderTracer } from './funders.js';
 import type { HistoryStore } from './history.js';
 import { FEATURE_POINTS, featuresAt, HORIZON_SEC, outcomeAt } from './outcomes.js';
-import { LAUNCH_TOPIC, SWAP_TOPIC, TRANSFER_TOPIC, Tracker, type CoinState, type RawLog, type Rpc } from './tracker.js';
+import { Tracker, type CoinState, type RawLog, type Rpc } from './tracker.js';
 
 /**
  * The background historian. Three jobs, each resumable from a cursor in the history store, all on the free explorer
- * (never the RPC the live tracker depends on):
- * 1. launches: every Montra launch since the factory's first, recorded with its deployer and pool;
- * 2. swaps: a running count of swaps per Montra pool (one pass over Uniswap's PoolManager Swap logs, then kept current),
+ * (never the RPC the live tracker depends on); where the chain announces launches and swaps is its adapter's
+ * (ChainAdapter.historian; Montra's factory and Uniswap's PoolManager on Elysium):
+ * 1. launches: every launch since the launchpad's first, recorded with its deployer and pool;
+ * 2. swaps: a running count of swaps per pool (one pass over the PoolManager's Swap logs, then kept current),
  *    which says which launches had real trading;
  * 3. replay: each launch with at least `minSwaps` swaps, a day old, without a 24 h outcome and not in the live tracker's
  *    memory is rebuilt from its own logs (its pool's swaps and its token's transfers for the first day), then gets its
@@ -21,7 +24,7 @@ import { LAUNCH_TOPIC, SWAP_TOPIC, TRANSFER_TOPIC, Tracker, type CoinState, type
  */
 export interface HistorianOptions {
   minSwaps?: number;
-  /** First block to scan (the Montra factory's deployment). */
+  /** First block to scan (default: the chain profile's, the launchpad's deployment). */
   fromBlock?: number;
   blockTimeSec?: number;
   replayBatch?: number;
@@ -38,9 +41,11 @@ export class Historian {
   private stopped = false;
   private readonly o: Required<Omit<HistorianOptions, 'log'>> & Pick<HistorianOptions, 'log'>;
 
-  constructor(private readonly explorer: Explorer, private readonly store: HistoryStore, private readonly registry: ElysiumRegistry,
+  private readonly chain: ChainAdapter;
+  constructor(private readonly explorer: Explorer, private readonly store: HistoryStore, chain: ChainAdapter | ElysiumRegistry,
     private readonly live: { tracker: Tracker; funders?: FunderTracer }, options: HistorianOptions = {}) {
-    this.o = { minSwaps: options.minSwaps ?? 10, fromBlock: options.fromBlock ?? 580_000, blockTimeSec: options.blockTimeSec ?? 0.098, replayBatch: options.replayBatch ?? 25,
+    this.chain = chainOf(chain);
+    this.o = { minSwaps: options.minSwaps ?? 10, fromBlock: options.fromBlock ?? this.chain.profile.historianFromBlock, blockTimeSec: options.blockTimeSec ?? this.chain.profile.blockTimeSec, replayBatch: options.replayBatch ?? 25,
       now: options.now ?? (() => Date.now()), log: options.log };
   }
 
@@ -77,8 +82,8 @@ export class Historian {
     const from = Number(this.store.meta(LAUNCH_CURSOR) ?? this.o.fromBlock);
     if (from >= head) return;
     // A scratch tracker decodes the launch logs (it is never polled).
-    const scratch = new Tracker(nullRpc, this.registry, { onLaunch: (c) => this.recordLaunch(c) });
-    await this.explorer.logs({ address: this.registry.address('montra.factory'), topic0: LAUNCH_TOPIC }, from, head, (page, through) => {
+    const scratch = new Tracker(nullRpc, this.chain, { onLaunch: (c) => this.recordLaunch(c) });
+    await this.explorer.logs(this.chain.historian.launches, from, head, (page, through) => {
       this.store.tx(() => { scratch.applyAll(page as RawLog[], this.tsOf); this.store.setMeta(LAUNCH_CURSOR, through); });
       scratch.coins.clear();
     });
@@ -94,7 +99,7 @@ export class Historian {
     const from = Number(this.store.meta(SWAP_CURSOR) ?? this.o.fromBlock);
     if (from >= head) return from;
     const pools = new Map(this.store.query<{ pool_id: string; token: string }>('SELECT pool_id, token FROM launches WHERE pool_id IS NOT NULL').map(r => [r.pool_id, r.token]));
-    await this.explorer.logs({ address: this.registry.address('uniswapV4.poolManager'), topic0: SWAP_TOPIC }, from, head, (page, through) => {
+    await this.explorer.logs(this.chain.historian.swaps, from, head, (page, through) => {
       const counts = new Map<string, number>();
       for (const l of page) { const token = pools.get(String(l.topics[1]).toLowerCase()); if (token) counts.set(token, (counts.get(token) ?? 0) + 1); }
       this.store.tx(() => {
@@ -134,16 +139,11 @@ export class Historian {
 
   /** Rebuild one launch's first day from the explorer and record what it measures. */
   async replayOne(token: Address, poolId: Hex, createdBlock: number): Promise<CoinState | null> {
-    // Blocks are about 98 ms but vary: read 20% past the day so the 24 h horizon is always covered (coinAt trims by time).
+    // Block times vary: read 20% past the day so the 24 h horizon is always covered (coinAt trims by time).
     const end = createdBlock + Math.ceil((HORIZON_SEC['24h'] * 1.2) / this.o.blockTimeSec);
-    const launch = (await this.explorer.logs({ address: this.registry.address('montra.factory'), topic0: LAUNCH_TOPIC }, createdBlock, createdBlock))
-      .filter(l => l.data.length > 2);
-    const [swaps, transfers] = [
-      await this.explorer.logs({ address: this.registry.address('uniswapV4.poolManager'), topic0: SWAP_TOPIC, topic1: poolId }, createdBlock, end),
-      await this.explorer.logs({ address: token, topic0: TRANSFER_TOPIC as Hex }, createdBlock, end),
-    ];
-    const scratch = new Tracker(nullRpc, this.registry);
-    scratch.applyAll([...launch, ...swaps, ...transfers] as RawLog[], this.tsOf);
+    const logs = await this.chain.historian.replayLogs(this.explorer, { token, poolId, createdBlock }, end);
+    const scratch = new Tracker(nullRpc, this.chain);
+    scratch.applyAll(logs, this.tsOf);
     const coin = scratch.coin(token);
     if (!coin) throw new Error('launch log not found');
     this.measure(coin, 'replay');
@@ -155,7 +155,7 @@ export class Historian {
    * service, which calls it as each point in time passes.
    */
   measure(coin: CoinState, source: 'live' | 'replay', tips: Record<string, number> = {}, nowSec = Math.floor(this.o.now() / 1000)) {
-    const excluded = excludedFor(this.registry, coin), age = nowSec - coin.ts;
+    const excluded = this.chain.excluded(coin), age = nowSec - coin.ts;
     const stored = this.store.launch(coin.token);
     const honeypot = !!stored?.matches.some(m => m.id === 'honeypot' && m.level === 'danger');
     this.store.tx(() => {
@@ -170,7 +170,7 @@ export class Historian {
         const atHour: Probed = { block: coin.block, at: new Date((coin.ts + 3600) * 1000).toISOString(), name: coin.name ?? '', symbol: coin.symbol ?? '', key: null, config: null,
           currentBuyFeePips: null, probe: null, probeUsd: 0, tips };
         const hour = { ...coin, trades: coin.trades.filter(t => t.ts <= coin.ts + 3600), flows: coin.flows.filter(f => f.ts <= coin.ts + 3600) };
-        const a = judge(hour, atHour, { registry: this.registry, hypeUsd: null, nowSec: coin.ts + 3600, head: coin.block,
+        const a = judge(hour, atHour, { chain: this.chain, hypeUsd: null, nowSec: coin.ts + 3600, head: coin.block,
           history: this.store.historyFor(coin.creator, coin.ts), funders: (w) => this.store.attributedFunder(w) });
         this.store.recordVerdict(coin.token, a.verdict.level, a.matches.map(m => ({ id: m.id, level: m.level })), coin.ts + 3600, 'replay');
       }

@@ -2,6 +2,9 @@ import { zeroAddress } from 'viem';
 import type { CoinState } from './tracker.js';
 
 /**
+ * Graduation progress. A bonding-curve coin (CoinState.curve) is measured on its curve; on Robinhood Chain it then
+ * migrates to its v4 pool. The rest of this is Elysium's line (chains/elysium/tracker.ts says when a coin crosses it).
+ *
  * Graduation on Elysium. Nothing migrates here: Montra marks a line in the token's own pool (its default configuration
  * puts it 28,200 ticks above the opening price, 16.8×) so that a terminal's New / About to graduate / Graduated
  * columns work as they do on a bonding-curve chain (montramarkets.xyz/docs/build, "No bonding curve, no migration").
@@ -35,6 +38,8 @@ const progressOf = (multiple: number) => {
  */
 export function graduationBps(c: CoinState, openMcapHype = DEFAULT_OPEN_MCAP_HYPE): number | null {
   if (c.graduated) return 10_000;
+  // A bonding curve (Pons on Robinhood Chain) graduates when its real quote reserve reaches the threshold.
+  if (c.curve) return c.curve.graduationThreshold > 0n ? Math.min(10_000, Number((c.curve.realQuoteReserve * 10_000n) / c.curve.graduationThreshold)) : null;
   const price = c.trades.at(-1)?.priceHype ?? 0;
   if (c.launchpad === 'montra') {
     if (c.quote !== zeroAddress || !c.openPrice) return null;

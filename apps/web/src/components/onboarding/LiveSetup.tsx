@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useConnect, useConnection, useConnectors } from 'wagmi';
-import { GAS_RESERVE_ETH, NETWORKS, formatQty, shortAddress } from '@eko/shared';
+import { GAS_RESERVE_ETH, formatQty, shortAddress } from '@eko/shared';
 import { api } from '../../lib/api';
 import { ensureChain, isUserRejection, siweSignIn } from '../../lib/trade';
+import { BUILD_NETWORK } from '../../lib/deployment';
 import { useApp } from '../../store/app';
 import { useOnboarding } from '../../store/onboarding';
 import { IconAlert, IconChart, IconCheck, IconClose, IconInfo, IconLock, IconWallet } from '../icons';
@@ -11,7 +12,7 @@ import { StatusDot } from './art';
 import { Term } from './Term';
 import { useDialog } from './useDialog';
 
-const NET = NETWORKS['elysium-mainnet'];
+const NET = BUILD_NETWORK;
 type Req = 'ok' | 'todo' | 'fail' | 'wait' | 'na';
 
 function Changes({ routes }: { routes: string[] }) {

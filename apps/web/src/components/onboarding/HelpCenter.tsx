@@ -12,6 +12,7 @@ import { searchTerms } from './glossary';
 import { TOUR_STEPS } from './steps';
 import { Term } from './Term';
 import { prefersReducedMotion, useDialog } from './useDialog';
+import { CHAIN_COPY } from '../../copy/chain';
 
 const SECTIONS = [
   { id: 'start', label: 'Getting started' },
@@ -177,7 +178,7 @@ export default function HelpCenter() {
                     <tr>
                       <th scope="row">Where</th>
                       <td>Simulated on live prices</td>
-                      <td>Elysium mainnet (99901), Uniswap v4 (trading opens later)</td>
+                      <td>{CHAIN_COPY.helpWhere}</td>
                     </tr>
                     <tr>
                       <th scope="row">Markets</th>
@@ -250,7 +251,7 @@ export default function HelpCenter() {
                     large-trade limit (Settings) ask for one more tap.
                   </li>
                   <li>A live order isn’t a trade until it’s confirmed on-chain. Transactions can fail, or fill anywhere within your slippage limit.</li>
-                  <li>EKO is an independent app on Elysium — not a Kinetiq or Hyperliquid product.</li>
+                  <li>{CHAIN_COPY.helpIndependent}</li>
                 </ul>
               </section>
 

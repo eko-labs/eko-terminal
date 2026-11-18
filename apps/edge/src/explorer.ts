@@ -9,12 +9,13 @@ import type { Hex } from 'viem';
 export interface ExplorerLog { address: string; topics: Hex[]; data: Hex; blockNumber: Hex; transactionHash: Hex; logIndex: Hex; blockTimestamp?: Hex }
 export interface ExplorerTx { hash: Hex; from: string; to: string; value: string; timeStamp: string; blockNumber: string; isError?: string }
 
-export interface ExplorerOptions { base?: string; ratePerSec?: number; fetch?: typeof fetch; retries?: number }
+export interface ExplorerOptions { base?: string | null; ratePerSec?: number; fetch?: typeof fetch; retries?: number }
 
 const PAGE = 1000;
 
 export class Explorer {
-  private readonly base: string;
+  /** Null: the chain has no explorer API EKO can script (every call fails at once). */
+  private readonly base: string | null;
   private readonly gapMs: number;
   private readonly fetcher: typeof fetch;
   private readonly retries: number;
@@ -22,7 +23,7 @@ export class Explorer {
   calls = 0;
 
   constructor(options: ExplorerOptions = {}) {
-    this.base = options.base ?? 'https://elysium.kinetiq.xyz/explorer/api';
+    this.base = options.base === undefined ? 'https://elysium.kinetiq.xyz/explorer/api' : options.base;
     this.gapMs = 1000 / (options.ratePerSec ?? 3);
     this.fetcher = options.fetch ?? fetch;
     this.retries = options.retries ?? 4;
@@ -35,6 +36,7 @@ export class Explorer {
   }
 
   private async get<T>(params: Record<string, string | number>): Promise<T[]> {
+    if (!this.base) throw new Error('No explorer API on this chain');
     const url = new URL(this.base);
     for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
     let delay = 1000;

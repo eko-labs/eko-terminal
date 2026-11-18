@@ -18,6 +18,7 @@ import { feedDescriptionParts, feedGroup, feedRing, FEED_GROUPS, FEED_RING, Feed
 import { useTerminalWindow } from './terminalWindow';
 import './radar.css';
 import './secondary.css';
+import { CHAIN_COPY } from '../../copy/chain';
 
 const KINDS = {
   trade: { label: 'Trades', one: 'Trade', Icon: IconWallet }, scan: { label: 'Fast Scans', one: 'Fast Scan', Icon: IconShield },
@@ -126,7 +127,7 @@ export default function Feed() {
   const flush = () => { setBuffer(flushFeed); list.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
   const stale = ws !== 'open' || Date.now() - seen > 90000;
   // TODO(spec): CA-2 has no daily Ghost Report count. Show the count in the available ring instead of inventing a daily total.
-  return <div className="page sec-page feed-page"><div className="page-head"><div><h1>Feed</h1><p>Trades, Fast Scans, playbook alerts and Ghost Reports across Elysium, as they happen.</p></div><div className="stats-inline"><span><b className="num">{lastMinute}</b> {lastMinute === 1 ? 'event' : 'events'} in the last minute</span><span><b className="num">{count('ghost',counts.ghost)}</b> Ghost Reports in the Feed</span></div></div>
+  return <div className="page sec-page feed-page"><div className="page-head"><div><h1>Feed</h1><p>{CHAIN_COPY.feedIntro}</p></div><div className="stats-inline"><span><b className="num">{lastMinute}</b> {lastMinute === 1 ? 'event' : 'events'} in the last minute</span><span><b className="num">{count('ghost',counts.ghost)}</b> Ghost Reports in the Feed</span></div></div>
     {!MOCKS && <p className="availability-legend">{FEED_GAPS_LEGEND}</p>}<div className="toolbar feed-toolbar"><div className="feed-filters"><span className="muted">Show</span>{FEED_GROUPS.map((k) => <label key={k} className="check feed-kind"><input type="checkbox" checked={kinds.includes(k)} onChange={(e) => setKinds((old) => e.target.checked ? [...old, k] : old.filter((v) => v !== k))} /><i aria-hidden="true" />{KINDS[k].label}<span className="num muted">{count(k,counts[k])}</span>{k === 'swarm' && <span className="tag beta">Beta</span>}</label>)}<span className="feed-rule" aria-hidden="true" /><label className="check feed-kind"><input type="checkbox" checked={watchOnly} onChange={(e) => setWatchOnly(e.target.checked)} /><i aria-hidden="true" />Watched coins only</label></div><span className="toolbar-live" role="status"><span className={`sb-dot${paused || stale ? ' stale' : ''}`} /><span className="live-slot"><span>{paused ? <>Paused<span className="sr"> while you read</span></> : delayed ? `Delayed ~${delayed} s` : stale ? ws === 'reconnecting' ? 'Reconnecting' : 'Stale' : 'Live'}</span></span></span></div>
     {error && <div className="radar-error" role="alert">{error} <button className="btn" onClick={() => void snapshot().catch(() => {})}>Retry</button></div>}{watchError && <p role="status">Could not load watched coins. <button className="btn" onClick={() => setWatchOnly(false)}>Show all coins</button></p>}
     {kinds.includes('ghost') && <GhostReports coins={watchOnly ? watched : undefined} />}

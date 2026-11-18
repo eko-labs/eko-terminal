@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { CHAIN_NETWORK, NETWORKS } from '@eko/shared';
+import { BUILD_CHAIN_ID, CHAIN_KEY } from './chain';
 
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.resetModules(); });
 
@@ -18,7 +20,7 @@ describe('keyless wallet and receipt reads (mock fetch only)', () => {
     }));
     const { wagmiConfig, receiptReadClient, READ_RPC_URL } = await import('./wallet');
     expect(READ_RPC_URL).toBe('https://api.eko.example/v1/rpc');
-    expect(await wagmiConfig.getClient({ chainId: 99901 }).request({ method: 'eth_chainId' })).toBe('0x1237');
+    expect(await wagmiConfig.getClient({ chainId: BUILD_CHAIN_ID }).request({ method: 'eth_chainId' })).toBe('0x1237');
     expect(await receiptReadClient.readContract({ address: `0x${'11'.repeat(20)}`, functionName: 'lastBatchId',
       blockNumber: 100n,
       abi: [{ type: 'function', name: 'lastBatchId', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint64' }] }],
@@ -26,7 +28,8 @@ describe('keyless wallet and receipt reads (mock fetch only)', () => {
     expect(await receiptReadClient.request({ method: 'eth_getTransactionReceipt', params: [`0x${'22'.repeat(32)}`] })).toBeNull();
     expect(calls.map(call => call.body.method)).toEqual(['eth_chainId', 'eth_call', 'eth_getTransactionReceipt']);
     expect((calls[1]!.body.params as unknown[])[1]).toBe('0x64');
-    expect(calls.map(call => call.url)).toEqual([READ_RPC_URL, 'https://rpc.elysium.kinetiq.xyz/', 'https://rpc.elysium.kinetiq.xyz/']);
+    const publicRpc = `${NETWORKS[CHAIN_NETWORK[CHAIN_KEY]].publicRpcUrl}/`;
+    expect(calls.map(call => call.url)).toEqual([READ_RPC_URL, publicRpc, publicRpc]);
     for (const call of calls) {
       expect(call.credentials).toBe('omit');
       expect(call.headers.map(([name]) => name)).not.toContain('authorization');
@@ -38,6 +41,6 @@ describe('keyless wallet and receipt reads (mock fetch only)', () => {
     vi.stubEnv('VITE_API_URL', ''); vi.stubEnv('VITE_API_BASE', ''); vi.stubEnv('DEV', false);
     const { READ_RPC_URL, chains } = await import('./wallet');
     expect(READ_RPC_URL).toBe('/v1/rpc');
-    expect(chains.map(chain => chain.id)).toEqual([99901]);
+    expect(chains.map(chain => chain.id)).toEqual([BUILD_CHAIN_ID]);
   });
 });

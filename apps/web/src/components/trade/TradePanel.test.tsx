@@ -11,6 +11,7 @@ import { REAL_FUNDS, DYOR, NON_AFFILIATION } from '../../copy';
 import { TRADE_COPY as C } from '../../copy/trade';
 import { FeeLines, TradePanelView } from './TradePanel';
 import { TradeLock } from './TradeContext';
+import { BUILD_CHAIN_ID } from '../../lib/chain';
 import { antiSnipeDeadline, emptyQuote, panelBlock, quoteExpired, tradeErrorText, tradeRequestKey, TradeQuoteSession, type PanelGate } from './tradePanelModel';
 const css = readFileSync(new URL('./trade-panel.css', import.meta.url), 'utf8');
 import coinSource from '../../pages/terminal/Coin.tsx?raw';
@@ -30,7 +31,7 @@ function quote(p: Partial<TradeQuote> = {}): TradeQuote {
 function gate(q = quote(), patch: Partial<PanelGate> = {}): PanelGate {
   const input: TradeQuoteRequest = { coin: q.coin, side: q.side, amountUsd: q.amountUsd, slippageBps: 50, riskMode: 'balanced', account };
   return { input, snapshot: { ...emptyQuote(), requestKey: tradeRequestKey(input), quote: q, requestedAt: now }, now, cap: 250, liveEnabled: true, stale: false,
-    signerAvailable: true, wallet: { address: account, chainId: 4663 }, ...patch };
+    signerAvailable: true, wallet: { address: account, chainId: BUILD_CHAIN_ID }, ...patch };
 }
 const actions = { changeSide: vi.fn(), changeAmount: vi.fn(), changeSlippage: vi.fn(), acknowledge: vi.fn(), submit: vi.fn(), retry: vi.fn() };
 const html = (g: PanelGate, result?: string) => render(<TradePanelView gate={g} tier="reader" phase="launch_week" {...actions} result={result} />);
@@ -90,7 +91,7 @@ describe('shared guarded panel contract states', () => {
     ['refusing check with allow decision', () => gate(quote({ guard: { decision: 'allow', checks: [{ code: 'sim', label: 'Sell simulation', status: 'refuse' }] } })), C.refused],
     ['quote-only', () => gate(quote({ route: { venue: 'uniswap_v4', executable: false } })), C.quoteOnly],
     ['wrong network', () => gate(quote(), { wallet: { address: account, chainId: 1 } }), C.wrongNetwork],
-    ['wallet mismatch', () => gate(quote(), { wallet: { address: '0x00000000000000000000000000000000000000bb', chainId: 4663 } }), C.wallet_mismatch],
+    ['wallet mismatch', () => gate(quote(), { wallet: { address: '0x00000000000000000000000000000000000000bb', chainId: BUILD_CHAIN_ID } }), C.wallet_mismatch],
     ['signer absent', () => gate(quote(), { signerAvailable: false }), C.signingUnavailable],
     ['zero fee destination mismatch', () => gate(quote({ fee: { bps: 0, usd: 0, destination: 'burn_wallet' } })), C.unavailable],
     ['non-launch fee destination mismatch', () => gate(quote({ fee: { bps: 50, usd: .5, destination: 'burn_engine' } })), C.unavailable],

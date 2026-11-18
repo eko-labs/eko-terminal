@@ -1,6 +1,8 @@
 import type { ElysiumRegistry } from '@eko/chain';
-import { judge, probeCoin, readNames, type Assessment, type Probed } from './assess.js';
-import type { HypeUsd } from './hype.js';
+import { judge, readNames, type Assessment, type Probed } from './assess.js';
+import { chainOf } from './chains/elysium/index.js';
+import type { ChainAdapter } from './chains/types.js';
+import type { NativeUsd } from './hype.js';
 import type { CoinState, Rpc, Tracker } from './tracker.js';
 import type { HistoryStore } from './history.js';
 import type { Historian } from './historian.js';
@@ -16,8 +18,12 @@ export interface EdgeOptions {
   now?: () => number;
   log?: (event: string, fields: Record<string, unknown>) => void;
   /** EKO's memory: launches, verdicts, outcomes and funders. Without it the edge is stateless (no deployer history). */
-  memory?: { store: HistoryStore; historian: Historian; funders: FunderTracer };
+  memory?: { store: HistoryStore; historian: Historian; funders?: FunderTracer };
 }
+
+/** A probe taken inside an early-buy window (Montra's fee, Pons' 3-second snipe tax) whose window has since ended. */
+const earlyEnded = (p: Probed, nowMs: number) => { const until = p.config?.earlyBuyFeeUntil ?? p.earlyUntil;
+  return until !== undefined && until > Date.parse(p.at) / 1000 && until < nowMs / 1000; };
 
 /** When a live coin is measured: features at five minutes and an hour (with the 1 h outcome), the 24 h outcome a minute late. */
 const MEASURE_AT = [FEATURE_POINTS[0], Math.max(FEATURE_POINTS[1], HORIZON_SEC['1h']), HORIZON_SEC['24h'] + 60];
@@ -45,12 +51,16 @@ export class Edge {
   /** Per live coin, how many of MEASURE_AT have been recorded. */
   private readonly measured = new Map<string, number>();
 
-  constructor(readonly tracker: Tracker, private readonly rpc: Rpc, private readonly registry: ElysiumRegistry, readonly hype: HypeUsd, options: EdgeOptions = {}) {
+  /** The deployment's chain: its checks, trading, profile and text (chains/types.ts). */
+  readonly chain: ChainAdapter;
+  constructor(readonly tracker: Tracker, private readonly rpc: Rpc, chain: ChainAdapter | ElysiumRegistry, readonly hype: NativeUsd, options: EdgeOptions = {}) {
+    this.chain = chainOf(chain);
     this.opts = { recheckSec: options.recheckSec ?? 600, concurrency: options.concurrency ?? 2, now: options.now ?? (() => Date.now()), log: options.log, memory: options.memory };
   }
 
-  ctx(): ViewContext { return { nowSec: Math.floor(this.opts.now() / 1000), head: Number(this.tracker.head), hypeUsd: this.hype.latest, openMcapHype: this.tracker.openMcapHype }; }
-  /** The coin's verdict now: memoised until it trades or transfers, the HYPE price moves or a minute passes. */
+  ctx(): ViewContext { return { nowSec: Math.floor(this.opts.now() / 1000), head: Number(this.tracker.head), hypeUsd: this.hype.latest, openMcapHype: this.tracker.openMcapHype,
+    native: this.chain.profile.native }; }
+  /** The coin's verdict now: memoised until it trades or transfers, the native coin's price moves or a minute passes. */
   assessment(token: string): Assessment | undefined {
     const k = token.toLowerCase(), probed = this.probes.get(k), coin = this.tracker.coins.get(k);
     if (!probed || !coin) return undefined;
@@ -60,7 +70,7 @@ export class Edge {
     const hit = this.judged.get(k);
     if (hit?.key === memo) return hit.a;
     const store = this.opts.memory?.store;
-    const a = judge(coin, probed, { registry: this.registry, hypeUsd: ctx.hypeUsd, nowSec: ctx.nowSec, head: ctx.head,
+    const a = judge(coin, probed, { chain: this.chain, hypeUsd: ctx.hypeUsd, nowSec: ctx.nowSec, head: ctx.head,
       ...(store ? { history: store.historyFor(coin.creator, coin.ts), funders: (w: string) => store.attributedFunder(w) } : {}) });
     this.judged.set(k, { key: memo, a });
     return a;
@@ -73,7 +83,7 @@ export class Edge {
     if (!p) return true;
     if (this.opts.now() / 1000 - Date.parse(p.at) / 1000 > this.opts.recheckSec) return true;
     // A probe that could not run, or one taken inside Montra's early-buy window, is retried once it can say more.
-    return !p.probe || p.probe.status === 'unavailable' || (!!p.config && p.config.earlyBuyFeeUntil > Date.parse(p.at) / 1000 && p.config.earlyBuyFeeUntil < this.opts.now() / 1000);
+    return !p.probe || p.probe.status === 'unavailable' || earlyEnded(p, this.opts.now());
   }
 
   /**
@@ -87,7 +97,7 @@ export class Edge {
     if (!this.stale(k)) return false;
     const p = this.probes.get(k), coin = this.tracker.coins.get(k);
     if (!p || !p.probe || p.probe.status === 'unavailable') return true;
-    if (p.config && p.config.earlyBuyFeeUntil > Date.parse(p.at) / 1000 && p.config.earlyBuyFeeUntil < nowMs / 1000) return true;
+    if (earlyEnded(p, nowMs)) return true;
     return !!coin && coin.trades.length !== (this.probedTrades.get(k) ?? 0);
   }
 
@@ -126,7 +136,7 @@ export class Edge {
     const job = (async () => {
       try {
         const prior = this.assessment(key);
-        const probed = await probeCoin(coin, this.tracker.head, { rpc: this.rpc, registry: this.registry, hypeUsd: () => this.hype.latest, now: this.opts.now },
+        const probed = await this.chain.probe(coin, this.tracker.head, { rpc: this.rpc, hypeUsd: () => this.hype.latest, now: this.opts.now },
           this.probes.get(key)?.tips);
         this.probes.set(key, probed); this.counters.assessed++;
         this.probedTrades.set(key, coin.trades.length);
@@ -164,7 +174,7 @@ export class Edge {
         name: a.name || coin.name, symbol: a.symbol || coin.symbol, supply: coin.supply.toString() });
       m.store.recordVerdict(coin.token, a.verdict.level, a.matches.map(x => ({ id: x.id, level: x.level })), Math.floor(Date.parse(a.at) / 1000), 'live');
       const early = coin.trades.length >= 3 ? a.stats.earlyBuyers.filter(b => !b.deployer).slice(0, 40).map(b => b.wallet) : [];
-      m.funders.want([coin.creator, ...early]);
+      m.funders?.want([coin.creator, ...early]);
     } catch (error) { this.opts.log?.('memory_failed', { coin: coin.token, error: String((error as Error).message).slice(0, 160) }); }
   }
 
@@ -203,7 +213,7 @@ export class Edge {
     this.naming = true;
     try {
       // At "latest": a name never changes, and an unpinned read can use the public RPC once the paid budget is spent.
-      const names = await readNames(this.rpc, this.registry.address('multicall3'), todo.map(c => c.token), 'latest');
+      const names = await readNames(this.rpc, this.chain.multicall3, todo.map(c => c.token), 'latest');
       todo.forEach((c, i) => { c.name = names[i]?.name ?? ''; c.symbol = names[i]?.symbol ?? ''; });
     } catch (error) { this.namesAfter = this.opts.now() + 30_000; this.opts.log?.('names_failed', { error: String((error as Error).message).slice(0, 160) }); }
     finally { this.naming = false; }

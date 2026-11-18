@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run --testTimeout=30000 --hookTimeout=30000",
+    "test:robinhood": "VITE_EKO_CHAIN=robinhood vitest run --testTimeout=30000 --hookTimeout=30000",
     "e2e": "playwright test",
     "e2e:fork": "bash e2e/run-fork.sh",
     "dev:demo": "vite"

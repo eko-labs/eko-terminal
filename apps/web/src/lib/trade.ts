@@ -3,21 +3,25 @@ import { createSiweMessage } from 'viem/siwe';
 import { getConnection, sendTransaction, signMessage, switchChain, waitForTransactionReceipt, writeContract } from 'wagmi/actions';
 import { MeSchema, SIWE_STATEMENT, SiweNonceSchema, type Order, type Quote } from '@eko/shared';
 import { api, fetchParsed } from './api';
-import { wagmiConfig, type SupportedChainId } from './wallet';
+import { wagmiConfig, walletChainId, type SupportedChainId } from './wallet';
 import { useApp } from '../store/app';
 import { useShell } from '../store/shell';
 import { capturedReferral, clearReferral } from './referral';
 import { rememberPending, forgetPending } from './pendingReports';
-import { CHAIN_ID } from '@eko/shared';
+import { BUILD_CHAIN_ID } from './chain';
 export { flushPendingReports } from './pendingReports';
 
 export function newIdempotencyKey() {
   return `ik_${crypto.randomUUID()}`;
 }
 
-/** Sign-In With Ethereum: binds the wallet to this account so on-chain orders are attributable. */
-export async function siweSignIn(_chainId: number = CHAIN_ID) {
-  await ensureChain(CHAIN_ID);
+/**
+ * Sign-In With Ethereum: binds the wallet to this account so on-chain orders are attributable. Always signs for this
+ * build's chain (the server verifies the same one); the argument is the wallet's current chain and is not trusted.
+ * A deployment whose server reports another chain refuses before the wallet is asked anything.
+ */
+export async function siweSignIn(_chainId: number = BUILD_CHAIN_ID) {
+  await ensureChain(walletChainId(BUILD_CHAIN_ID));
   const conn = getConnection(wagmiConfig);
   if (!conn.address) throw new Error('Connect a wallet first');
   const { nonce, domain, uri, issuedAt, expirationTime } = await fetchParsed('/auth/siwe/nonce', SiweNonceSchema, { method: 'POST' });
@@ -27,13 +31,13 @@ export async function siweSignIn(_chainId: number = CHAIN_ID) {
     statement: SIWE_STATEMENT,
     uri,
     version: '1',
-    chainId: CHAIN_ID,
+    chainId: BUILD_CHAIN_ID,
     nonce,
     issuedAt: new Date(issuedAt),
     expirationTime: new Date(expirationTime),
   });
   const signature = await signMessage(wagmiConfig, { message });
-  if (getConnection(wagmiConfig).address?.toLowerCase() !== conn.address.toLowerCase() || getConnection(wagmiConfig).chainId !== CHAIN_ID) throw new Error('Wallet changed — sign in again or switch back.');
+  if (getConnection(wagmiConfig).address?.toLowerCase() !== conn.address.toLowerCase() || getConnection(wagmiConfig).chainId !== BUILD_CHAIN_ID) throw new Error('Wallet changed — sign in again or switch back.');
   const ref = capturedReferral();
   await fetchParsed('/auth/siwe/verify', MeSchema, { body: { message, signature, ...(ref ? { ref } : {}) } });
   clearReferral();
@@ -54,15 +58,16 @@ export async function approveToken(q: Quote): Promise<Hex> {
 }
 
 /** Shared exact ERC-20 primitive; guarded callers pin the account and revalidate immediately before signing. */
-export async function approveExactToken(step: { token: string; spender: string; amount: string }, chainId: number = CHAIN_ID, account?: string, check?: () => void): Promise<Hex> {
+export async function approveExactToken(step: { token: string; spender: string; amount: string }, chainId: number = BUILD_CHAIN_ID, account?: string, check?: () => void): Promise<Hex> {
   const { token, spender, amount } = step;
+  const target = walletChainId(chainId);
   check?.();
   const hash = await writeContract(wagmiConfig, {
     address: token as Address, abi: erc20Abi, functionName: 'approve',
-    args: [spender as Address, BigInt(amount)], chainId: chainId as SupportedChainId,
+    args: [spender as Address, BigInt(amount)], chainId: target,
     ...(account ? { account: account as Address } : {}),
   });
-  const receipt = await waitForTransactionReceipt(wagmiConfig, { hash, chainId: chainId as SupportedChainId });
+  const receipt = await waitForTransactionReceipt(wagmiConfig, { hash, chainId: target });
   if (receipt.status !== 'success') throw new Error('Approval transaction reverted');
   return hash;
 }
@@ -70,15 +75,16 @@ export async function approveExactToken(step: { token: string; spender: string; 
 const permit2Abi = [{ type: 'function', name: 'approve', stateMutability: 'nonpayable', outputs: [], inputs: [{ type: 'address', name: 'token' },
   { type: 'address', name: 'spender' }, { type: 'uint160', name: 'amount' }, { type: 'uint48', name: 'expiration' }] }] as const;
 /** Exact, expiring Permit2 allowance (Uniswap v4 sells); guarded callers validated the step, the router and Permit2. */
-export async function approveExactPermit2(step: { token: string; spender: string; amount: string; expiration?: number }, permit2: string, chainId: number = CHAIN_ID, account?: string, check?: () => void): Promise<Hex> {
+export async function approveExactPermit2(step: { token: string; spender: string; amount: string; expiration?: number }, permit2: string, chainId: number = BUILD_CHAIN_ID, account?: string, check?: () => void): Promise<Hex> {
   if (step.expiration === undefined) throw new Error('Permit2 approval needs an expiration');
+  const target = walletChainId(chainId);
   check?.();
   const hash = await writeContract(wagmiConfig, {
     address: permit2 as Address, abi: permit2Abi, functionName: 'approve',
-    args: [step.token as Address, step.spender as Address, BigInt(step.amount), step.expiration], chainId: chainId as SupportedChainId,
+    args: [step.token as Address, step.spender as Address, BigInt(step.amount), step.expiration], chainId: target,
     ...(account ? { account: account as Address } : {}),
   });
-  const receipt = await waitForTransactionReceipt(wagmiConfig, { hash, chainId: chainId as SupportedChainId });
+  const receipt = await waitForTransactionReceipt(wagmiConfig, { hash, chainId: target });
   if (receipt.status !== 'success') throw new Error('Approval transaction reverted');
   return hash;
 }
@@ -95,14 +101,14 @@ export function isUserRejection(err: unknown): boolean {
  * confirmation comes only from the server's receipt reconciliation.
  */
 export async function signAndSubmit(order: Order, tx: NonNullable<Quote['tx']>): Promise<{ order: Order }> {
-  const t0 = performance.now();
+  const t0 = performance.now(), chainId = walletChainId(tx.chainId);
   let hash: Hex;
   try {
     hash = await sendTransaction(wagmiConfig, {
       to: tx.swap.to as Address,
       data: tx.swap.data as Hex,
       value: BigInt(tx.swap.value),
-      chainId: tx.chainId as SupportedChainId,
+      chainId,
     });
   } catch (err) {
     const rejected = isUserRejection(err);

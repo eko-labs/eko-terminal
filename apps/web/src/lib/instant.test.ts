@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { GAS_RESERVE_ETH, NETWORKS, routeFor, sellQuantity, type Order, type Quote } from '@eko/shared';
+import { CHAIN_NETWORK, GAS_RESERVE_ETH, NETWORKS, routeFor, sellQuantity, type Order, type Quote } from '@eko/shared';
 import { ApiError } from './api';
 import { SUBMITTED_MESSAGE, failureFrom, fillMessage, runLive, type InstantPhase, type InstantRequest, type LiveEnv } from './instantFlow';
 
-const MAINNET = NETWORKS['robinhood-mainnet'];
+import { CHAIN_KEY } from './chain';
+// Live signs on the build's chain; the ETH ⇄ USDG route fixture stays Robinhood Chain's Uniswap v3 route.
+const MAINNET = NETWORKS[CHAIN_NETWORK[CHAIN_KEY]];
 const ETH_ROUTE = routeFor('robinhood-mainnet', 'ETH-USD')!;
 const WALLET = '0x00000000000000000000000000000000000000aa';
 

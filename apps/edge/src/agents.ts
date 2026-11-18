@@ -7,9 +7,11 @@ import type { Account } from './accounts.js';
 import { assertStorage } from './storage-guard.js';
 import type { Assessment } from './assess.js';
 import type { CoinState } from './tracker.js';
+import { ELYSIUM_PROFILE } from './chains/profiles.js';
+import type { ChainProfile } from './chains/types.js';
 
 /**
- * Mission Control on Elysium: a signed-in wallet registers its AI agents, gives each an API key and a policy, and sees
+ * Mission Control: a signed-in wallet registers its AI agents, gives each an API key and a policy, and sees
  * what they checked. Agents connect over MCP (mcp.ts) and ask EKO before they trade (preflight). EKO never holds keys
  * or funds and never places an order: a preflight is advice, an approval is the owner's yes for one order, and the
  * kill switch makes every later preflight say no. Keys are stored only as SHA-256 hashes.
@@ -227,6 +229,8 @@ export interface PreflightDeps {
   agents: AgentStore;
   coin: (address: string) => CoinState | undefined;
   assess: (coin: CoinState) => Promise<Assessment | undefined>;
+  /** The deployment's chain: the approval's venue and the text (default Elysium). */
+  chain?: Pick<ChainProfile, 'venue' | 'text'>;
 }
 export interface PreflightOrder { coin: Address; side: 'buy' | 'sell'; notionalUsd: number }
 /** The order an approval is for: agent, reference, coin, side and size. */
@@ -239,14 +243,14 @@ export const orderHash = (agentId: string, clientOrderRef: string, o: PreflightO
  * approval: the size is above the approval line and the owner has not said yes to this order yet. Otherwise allow.
  */
 export async function preflight(d: PreflightDeps, agent: AgentRow, clientOrderRef: string, order: PreflightOrder): Promise<PreflightResult> {
-  const p = agent.policy, reasons: string[] = [], preflightId = randomUUID();
+  const p = agent.policy, reasons: string[] = [], preflightId = randomUUID(), chain = d.chain ?? ELYSIUM_PROFILE;
   let decision: PreflightResult['decision'] = 'allow';
   const deny = (r: string) => { reasons.push(r); decision = 'deny'; };
   if (agent.status !== 'active' || p.killed) deny('This agent is paused by its owner.');
   const coin = d.coin(order.coin), a = coin ? await d.assess(coin) : undefined;
   const verdict: Verdict | undefined = a?.verdict;
   const buy = order.side === 'buy';
-  if (!a) { if (buy) deny('EKO has not checked this coin (it follows Montra launches from the last day).'); else reasons.push('EKO has not checked this coin.'); }
+  if (!a) { if (buy) deny(`EKO has not checked this coin (it follows ${chain.text.launches} from the last day).`); else reasons.push('EKO has not checked this coin.'); }
   else {
     const honeypot = a.verdict.playbooks.some(m => m.id === 'honeypot' && m.level === 'danger');
     if (buy && honeypot) deny('A buy-then-sell check could not sell this coin.');
@@ -276,7 +280,7 @@ export async function preflight(d: PreflightDeps, agent: AgentRow, clientOrderRe
       decision = 'needs_approval';
       const summary = `${agent.name}: ${order.side} $${order.notionalUsd} of ${order.coin}`;
       approvalId = d.agents.requestApproval(agent, preflightId, clientOrderRef, summary, {
-        clientOrderRef, order: { venue: 'elysium', instrument: order.coin, side: order.side, notionalUsd: order.notionalUsd, orderType: 'market' },
+        clientOrderRef, order: { venue: chain.venue, instrument: order.coin, side: order.side, notionalUsd: order.notionalUsd, orderType: 'market' },
         orderHash: hash, notionalUsd: order.notionalUsd, approvalAboveUsd: p.approvalAboveUsd,
         reasons: [...reasons], policyVersion: p.version, ...(verdict ? { verdict } : {}) }).id;
       reasons.push(`Above the $${p.approvalAboveUsd} approval line: the owner must approve it in Mission Control.`);

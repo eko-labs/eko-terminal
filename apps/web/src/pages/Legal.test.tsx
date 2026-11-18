@@ -4,8 +4,9 @@ import { describe, expect, it } from 'vitest';
 import { AnalysisPolicyNotice, AnalysisPolicyScope, PolicyLinks } from '../components/PolicyLinks';
 import { LegalLine } from '../components/shell/Shell';
 import { BUILT_ON, DYOR, NON_AFFILIATION } from '../copy';
-import { findPolicy, isApprovedPolicy, LEGAL_COPY, POLICY_APPROVAL, POLICY_DRAFTS, POLICY_REVIEW } from '../copy/legal';
+import { findPolicy, isApprovedPolicy, LEGAL_COPY, POLICIES_BY_CHAIN, POLICY_APPROVAL, POLICY_DISCLOSURES, POLICY_DRAFTS, POLICY_REVIEW } from '../copy/legal';
 import { SETTINGS_COPY } from '../copy/settings';
+import { CHAIN_KEY } from '../lib/chain';
 import { resolveRoute } from '../routes';
 import { CoinVerdict } from './terminal/CoinCard';
 import { TradePanel } from '../components/trade/TradePanel';
@@ -23,20 +24,26 @@ describe('versioned launch policy drafts', () => {
     expect((await resolved!.route.load()).default).toBe(Legal);
   });
 
-  it('marks only Terms and Privacy as approved by the owner on 2026-11-16', () => {
-    expect(POLICY_DRAFTS.filter((policy) => isApprovedPolicy(policy.slug)).map((policy) => policy.slug)).toEqual(['terms', 'privacy']);
-    expect(POLICY_APPROVAL).toMatchObject({ version: '2026-11-16', approvedAt: '2026-11-16' });
-    expect(isApprovedPolicy('__proto__')).toBe(false); expect(isApprovedPolicy('TERMS')).toBe(false);
+  it('marks only the Elysium Terms and Privacy as approved by the owner on 2026-11-16', () => {
+    const elysium = POLICIES_BY_CHAIN.elysium;
+    expect(elysium.drafts.filter((policy) => isApprovedPolicy(policy.slug, 'elysium')).map((policy) => policy.slug)).toEqual(['terms', 'privacy']);
+    expect(elysium.approval).toMatchObject({ version: '2026-11-16', approvedAt: '2026-11-16' });
+    expect(elysium.review).toMatchObject({ version: '2026-11-16-draft.4', draftedAt: '2026-11-16' });
+    // The Elysium footer lines are the shared disclosures, unchanged.
+    expect(elysium.disclosures).toEqual({ builtOn: BUILT_ON, nonAffiliation: NON_AFFILIATION, dyor: DYOR });
+    for (const slug of ['__proto__', 'TERMS', 'constructor']) for (const chain of ['elysium', 'robinhood'] as const) expect(isApprovedPolicy(slug, chain)).toBe(false);
+    // The build serves its own chain's set.
+    expect(POLICY_DRAFTS).toBe(POLICIES_BY_CHAIN[CHAIN_KEY].drafts);
   });
 
   it.each(POLICY_DRAFTS)('renders $slug with its version, approval state, contact and required disclaimers', (policy) => {
     const html = render(policy.slug);
     expect(html).toContain(`<h1>${policy.title}</h1>`);
-    expect(html).toContain('dateTime="2026-11-16"');
+    expect(html).toContain(`dateTime="${isApprovedPolicy(policy.slug) ? POLICY_APPROVAL.approvedAt : POLICY_REVIEW.draftedAt}"`);
     if (isApprovedPolicy(policy.slug)) {
       expect(html).toContain(`<h2>${LEGAL_COPY.approved}</h2>`);
       expect(html).toContain(`<dt>${LEGAL_COPY.version}</dt><dd>${POLICY_APPROVAL.version}</dd>`);
-      expect(html).toContain(`<dt>${LEGAL_COPY.approvalDate}</dt><dd><time dateTime="2026-11-16">2026-11-16</time></dd>`);
+      expect(html).toContain(`<dt>${LEGAL_COPY.approvalDate}</dt><dd><time dateTime="${POLICY_APPROVAL.approvedAt}">${POLICY_APPROVAL.approvedAt}</time></dd>`);
       expect(html).not.toMatch(/draft|pending/i);
     } else {
       expect(html).toContain(POLICY_REVIEW.version);
@@ -49,7 +56,7 @@ describe('versioned launch policy drafts', () => {
     expect(html).toContain('Questions about these policies: contact the official EKO X or Telegram account, listed on <a href="/official">Official project links</a>');
     expect(html).toContain('Security reports: security@ekoterminal.com');
     expect(html).not.toContain('{{');
-    for (const text of [DYOR, BUILT_ON, NON_AFFILIATION]) expect(html).toContain(text);
+    for (const text of Object.values(POLICY_DISCLOSURES)) expect(html).toContain(text);
     expect(POLICY_REVIEW.ownerApproval.approvedAt).toBeNull();
     expect(POLICY_REVIEW.ownerApproval.evidenceRef).toBeNull();
     expect(POLICY_REVIEW.effectiveAt).toBeNull();
@@ -61,7 +68,7 @@ describe('versioned launch policy drafts', () => {
     expect(html).toContain(`<h1>${LEGAL_COPY.missing}</h1>`);
     expect(html).not.toContain('<article>');
     expect(html).not.toContain(slug);
-    expect(html).toContain(NON_AFFILIATION);
+    expect(html).toContain(POLICY_DISCLOSURES.nonAffiliation);
   });
 
   it('escapes policy text without interpreting HTML, markdown or instruction-like content', () => {
@@ -110,7 +117,8 @@ describe('versioned launch policy drafts', () => {
     for (const slug of ['risk', 'ai', 'terms']) expect(notices.split(`href="/legal/${slug}"`)).toHaveLength(2);
   });
 
-  it('states launch limits and staged economics without claiming unconfirmed decisions', () => {
+  // The Elysium build's approved wording; the Robinhood drafts are checked in Legal.chains.test.tsx.
+  it.runIf(CHAIN_KEY === 'elysium')('states launch limits and staged economics without claiming unconfirmed decisions', () => {
     const terms = render('terms'), privacy = render('privacy');
     // Each claim matches the Elysium build: no EKO fee (feeBps 0), the per-trade cap, the honeypot refusal, no sanctions or
     // AI claims; privacy names the real providers, the 30-day session, the real deletion and the real limits.

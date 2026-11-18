@@ -6,6 +6,7 @@ import { Link } from '../lib/Link';
 import { UntrustedText } from '../components/ui';
 import { AnalysisPolicyNotice } from '../components/PolicyLinks';
 import './census.css';
+import { CHAIN_COPY } from '../copy/chain';
 
 const pct=(value:number)=>`${value.toFixed(1)}%`;
 export function CensusView({data,now=serverNow(),status,watching=false,onWatch=()=>{},onRetry=()=>{}}:{
@@ -16,14 +17,14 @@ export function CensusView({data,now=serverNow(),status,watching=false,onWatch=(
     &&!row.unavailable?.includes('flow')):[];
   return <div className="shell-page census-page">
     <header className="page-head"><span className="eyebrow">Public record</span><h1>Agent Census</h1>
-      <p>{published?'Wallet-labelled buy flow on Elysium.':'Census numbers publish once wallet-label precision passes 90%.'}</p>
+      <p>{published?CHAIN_COPY.censusFlow:'Census numbers publish once wallet-label precision passes 90%.'}</p>
       <label className="census-watch"><input type="checkbox" checked={watching} onChange={event=>onWatch(event.target.checked)} />Watch updates on this page</label>
     </header>
     {status==='loading'&&<p role="status">Checking publication evidence…</p>}
     {status==='error'&&<p role="status">Census evidence is unavailable. <button className="btn" onClick={onRetry}>Retry</button></p>}
     {published&&<section aria-labelledby="census-results">
       <h2 id="census-results">Chain-wide buy share</h2>
-      <p>Per our research, the first agent-flow metric published for Elysium.</p>
+      <p>{CHAIN_COPY.censusFirst}</p>
       <p>Buy volume from wallets labelled as declared or likely agents, using finalized blocks. These shares describe buy volume, not a count of traders.</p>
       <div className="census-windows">{data.chain.map(row=><article key={row.window} className="census-window">
         <h3>{row.window}</h3><p className="census-share">{pct(row.agentPct)} labelled agent buys</p>

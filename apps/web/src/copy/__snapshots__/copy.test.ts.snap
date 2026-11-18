@@ -1,5 +1,20 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`canonical §8 copy > snapshots every exact constant and fee wording > robinhood 1`] = `
+{
+  "ADVISORY": "Advisory: your agent is told to check with EKO before every order. It can ignore the check, and EKO cannot stop a wallet it does not control.",
+  "APPROVAL_UNAVAILABLE": "This order needs approval, which is not available for this agent.",
+  "BETA": "Beta · forecasts are graded against all launches",
+  "BUILT_ON": "Built on Robinhood Chain",
+  "DYOR": "DYOR · Not financial advice",
+  "ENFORCED_ONCHAIN": "Enforced on-chain by this agent’s session-key policy.",
+  "FEE_CURVE_ZERO": "0% on Pons-curve trades",
+  "NON_AFFILIATION": "Not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.",
+  "ONCHAIN_ADVISORY": "Advisory for now: on-chain enforcement turns on after its contract review passes.",
+  "REAL_FUNDS": "Real funds · your wallet signs every trade",
+}
+`;
+
 exports[`canonical §8 copy > snapshots every exact constant and fee wording 1`] = `
 {
   "ADVISORY": "Advisory: your agent is told to check with EKO before every order. It can ignore the check, and EKO cannot stop a wallet it does not control.",

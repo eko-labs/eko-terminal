@@ -19,6 +19,7 @@ export const SHELL_COPY = {
   wallet: 'Connect wallet', risk: 'Risk mode', plan: 'Plan', open: 'Open the full page', close: 'Close inspector',
   select: 'Inspector preview', inspector: 'Inspector', planDormant: 'Tiers and trials are planned. Free during launch week.',
   configError: 'Configuration unavailable. Optional routes are hidden.', retry: 'Retry',
+  deploymentError: (build: string, server: string) => `Deployment error: this site was built for ${build}, but its server runs ${server}. Wallet sign-in and trading are blocked until both run the same chain.`,
   connectGate: 'Give your trading agent EKO’s checks before each order, through Claude Code or another MCP client. You supervise it in Mission Control.',
   missionEyebrow: 'Mission Control', missionGate: 'Mission Control is where you connect a trading agent to EKO and review the checks it runs before each order.',
 };

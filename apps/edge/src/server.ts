@@ -27,8 +27,8 @@ const fail = (reply: FastifyReply, status: number, error: ErrorCode, message: st
 const LIMIT = 100;
 
 /**
- * The read API the EKO web app calls, answered from the edge's memory, plus the built web app itself.
- * Every route is read-only. Account, agent, trading and burn routes are not served on Elysium yet.
+ * The read API the EKO web app calls, answered from the edge's memory, plus the built web app itself, for the
+ * deployment's chain (edge.chain). Accounts, agents and trading are served when a store is open; burn routes are not.
  */
 /** Read methods the web app's wallet layer may relay (network badge, balances, token reads). Nothing that sends. */
 export const RELAY_METHODS = new Set(['eth_chainId', 'eth_blockNumber', 'eth_getBalance', 'eth_getTransactionCount', 'eth_getCode', 'eth_call', 'eth_gasPrice', 'eth_maxPriorityFeePerGas', 'eth_getBlockByNumber', 'eth_getTransactionReceipt', 'eth_estimateGas']);
@@ -37,6 +37,7 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
   // Trust exactly the proxies in front of us (Railway: one hop), so a client cannot pick its own req.ip with X-Forwarded-For.
   // JSON bodies are small everywhere; the routes that need more (SIWE contract-wallet signatures, MCP batches) say so.
   const hops = opts.trustProxyHops ?? 1;
+  const chain = edge.chain.profile, { text } = chain;
   const app = Fastify({ logger: opts.logger ?? false, trustProxy: (_address: string, hop: number) => hop < hops, bodyLimit: 16_384 });
   app.addHook('onSend', async (_req, reply, payload) => { reply.header('cache-control', reply.getHeader('cache-control') ?? 'no-store'); return payload; });
 
@@ -51,7 +52,7 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
   const coinOr404 = (address: string, reply: FastifyReply) => {
     if (!isAddress(address, { strict: false })) { void fail(reply, 400, 'bad_request', 'Not an address.'); return null; }
     const coin = edge.tracker.coin(address);
-    if (!coin) { void fail(reply, 404, 'not_found', 'EKO follows Montra launches from the last 24 hours on Elysium; this coin is not one of them yet.'); return null; }
+    if (!coin) { void fail(reply, 404, 'not_found', `EKO follows ${text.launches} from the last 24 hours on ${chain.name}; this coin is not one of them yet.`); return null; }
     return coin;
   };
   const ranked = () => {
@@ -61,16 +62,16 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
       .sort((x, y) => y.vol - x.vol || y.c.ts - x.c.ts).map(x => x.c);
   };
 
-  const tradingConfig = opts.trading ? { router: opts.trading.router, permit2: opts.trading.permit2, maxTradeUsd: opts.maxTradeUsd ?? 1000 } : undefined;
-  app.get('/v1/config', async () => publicConfig(tradingConfig, { accounts: !!opts.accounts, ...(opts.flags ? { flags: opts.flags } : {}) }));
+  const tradingConfig = opts.trading ? { routers: opts.trading.routers, spenders: opts.trading.spenders, permit2: opts.trading.permit2, maxTradeUsd: opts.maxTradeUsd ?? 1000 } : undefined;
+  app.get('/v1/config', async () => publicConfig(tradingConfig, { accounts: !!opts.accounts, ...(opts.flags ? { flags: opts.flags } : {}) }, chain));
   const agents = opts.accounts ? new AgentStore(opts.accounts.db) : undefined;
   let auth: ReturnType<typeof registerAccountRoutes> | undefined;
   if (opts.accounts && agents) {
     // Sign-in's contract-wallet check gets its own small slice of the RPC, never the tracker's whole lane.
-    auth = registerAccountRoutes(app, { store: opts.accounts, ...(opts.rpc ? { rpc: budgetedRpc(opts.rpc, { perMin: 60, inFlight: 4 }) } : {}), onErase: (id) => { agents.erase(id); opts.trading?.erase(id); } });
+    auth = registerAccountRoutes(app, { store: opts.accounts, chain, ...(opts.rpc ? { rpc: budgetedRpc(opts.rpc, { perMin: 60, inFlight: 4 }) } : {}), onErase: (id) => { agents.erase(id); opts.trading?.erase(id); } });
     if (opts.trading) registerTradeRoutes(app, opts.trading, auth);
     registerAgentRoutes(app, agents, auth, { mcpUrl: (req) => `${req.protocol}://${req.headers['x-forwarded-host'] ?? req.headers.host}/mcp`, ...(opts.onApproval ? { onApproval: opts.onApproval } : {}) });
-  } else app.get('/v1/me', async (_req, reply) => fail(reply, 401, 'wallet_auth_required', 'Accounts are not open on EKO for Elysium yet.'));
+  } else app.get('/v1/me', async (_req, reply) => fail(reply, 401, 'wallet_auth_required', `Accounts are not open on EKO for ${chain.name} yet.`));
   registerMcp(app, { edge, ...(opts.store ? { store: opts.store } : {}), ...(agents ? { agents } : {}), ...(opts.trading ? { trading: opts.trading } : {}) });
 
   const radar = async () => {
@@ -115,7 +116,7 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
     const coin = coinOr404(req.params.address, reply); if (!coin) return reply;
     return (await edge.fresh(coin))?.verdict ?? pendingVerdict(coin, Number(edge.tracker.head));
   });
-  // The v2 Guard assessment is not computed on Elysium yet: the client falls back to the v1 card and verdict.
+  // The v2 Guard assessment is not computed by the edge yet: the client falls back to the v1 card and verdict.
   app.get<{ Params: { address: string } }>('/v2/coins/:address', async () => ({ version: 2, card: null }));
   app.get<{ Params: { address: string } }>('/v2/coins/:address/verdict', async () => ({ version: 2, verdict: null }));
 
@@ -127,7 +128,7 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
     return { tf, bars: hypeUsd ? barsFromTrades(coin.trades, tf, hypeUsd, from, to) : [], asOfBlock: ctx.head,
       firstTradeTs: coin.trades[0]?.ts ?? null, lastTradeTs: coin.trades.at(-1)?.ts ?? null, ...(hypeUsd ? {} : { unavailable: ['price'] }) };
   });
-  // Wallet labels (agent / crew / human) are not computed on Elysium yet: no markers rather than unlabelled ones.
+  // Wallet labels (agent / crew / human) are not computed by the edge yet: no markers rather than unlabelled ones.
   app.get('/v1/coins/:address/markers', async () => ({ markers: [], unavailable: ['labels'] }));
   app.get<{ Params: { address: string }; Querystring: { window?: string } }>('/v1/coins/:address/flow', async (req, reply) => {
     const coin = coinOr404(req.params.address, reply); if (!coin) return reply;
@@ -168,9 +169,9 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
   // Post-launch features that are on (features/index.ts): their routes come before the catch-all below.
   for (const feature of opts.features ?? []) feature.register({ app, edge, ...(opts.store ? { store: opts.store } : {}), ...(opts.accounts ? { accounts: opts.accounts } : {}), ...(auth ? { auth } : {}) });
 
-  // Everything else under the API is not served on Elysium yet.
-  app.all('/v1/*', async (_req, reply) => fail(reply, 404, 'not_found', 'Not available on EKO for Elysium yet.'));
-  app.all('/v2/*', async (_req, reply) => fail(reply, 404, 'not_found', 'Not available on EKO for Elysium yet.'));
+  // Everything else under the API is not served yet.
+  app.all('/v1/*', async (_req, reply) => fail(reply, 404, 'not_found', `Not available on EKO for ${chain.name} yet.`));
+  app.all('/v2/*', async (_req, reply) => fail(reply, 404, 'not_found', `Not available on EKO for ${chain.name} yet.`));
 
   // The terminal's build everywhere, the marketing landing's own build at "/" with its assets under /site/
   // (the layout EKO's server used). Without a landing build, "/" is the terminal's entry page.

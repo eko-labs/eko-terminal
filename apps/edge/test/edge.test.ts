@@ -1,10 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { encodeAbiParameters, encodeEventTopics, getAddress, keccak256, toHex, type Hex } from 'viem';
 import { loadElysiumRegistry } from '@eko/chain';
 import { CoinCardSchema, PairRowSchema, PublicConfigSchema, RadarResponseSchema, ScoreboardResponseSchema, VerdictSchema } from '@eko/shared';
 import launch from '../../../packages/chain/test/fixtures/99901/montra-launch.json' with { type: 'json' };
 import { barsFromTrades, changePct, priceHypeFromSqrt, spark, tradeFromSwap, type Trade } from '../src/market.js';
 import { hookBits, judge, type Assessment } from '../src/assess.js';
+import { chainOf } from '../src/chains/elysium/index.js';
 import { swapAbi, Tracker, TRANSFER_TOPIC, type Rpc } from '../src/tracker.js';
 import { flowStats } from '../src/holders.js';
 import { findSnipers, type Sniper } from '../src/snipers.js';
@@ -145,6 +146,11 @@ describe('views match the web app\'s contracts', () => {
       expect(card.liquidity.lpStatus).toBe('locked');
       expect(card.identity).toMatchObject({ launchpad: 'montra', quoteAsset: 'HYPE' });
     }
+    // Montra coins have no bonding curve, so no curve %; a Pons curve coin carries its way to graduation (coin page Venue row).
+    expect(coinCard(coin, undefined, ctx).identity.curvePct).toBeUndefined();
+    const curveCoin = { ...coin, launchpad: 'pons' as const, graduated: false, curve: { address: coin.token, graduationThreshold: 4_200_000_000_000_000_000n, realQuoteReserve: 1_050_000_000_000_000_000n, realTokenReserve: 1n } };
+    expect(CoinCardSchema.parse(coinCard(curveCoin, undefined, { ...ctx, native: 'ETH' })).identity).toMatchObject({ stage: 'curve', curvePct: 25, quoteAsset: 'ETH' });
+    expect(coinCard({ ...curveCoin, graduated: true }, undefined, ctx).identity.curvePct).toBeUndefined();
     const row = RadarResponseSchema.shape.rows.element.parse(radarRow(coin, assessment('danger'), ctx, 1));
     expect(row).toMatchObject({ verdict: 'danger', hardDanger: true, sellCheck: { status: 'refused' }, trades1h: 2 });
     expect(PairRowSchema.parse(pairRow(coin, undefined, ctx))).toMatchObject({ column: 'new', verdictPending: true, buyers: 0 });
@@ -161,7 +167,7 @@ describe('judge', () => {
     const coin = tracker.coin(token)!, fixture = assessment('clear');
     const probed = { block: launchBlock, at: new Date(coin.ts * 1000).toISOString(), name: 'Test coin', symbol: 'TEST', key: null,
       config: fixture.config, currentBuyFeePips: 20000, probe: fixture.probe, probeUsd: 1000, tips: {} };
-    const ctx = { registry, hypeUsd: 70, nowSec: coin.ts + 600, head: launchBlock + 500 };
+    const ctx = { chain: chainOf(registry), hypeUsd: 70, nowSec: coin.ts + 600, head: launchBlock + 500 };
     expect(judge(coin, probed, ctx).verdict.level).toBe('clear');
     // The deployer buys a quarter of the supply in the first minute and keeps it.
     const tx = keccak256(toHex('dev-buy')), quarter = BigInt(launch.launch.args.supply) / 4n;
@@ -383,6 +389,22 @@ describe('graduation columns across a restart', () => {
     expect(coin.supply).toBe(saved.supply);
     expect(pairColumn(coin, { nowSec: now(), head: launchBlock + 500, hypeUsd: 70 })).toBe('migrated');
     expect(coin.graduatedTs).toBe(saved.ts + 60);
+  });
+  it('saves every followed coin, and lets the chain rebase what it restored before the replay', async () => {
+    const { ColumnSnapshot } = await import('../src/snapshot.js');
+    const { elysiumChain } = await import('../src/chains/elysium/index.js');
+    const before = new Tracker(fakeChain(launchBlock + 500), registry, { backfillBlocks: 600, chunk: 100, now });
+    await before.start();
+    // Not graduated and nowhere near the line: still saved, so a restart cannot drop it from the radar.
+    expect(before.coin(token)!.graduated).toBe(false);
+    expect(new ColumnSnapshot(`${process.env.TMPDIR ?? '/tmp'}/eko-all-${process.pid}.json`, before).coins()).toHaveLength(1);
+    const rebase = vi.fn(async (_coins: unknown[], _block: bigint) => {});
+    const after = new Tracker(fakeChain(launchBlock + 500), { ...elysiumChain(registry), rebase }, { backfillBlocks: 400, chunk: 100, now });
+    after.seed([structuredClone(before.coin(token)!)]);
+    await after.start();
+    expect(after.restored).toBe(1);
+    expect(rebase).toHaveBeenCalledOnce();
+    expect(rebase.mock.calls[0]![1]).toBe(after.head - 400n);
   });
   it('leaves a coin launched inside the replay to the backfill, and skips an unreadable file', async () => {
     const { ColumnSnapshot } = await import('../src/snapshot.js');

@@ -15,6 +15,7 @@ import { JournalConsentSetting } from './JournalConsent';
 import { SETTINGS_COPY as C, PLAN_COPY as P } from '../../copy/settings';
 import { ADVISORY, BUILT_ON, NON_AFFILIATION } from '../../copy';
 import { resolveRoute } from '../../routes';
+import { CHAIN_KEY } from '../../lib/chain';
 
 const mocks = vi.hoisted(() => ({ address: undefined as string | undefined, fetchParsed: vi.fn(), api: vi.fn(), hookState: null as { values: unknown[]; index: number } | null }));
 vi.mock('wagmi', () => ({ useConnection: () => ({ address: mocks.address, chainId: 4663 }) }));
@@ -78,7 +79,8 @@ describe('task 119 settings (offline fixtures, no live account)', () => {
     expect((await resolveRoute('/settings/plan')!.route.load()).default).toBe(Plan);
     const html = render(<Settings />);
     for (const copy of [C.title, C.display, C.about, C.connect, BUILT_ON, NON_AFFILIATION, ADVISORY, P.feeLaunch]) expect(html).toContain(copy);
-    expect(html).not.toMatch(/Pons|token day/i);
+    // Pons is Robinhood Chain's own launchpad (its fees still apply there); Elysium names none.
+    expect(html).not.toMatch(CHAIN_KEY === 'robinhood' ? /token day/i : /Pons|token day/i);
     expect(html).not.toContain('aria-label="Trading preferences"');
     expect(html).not.toMatch(/Type DELETE|Web push|Redeem|Hold ≥|Trial ·/);
   });

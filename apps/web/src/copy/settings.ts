@@ -1,3 +1,5 @@
+import { pick } from '../lib/chain';
+
 export const SETTINGS_COPY = {
   accountChanged: 'Account changed. Reload your preferences.',
   title: 'Settings', subtitle: 'Trading, notifications, display, and harness data.', sections: 'Settings sections',
@@ -32,7 +34,7 @@ export const SETTINGS_COPY = {
 export const PLAN_COPY = {
   title: 'Plan and referrals', back: 'Settings', loading: 'Loading plan…', launch: 'Free during launch week', tokenLive: 'Tiers start tomorrow',
   launchNote: 'Every feature is free during launch week, with no EKO fee on trades.',
-  feeLaunch: 'Terminal fee: 0% during launch week. Network gas and Montra’s own fees still apply.', feeUniswap: 'on Uniswap-routed trades', feeUniswapZero: 'Terminal fee: 0% on Uniswap-routed trades.',
+  feeLaunch: pick({ elysium: 'Terminal fee: 0% during launch week. Network gas and Montra’s own fees still apply.', robinhood: 'Terminal fee: 0% during launch week. Network gas and Pons’s own fees still apply.' }), feeUniswap: 'on Uniswap-routed trades', feeUniswapZero: 'Terminal fee: 0% on Uniswap-routed trades.',
   referralTitle: 'Referral attribution', referralNote: 'Referral codes and attribution are recorded from launch. Trial bonuses start when referrals open.',
   referralBonus: 'You and your friend each get +30 minutes when they make their first guarded trade or connect an agent.',
   referralLoading: 'Loading referral attribution…', referralError: 'Could not load referral attribution. Try again.',
@@ -42,6 +44,6 @@ export const PLAN_COPY = {
   minHeld: 'Minimum balance held over 24 h', unavailable: 'Not available', requirement: 'Hold ≥', hold: 'EKO for 24 h', amountsNote: 'Tier requirements are reviewed monthly and only ever lowered.',
   fee: 'Terminal fee', agents: 'Agents', research: 'Deep Research runs per day', backtests: 'Rule Lab runs per day', realtime: 'Real-time access', yes: 'Yes', no: 'No',
   trial: 'Trial', eligible: 'Connect to start 30 minutes of full access.', used: 'Trial used.',
-  ineligible: 'Trials need a wallet with 7+ days of history, 10+ Elysium transactions, or $20+ balance.', trialEnded: 'Trial ended.',
+  ineligible: pick({ elysium: 'Trials need a wallet with 7+ days of history, 10+ Elysium transactions, or $20+ balance.', robinhood: 'Trials need a wallet with 7+ days of history, 10+ Robinhood Chain transactions, or $20+ balance.' }), trialEnded: 'Trial ended.',
   futurePerk: (drop: string) => `shipping in ${drop}`,
 } as const;

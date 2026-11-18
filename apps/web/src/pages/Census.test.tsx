@@ -5,6 +5,7 @@ import { createCensus, createRadarRow } from '../mocks/fixtures';
 import { DYOR, NON_AFFILIATION } from '../copy';
 import { resolveRoute } from '../routes';
 import CensusPage, { CensusView } from './Census';
+import { CHAIN_COPY } from '../copy/chain';
 
 const now=Date.parse('2026-10-03T12:00:00Z');
 function published():Census {
@@ -37,7 +38,7 @@ describe('Census publication DOM',()=>{
   it('renders accepted model, measured shares, confidence and disclosures',()=>{
     const html=render(published());for(const text of ['42.3%','35.6%','23.4%','95.0%','91.0%','80.0%','fp-fixture',DYOR,NON_AFFILIATION,
       'per research','Methodology','Confidence tiers','Declared agent (ERC-8004)','Likely agent','Crew','Human']) {
-      if(text==='per research')expect(html).toContain('Per our research, the first agent-flow metric published for Elysium.');else expect(html).toContain(text);
+      if(text==='per research')expect(html).toContain(CHAIN_COPY.censusFirst);else expect(html).toContain(text);
     }
     expect(html).toContain('Trend history is unavailable');expect(html).toContain('<td>Unavailable</td>');
   });

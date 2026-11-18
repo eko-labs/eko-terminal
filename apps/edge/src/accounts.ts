@@ -4,11 +4,12 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { encodeFunctionData, getAddress, hashMessage, isAddress, parseAbi, recoverMessageAddress, type Address, type Hex } from 'viem';
 import { parseSiweMessage, validateSiweMessage } from 'viem/siwe';
-import { AlertSettingsSchema, ELYSIUM_CHAIN_ID, DEFAULT_PREFERENCES, PreferencesSchema, SiweVerifySchema, WatchBodySchema, type AlertSettings, type Me } from '@eko/shared';
+import { AlertSettingsSchema, DEFAULT_PREFERENCES, PreferencesSchema, SiweVerifySchema, WatchBodySchema, type AlertSettings, type Me } from '@eko/shared';
 import type { Rpc } from './tracker.js';
+import type { ChainProfile } from './chains/types.js';
 
 /**
- * Accounts on Elysium: a wallet signs in (Sign-In With Ethereum), and that wallet is the account. No email, no KYC.
+ * Accounts: a wallet signs in (Sign-In With Ethereum) on the deployment's chain, and that wallet is the account. No email, no KYC.
  * Sessions are random tokens in an HttpOnly cookie; only their SHA-256 is stored. Every write must come from the
  * site's own origin. Stored alongside EKO's memory in the same SQLite file.
  */
@@ -98,7 +99,11 @@ export function limiter(max: number, windowMs: number, maxKeys = 50_000) {
 
 const erc1271 = parseAbi(['function isValidSignature(bytes32 hash, bytes signature) view returns (bytes4)']);
 
-export interface AuthContext { store: AccountStore; rpc?: Rpc; onErase?: (accountId: string) => void }
+export interface AuthContext {
+  store: AccountStore; rpc?: Rpc; onErase?: (accountId: string) => void;
+  /** The deployment's chain: a sign-in message must name its id, and no other. */
+  chain: Pick<ChainProfile, 'id' | 'name'>;
+}
 
 export function readCookie(req: FastifyRequest, name = SESSION_COOKIE): string | undefined {
   const header = req.headers.cookie;
@@ -123,7 +128,7 @@ export function sessionCookie(req: FastifyRequest, token: string, maxAgeSec: num
 export function me(account: Account): Me {
   return {
     account: { id: account.id, wallet: account.wallet, linked: [] },
-    // One free tier on Elysium until a token exists: everything open, no trading fee.
+    // One free tier until a token exists: everything open, no trading fee.
     entitlements: { tier: 'source', limits: { agents: 3, deepResearchPerDay: 0, loopBacktestsPerDay: 0, realtime: true }, feeBps: 0 },
     trial: { status: 'not_open' }, holdings: { minBalance24h: null }, referralCode: account.id.slice(5, 13),
   };
@@ -158,7 +163,7 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AuthContext) {
     const body = SiweVerifySchema.safeParse(req.body);
     if (!body.success) return fail(reply, 400, 'bad_request', 'Malformed sign-in.');
     const message = parseSiweMessage(body.data.message), host = String(req.headers['x-forwarded-host'] ?? req.headers.host ?? '');
-    if (!message.address || !message.nonce || message.chainId !== ELYSIUM_CHAIN_ID || message.uri !== origin(req) ||
+    if (!message.address || !message.nonce || message.chainId !== ctx.chain.id || message.uri !== origin(req) ||
       !validateSiweMessage({ message, domain: host, time: new Date() })) return fail(reply, 401, 'unauthorized', 'This sign-in message is not for this site, chain or time.');
     if (!store.consumeNonce(message.nonce)) return fail(reply, 401, 'unauthorized', 'This sign-in request expired. Try again.');
     const signature = body.data.signature as Hex;
@@ -224,7 +229,7 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AuthContext) {
     const code = a.id.slice(5, 13);
     return { code, link: `${origin(req)}/?ref=${code}`, referred: 0, qualified: 0, bonusMinutes: 0 };
   });
-  app.post('/v1/telegram/link', async (_req, reply) => fail(reply, 503, 'unavailable', 'Telegram alerts are not available on Elysium yet.'));
+  app.post('/v1/telegram/link', async (_req, reply) => fail(reply, 503, 'unavailable', `Telegram alerts are not available on ${ctx.chain.name} yet.`));
 
   app.get('/v1/watch', async (req, reply) => {
     const a = need(req, reply); if (!a) return reply;
@@ -249,7 +254,7 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AuthContext) {
     return { ok: true };
   });
 
-  // Alerts are delivered in the app only on Elysium (no Telegram or push yet); the settings are kept for when they are.
+  // Alerts are delivered in the app only (no Telegram or push yet); the settings are kept for when they are.
   const DEFAULT_ALERTS: AlertSettings = { telegram: false, push: false, minLevel: 'monitor', kinds: ['verdict_change', 'playbook', 'order'] };
   app.get('/v1/alerts/settings', async (req, reply) => {
     const a = need(req, reply); if (!a) return reply;

@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { ReceiptLookupSchema, type ReceiptLookup } from '@eko/shared';
+import { CHAIN_NETWORK, NETWORKS, ReceiptLookupSchema, type ReceiptLookup } from '@eko/shared';
 import { ApiError, fetchParsed } from '../../lib/api';
+import { CHAIN_KEY } from '../../lib/chain';
 import { Link } from '../../lib/Link';
 import { verifyReceipt, type VerificationResult } from '../../lib/receipt-verifier';
 import { keylessReceiptReader, PUBLISHED_RECEIPTS_REGISTRY } from '../../lib/receipt-registry';
 import './trust.css';
+
+/** This build's chain explorer (Elysium: elysium.kinetiq.xyz/explorer; Robinhood: its Blockscout). */
+const EXPLORER = NETWORKS[CHAIN_NETWORK[CHAIN_KEY]].explorerUrl;
 
 export async function lookupReceipt(id: string, signal?: AbortSignal) {
   const receipt = await fetchParsed(`/receipts/${encodeURIComponent(id)}`, ReceiptLookupSchema, { signal });
@@ -19,7 +23,7 @@ export function ReceiptContents({ receipt, result, checking = false, onVerify, r
     <dl className="receipt-metadata"><dt>Kind</dt><dd>{receipt.kind}</dd><dt>Receipt ID</dt><dd>{receipt.id}</dd>
       <dt>Hash</dt><dd className="num">{receipt.hash}</dd><dt>Leaf</dt><dd className="num">{receipt.leaf}</dd>
       <dt>Canonicalization</dt><dd>{receipt.canonicalization}</dd><dt>Merkle root</dt><dd className="num">{anchored ? receipt.merkleRoot : 'Not yet committed'}</dd>
-      {anchored && <><dt>Batch</dt><dd>{receipt.batchId}</dd><dt>Block</dt><dd>{receipt.block}</dd><dt>Transaction</dt><dd><a href={`https://elysium.kinetiq.xyz/explorer/tx/${receipt.txHash}`} target="_blank" rel="noopener noreferrer">{receipt.txHash} ↗</a></dd></>}
+      {anchored && <><dt>Batch</dt><dd>{receipt.batchId}</dd><dt>Block</dt><dd>{receipt.block}</dd><dt>Transaction</dt><dd><a href={`${EXPLORER}/tx/${receipt.txHash}`} target="_blank" rel="noopener noreferrer">{receipt.txHash} ↗</a></dd></>}
     </dl>
     {!anchored && <p role="status">Pending · receipts are committed on-chain every 5 minutes.</p>}
     {anchored && !registryAvailable && <p role="status">On-chain verification is unavailable until the registry address is published.</p>}

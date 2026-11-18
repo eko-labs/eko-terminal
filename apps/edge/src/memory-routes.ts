@@ -105,7 +105,7 @@ export function registerMemoryRoutes(app: FastifyInstance, edge: Edge, m: { stor
         return { kind: 'cohort' as const, id: `cohort:${d.day}:${group}`, ts: `${d.day}T00:00:00.000Z`, detail: {
           week: d.day, group, eligible: d.eligible, evaluated, immature: Math.max(0, d.eligible - d.evaluated), censored: 0, ungraded: 0,
           rugRateStatus: evaluated ? 'observed' : 'unavailable', ...(evaluated ? { rugRatePct: (bad / evaluated) * 100 } : {}), rugDenominator: evaluated,
-          medianStatus: 'unavailable', medianDenominator: 0, horizonSec: 86_400, membershipHash: `${d.day}:${group}:${evaluated}`, outcomeVersion: 'elysium-1', identityVersion: 'elysium-1', cutBlock: d.cut } };
+          medianStatus: 'unavailable', medianDenominator: 0, horizonSec: 86_400, membershipHash: `${d.day}:${group}:${evaluated}`, outcomeVersion: edge.chain.profile.outcomeVersion, identityVersion: edge.chain.profile.outcomeVersion, cutBlock: d.cut } };
       }));
     }
     const unavailable = { status: 'unavailable' as const, reason: 'monitoring_missing' as const };

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { SignalRenderer } from "./lib/original-signal-renderer";
 import { INTRO_CAPTIONS, INTRO_SCREENS } from "./intro-captions";
+import { CHAIN_NAME } from "./chain";
 
 export default function OriginalHeroIntro({
   onComplete,
@@ -123,7 +124,7 @@ export default function OriginalHeroIntro({
           <canvas ref={canvas} aria-hidden="true" />
           <div className="eko-intro-brand">
             <span className="eko-intro-wordmark">EKO</span>
-            <span className="eko-intro-tagline">A trench terminal for Elysium</span>
+            <span className="eko-intro-tagline">A trench terminal for {CHAIN_NAME}</span>
           </div>
           <div className="eko-intro-caption" key={chapter} aria-live="polite">
             <span className="eko-intro-eyebrow">

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { getAddress, toHex, type Hex } from 'viem';
 import { loadElysiumRegistry } from '@eko/chain';
 import fx from './fixtures/launchpads.json' with { type: 'json' };
-import { decodeLaunch, flaunchTrade, FLAUNCH_POOL_SWAP } from '../src/launchpads.js';
+import { decodeLaunch, flaunchTrade, FLAUNCH_POOL_SWAP } from '../src/chains/elysium/launchpads.js';
 import { SWAP_TOPIC, Tracker, TRANSFER_TOPIC, type RawLog, type Rpc } from '../src/tracker.js';
 
 const registry = loadElysiumRegistry();

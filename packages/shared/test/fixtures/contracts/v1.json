@@ -3116,11 +3116,22 @@
   },
   "BlueChip": {
     "member": true,
-    "via": ["coingecko", "earned"]
+    "via": [
+      "coingecko",
+      "earned"
+    ]
   },
   "BlueChipCriteria": {
     "minAgeDays": 3,
     "minLiquidityUsd": 25000,
     "minHolders": 250
+  },
+  "PublicChain": {
+    "key": "robinhood",
+    "id": 4663,
+    "name": "Robinhood Chain",
+    "native": "ETH",
+    "explorerUrl": "https://robinhoodchain.blockscout.com",
+    "publicRpcUrl": "https://rpc.mainnet.chain.robinhood.com"
   }
 }

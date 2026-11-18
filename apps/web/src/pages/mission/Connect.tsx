@@ -12,7 +12,7 @@ import { JournalConsentSetting } from '../settings/JournalConsent';
 import { Link } from '../../lib/Link';
 import { IconShield, IconArrow, IconCheck } from '../../components/icons';
 import { ADVISORY, BUILT_ON, NON_AFFILIATION, ONCHAIN_ADVISORY } from '../../copy';
-import { MISSION_COPY as C, PLATFORM_COPY } from '../../copy/mission';
+import { MISSION_COPY as C, PLATFORM_COPY, ROBINHOOD_MCP } from '../../copy/mission';
 import { money } from './parts';
 import { OneTimeKey } from './OneTimeKey';
 import './mission.css';
@@ -71,7 +71,7 @@ export function ConnectScreen({ packs, presets, flags, phase }: { packs: Pack[];
   const select = (platform: Platform) => { if (busy) return; generation.current++; key.current = ''; setVisibleKey(''); setKeyIssued(false); setAgent(null); setError(''); setWaiting(false); setConnected(false); setSessionConfirmed(false); setSelected(platform); };
   const ensureAgent = async () => {
     if (agent) return agent;
-    const a = await createAgent(agentName, selected === 'onchain' ? 'onchain' : 'other', preset.toLowerCase());
+    const a = await createAgent(agentName, selected === 'onchain' ? 'onchain' : ROBINHOOD_MCP?.kind ?? 'other', preset.toLowerCase());
     if (mounted.current) setAgent(a); return a;
   };
   const issue = async () => {

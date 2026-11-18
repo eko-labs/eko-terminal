@@ -18,7 +18,19 @@ export const ApiErrorSchema = z.object({
   retryAfterSec: z.number().optional(),
 });
 export type ApiError = z.infer<typeof ApiErrorSchema>;
+/** The chain this deployment serves (one per deployment; see chain.ts). */
+export const PublicChainSchema = z.object({
+  key: z.enum(['elysium', 'robinhood']),
+  id: z.union([z.literal(4663), z.literal(99901)]),
+  name: z.string(),
+  native: z.enum(['HYPE', 'ETH']),
+  explorerUrl: z.string(),
+  publicRpcUrl: z.string(),
+});
+export type PublicChain = z.infer<typeof PublicChainSchema>;
 export const PublicConfigSchema = z.object({
+  /** Absent only from older servers; the web then assumes Elysium. */
+  chain: PublicChainSchema.optional(),
   blueChip: BlueChipCriteriaSchema.optional(),
   phase: z.enum(['launch_week', 'token_live', 'tiers']),
   flags: FlagsSchema,

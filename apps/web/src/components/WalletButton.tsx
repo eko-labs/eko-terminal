@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useConnect, useConnection, useConnectors, useDisconnect } from 'wagmi';
-import { NETWORKS, NETWORK_FOR_MODE, shortAddress } from '@eko/shared';
+import { NETWORKS, shortAddress } from '@eko/shared';
 import { api } from '../lib/api';
 import { navigate } from '../lib/router';
 import { ensureChain, isUserRejection, siweSignIn } from '../lib/trade';
@@ -8,7 +8,9 @@ import { useApp } from '../store/app';
 import { useWalletState } from '../lib/walletState';
 import { useOutside } from './hooks';
 import { IconAlert, IconCheck, IconWallet } from './icons';
-import { CHAIN_ID } from '@eko/shared';
+import { BUILD_CHAIN_ID } from '../lib/chain';
+import { BUILD_NETWORK, deploymentMismatch } from '../lib/deployment';
+import { useShell } from '../store/shell';
 
 export function WalletButton() {
   const conn = useConnection();
@@ -30,7 +32,9 @@ export function WalletButton() {
     window.addEventListener('eko:open-wallet', h);
     return () => window.removeEventListener('eko:open-wallet', h);
   }, []);
-  const target = mode === 'paper' ? null : NETWORKS[NETWORK_FOR_MODE[mode]];
+  // One chain per build: a wallet on any other chain is on the wrong network, whatever the trading mode.
+  const target = mode === 'paper' ? null : BUILD_NETWORK;
+  const mismatch = deploymentMismatch(useShell((s) => s.config));
   const wrong = !!conn.address && !!target && chainId !== target.chainId;
   const verified = !!conn.address && account?.kind === 'wallet' && account.walletAddress === conn.address.toLowerCase();
   const unique = useMemo(() => {
@@ -46,7 +50,7 @@ export function WalletButton() {
   const verify = async () => {
     setErr(null);
     try {
-      await siweSignIn(target?.chainId ?? chainId ?? CHAIN_ID);
+      await siweSignIn(BUILD_CHAIN_ID);
       await refreshSession();
       toast({ kind: 'ok', title: 'Wallet verified', body: 'Signed in with Ethereum (EIP-4361).' });
     } catch (e) {
@@ -133,7 +137,7 @@ export function WalletButton() {
                   <IconAlert size={14} /> Switch to {target!.name}
                 </button>
               ) : null}
-              {!verified ? (
+              {mismatch ? <div className="menu-err" role="alert">{mismatch}</div> : !verified ? (
                 <button className="menu-row" role="menuitem" onClick={() => void verify()}>
                   <IconCheck size={14} /> Verify wallet · sign a message, no transaction
                 </button>

@@ -1,4 +1,5 @@
-import { PackSchema, PolicySchema, BUYER_RISK, DYOR, NON_AFFILIATION } from '@eko/shared';
+import { PackSchema, PolicySchema, BUYER_RISK, DYOR } from '@eko/shared';
+import { NON_AFFILIATION } from '../../copy';
 import type { Pack, Policy } from '@eko/shared';
 
 const instructions = `# EKO harness

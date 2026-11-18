@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import * as copy from './index';
+import { CHAIN_KEY } from '../lib/chain';
 
 const src = dirname(dirname(fileURLToPath(import.meta.url)));
 function files(dir: string): string[] {
@@ -21,7 +22,8 @@ const FORBIDDEN = [/price support/i, /\bfloor\b/i, /\bbid\b/i, /our chart gets b
 
 describe('canonical §8 copy', () => {
   it('snapshots every exact constant and fee wording', () => {
-    expect({ ...copy }).toMatchSnapshot();
+    // The default (Elysium) build keeps the original snapshot; a Robinhood Chain pass (test:robinhood) has its own.
+    if (CHAIN_KEY === 'elysium') expect({ ...copy }).toMatchSnapshot(); else expect({ ...copy }).toMatchSnapshot(CHAIN_KEY);
   });
   it('keeps disclaimers out of hard-coded source text outside copy/', () => {
     const violations: string[] = [];

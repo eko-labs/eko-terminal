@@ -5,6 +5,7 @@ import { AccountStore } from '../src/accounts.js';
 import { AgentStore, PRESETS, type AgentRow } from '../src/agents.js';
 import { HistoryStore } from '../src/history.js';
 import { mcpTools } from '../src/mcp.js';
+import { chainOf } from '../src/chains/elysium/index.js';
 import { MSG_SENDER, Trading, universalRouterAbi, v4QuoterAbi } from '../src/trade.js';
 import type { Assessment } from '../src/assess.js';
 import type { CoinState } from '../src/tracker.js';
@@ -26,7 +27,7 @@ function setup(opts: { impactWarn?: boolean } = {}) {
     approvalTxs: () => [],
     order: async (_acct: string, wallet: Address, body: { idempotencyKey: string }) => { prepared.push({ wallet, idem: body.idempotencyKey }); return { order: { id: `ord_${prepared.length}` }, tx: { chainId: 99901, to: zeroAddress, data: '0x', value: '0' } }; },
   } as unknown as Trading;
-  const edge = { tracker: { coin: () => ({}) as CoinState }, fresh: async () => assessment } as unknown as Edge;
+  const edge = { tracker: { coin: () => ({}) as CoinState }, fresh: async () => assessment, chain: chainOf(registry) } as unknown as Edge;
   const tools = new Map(mcpTools({ edge, agents, trading }).map(t => [t.name, t]));
   const agent = () => agents.byId(created.id)!;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tool results are checked with toMatchObject
@@ -100,7 +101,7 @@ describe('the swap transaction', () => {
       if (call.to.toLowerCase() === registry.address('uniswapV4.v4Quoter').toLowerCase()) return encodeFunctionResult({ abi: v4QuoterAbi, functionName: 'quoteExactInputSingle', result: [10n ** 21n, 100_000n] });
       return '0x';
     } };
-    const trading = new Trading({ db: store.db, rpc: rpc as never, registry, coin: () => coin, assess: async () => assessment, hypeUsd: () => 30, maxTradeUsd: 250 });
+    const trading = new Trading({ db: store.db, rpc: rpc as never, chain: registry, coin: () => coin, assess: async () => assessment, hypeUsd: () => 30, maxTradeUsd: 250 });
     const quote = await trading.quote({ coin: COIN, side: 'buy', amountUsd: 30, slippageBps: 300 }, AGENT_WALLET);
     const { tx } = await trading.order('acct_x', AGENT_WALLET, { quoteId: quote.id, idempotencyKey: 'k-1', acknowledged: [] });
     expect(tx.to).toBe(router);

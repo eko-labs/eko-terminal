@@ -4,17 +4,18 @@ import { fetchParsed } from '../../lib/api';
 import { Link } from '../../lib/Link';
 import { UntrustedText, VerdictChip } from '../../components/ui';
 import { PLAYBOOK_NAMES } from './radarModel';
+import { CHAIN_COPY } from '../../copy/chain';
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 const OUTCOME_TEXT: Record<string, string> = { rugged: 'Rugged', honeypot: 'Honeypot', dumped: 'Dumped', survived: 'Survived' };
 const when = (iso: string | null) => iso ? new Date(iso).toISOString().replace('T', ' ').slice(0, 16) + ' UTC' : '—';
 
-/** One deployer's record on Elysium: its launches and its crew's, the strongest checks each got, and what became of them. */
+/** One deployer's record on this build's chain: its launches and its crew's, the strongest checks each got, and what became of them. */
 export function DeployerView({ data }: { data: DeployerHistory }) {
   const s = data.summary, bad = s.outcomes.rugged + s.outcomes.honeypot + s.outcomes.dumped, graded = bad + s.outcomes.survived;
   return <div className="shell-page deployer-page">
     <header className="page-head"><span className="eyebrow">Deployer history</span><h1 className="addr" title={data.deployer}>{short(data.deployer)}</h1>
-      <p>{s.launches.toLocaleString()} launch{s.launches === 1 ? '' : 'es'} on Elysium{s.firstLaunchAt ? ` since ${when(s.firstLaunchAt)}` : ''}; {s.traded.toLocaleString()} traded.
+      <p>{s.launches.toLocaleString()} launch{s.launches === 1 ? '' : 'es'} {CHAIN_COPY.deployerLaunches}{s.firstLaunchAt ? ` since ${when(s.firstLaunchAt)}` : ''}; {s.traded.toLocaleString()} traded.
         {graded > 0 ? ` After a day, ${bad} of ${graded} traded launch${graded === 1 ? '' : 'es'} went bad (rugged, honeypot or dumped).` : ' No launch has a day-old outcome yet.'}</p>
     </header>
     <section className="panel panel-body"><h2>Outcomes after 24 hours</h2>
@@ -25,7 +26,7 @@ export function DeployerView({ data }: { data: DeployerHistory }) {
     <section className="panel panel-body"><h2>Funding and crew</h2>
       {data.funder ? <p>Funded by <span className="addr" title={data.funder.address}>{short(data.funder.address)}</span>{data.funder.fundedAt ? ` on ${when(data.funder.fundedAt)}` : ''}
         {data.funder.hub ? ' — a hub that funded many wallets, so it links no crew.' : '.'}</p>
-        : <p className="muted">{data.funderStatus === 'pending' ? 'Funding is being traced; check back in a minute.' : 'No incoming HYPE transfer funded this wallet (it may have bridged in).'}</p>}
+        : <p className="muted">{data.funderStatus === 'pending' ? 'Funding is being traced; check back in a minute.' : CHAIN_COPY.deployerNoFunder}</p>}
       {data.crew ? <p>Same funder as {data.crew.deployers.length} other deployer{data.crew.deployers.length === 1 ? '' : 's'}: {data.crew.deployers.slice(0, 12).map(d => <Link key={d} to={`/deployer/${d}`} className="addr">{short(d)} </Link>)}</p>
         : data.funder && !data.funder.hub && <p className="muted">No other deployer shares this funder.</p>}
     </section>
@@ -35,7 +36,7 @@ export function DeployerView({ data }: { data: DeployerHistory }) {
       <tbody>{data.launches.map(l => <LaunchRow key={l.address} l={l} />)}</tbody></table></div>
       {!data.launches.length && <p className="panel-body muted">No launches recorded for this wallet.</p>}
     </section>
-    <p className="muted">Records start {when(data.coverage.since)} (Elysium's first Montra launch). Launches EKO did not watch live were rebuilt from their logs, without a sell check.</p>
+    <p className="muted">Records start {when(data.coverage.since)} ({CHAIN_COPY.deployerCoverage}). Launches EKO did not watch live were rebuilt from their logs, without a sell check.</p>
   </div>;
 }
 

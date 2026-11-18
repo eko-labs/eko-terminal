@@ -3,7 +3,8 @@ import { AddressSchema, TradeOrderSchema, TradeQuoteSchema, UnsignedTxSchema, ty
 import type { TradeHandoff } from '../components/trade/TradeContext';
 import { panelBlock, emptyQuote, quoteExpired, tradeRequestKey } from '../components/trade/tradePanelModel';
 import { isUserRejection, newIdempotencyKey } from './trade';
-import { CHAIN_ID } from '@eko/shared';
+import { BUILD_CHAIN_ID } from './chain';
+import { deploymentMismatch } from './deployment';
 
 export type GuardedPhase = 'idle' | 'quoting' | 'needs_ack' | 'refused' | 'approving' | 'signing' | 'submitted' | 'confirmed' | 'failed';
 export type Sent = 'none' | 'approval' | 'swap' | 'unknown';
@@ -60,8 +61,9 @@ export class GuardedTradeFlow {
   private identity() {
     const c = this.env.current();
     if (!c.wallet || !AddressSchema.safeParse(c.wallet.address).success || !c.accountId || !addressEqual(c.wallet.address, c.verifiedWallet)) throw new TradeFlowError('wallet_mismatch', 'none');
-    if (c.wallet.chainId !== CHAIN_ID) throw new TradeFlowError('wrong_network', 'none');
-    return `${c.accountId}:${c.wallet.address.toLowerCase()}:${CHAIN_ID}`;
+    if (deploymentMismatch(c.config)) throw new TradeFlowError('deployment_mismatch', 'none');
+    if (c.wallet.chainId !== BUILD_CHAIN_ID) throw new TradeFlowError('wrong_network', 'none');
+    return `${c.accountId}:${c.wallet.address.toLowerCase()}:${BUILD_CHAIN_ID}`;
   }
   private check(scope: string) {
     if (scope !== this.identity()) { this.clear(); throw new TradeFlowError('wallet_mismatch', 'none'); }
@@ -105,7 +107,7 @@ export class GuardedTradeFlow {
   }
   private transaction(tx: UnsignedTx, q: TradeQuote, scope: string) {
     const c = this.check(scope);
-    if (!UnsignedTxSchema.safeParse(tx).success || !(c.config!.trading.routers.some(a => addressEqual(a, tx.to)) || addressEqual(tx.to, ponsCurve(q))) || !/^0x(?:[0-9a-fA-F]{2})+$/.test(tx.data) ||
+    if (!UnsignedTxSchema.safeParse(tx).success || tx.chainId !== BUILD_CHAIN_ID || !(c.config!.trading.routers.some(a => addressEqual(a, tx.to)) || addressEqual(tx.to, ponsCurve(q))) || !/^0x(?:[0-9a-fA-F]{2})+$/.test(tx.data) ||
       !raw(tx.value) || BigInt(tx.value) >= (1n << 256n) || tx.value !== q.valueWei) {
       this.env.mismatch(); throw new TradeFlowError('calldata_mismatch', 'none');
     }

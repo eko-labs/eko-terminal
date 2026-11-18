@@ -1,10 +1,17 @@
 import { APP_NAME } from './shell';
+import { pick } from '../lib/chain';
 export const MISSION_COPY = {
   connectToCreate: 'Connect and verify your wallet to create the agent and its key. Every step is here to read first.',
   overviewIntro: 'Your trading agents ask EKO before every order. You set their limits and answer anything above them.',
   approvalsIntro: 'Orders your agents want to place above your limits. You decide here on the web; unanswered approvals expire and the agent is told no.',
-  connectIntro: `Connect your AI agent to ${APP_NAME}. It checks coins and asks ${APP_NAME} before it trades, and keeps a Flight Recorder; you supervise it in Mission Control.`,
-  credentials: `${APP_NAME} never receives your agent’s wallet keys. Your agent signs its own trades.`,
+  connectIntro: pick({
+    elysium: `Connect your AI agent to ${APP_NAME}. It checks coins and asks ${APP_NAME} before it trades, and keeps a Flight Recorder; you supervise it in Mission Control.`,
+    robinhood: `Add ${APP_NAME} next to your agent’s Robinhood connection. It checks coins and asks ${APP_NAME} before it trades, and keeps a Flight Recorder; you supervise it in Mission Control.`,
+  }),
+  credentials: pick({
+    elysium: `${APP_NAME} never receives your agent’s wallet keys. Your agent signs its own trades.`,
+    robinhood: `${APP_NAME} never receives your Robinhood credentials or your agent’s wallet keys. Your agent keeps its own Robinhood connection and signs its own trades.`,
+  }),
   keyOnce: 'You won’t see this again. Store it in your agent’s config. Stored nowhere else in this browser.',
   connectorNote: `Works on every Claude plan; Free allows one custom connector. On Team and Enterprise, an owner adds ${APP_NAME} first in Organization settings → Connectors, then members connect.`,
   previewPreset: 'Preset preview. Editing and saving limits are not available yet.',
@@ -31,6 +38,8 @@ export const POLICY_FIELDS = [
   { key: 'maxLeverage', label: 'Max leverage', hint: 'Orders above this leverage are denied.', unit: '×', group: 'Size and loss' },
   { key: 'maxRoundTripCostPct', label: 'Max exit cost', hint: 'Round-trip cost at the order size, from the buy-then-sell simulation.', unit: '%', group: 'Coin checks' },
   { key: 'minLiquidityUsd', label: 'Min liquidity', hint: 'No trading into thin pools.', unit: '$', group: 'Coin checks' },
+  // Robinhood-connected agents also trade stocks; the earnings date comes from their own Robinhood connection.
+  ...pick({ elysium: [], robinhood: [{ key: 'earningsBlackoutDays', label: 'Earnings blackout', hint: 'Your agent supplies the earnings date from its Robinhood connection.', unit: 'days', group: 'Assets and timing' }] as const }),
 ] as const;
 
 // Shared labels for the ported Mission Control screens.
@@ -218,7 +227,7 @@ export const MISSION_LABELS = {
   "venueKey": "Venue key",
   "toCutTheAgentOffAtThe": "To cut the agent off at the venue, delete its trade-only API wallet there.",
   "scopes": "Scopes",
-  "noScopeLetsEkoMoveFundsOr": `No scope lets ${APP_NAME} move funds or sign for your wallet.`,
+  "noScopeLetsEkoMoveFundsOr": pick({ elysium: `No scope lets ${APP_NAME} move funds or sign for your wallet.`, robinhood: `No scope lets ${APP_NAME} move funds, sign for your wallet or read your Robinhood account.` }),
   "newHarnessKey": "New harness key",
   "createAKey": "Create a key",
   "revokeOauthGrant": "Revoke OAuth grant",
@@ -311,6 +320,28 @@ export const MISSION_LABELS = {
   "confirmSave": "Confirm save"
 } as const;
 
+/**
+ * Robinhood Chain builds only: agents that trade through Robinhood's own MCP connection and ask EKO before each order
+ * (agent kind robinhood_mcp). EKO never sees that connection, so these screens say where to switch it off. Null on
+ * Elysium, where such agents show as plain MCP agents.
+ */
+export const ROBINHOOD_MCP = pick({
+  elysium: null,
+  robinhood: {
+    kind: 'robinhood_mcp' as const,
+    label: 'Robinhood (MCP)',
+    connection: 'Robinhood connection',
+    connectionBody: `Your agent connects to Robinhood’s MCP on its own. ${APP_NAME} never receives your Robinhood credentials and can’t place, block or cancel orders there. Check that Robinhood’s own trade approvals are on.`,
+    open: 'Open Robinhood',
+    settingsUrl: 'https://robinhood.com/account/settings',
+    approvalHint: 'Robinhood asks you again if its trade approvals are on.',
+    disconnectedSuffix: ' Open Robinhood to disconnect this agent there too.',
+    revoked: `Harness keys revoked. Open Robinhood to disconnect this agent there too. Your confirmation is a note for you; ${APP_NAME} can’t see Robinhood’s side.`,
+    revokedDone: 'I’ve disconnected it in Robinhood',
+    pauseOrDisconnect: `Pause makes every preflight return deny until you resume. Disconnect revokes the agent’s ${APP_NAME} keys. Robinhood-connected agents must also be disconnected in Robinhood.`,
+  },
+});
+
 export const MISSION_TEXT = {
   saved: (version: number) => `Saved as v${version}`,
   defaultAgent: (client: string) => `My ${client} agent`,
@@ -318,7 +349,7 @@ export const MISSION_TEXT = {
   lastActive: (time: string) => `Last active ${time}`,
   clientVenue: (client: string, venue: string) => `${client} · trades on ${venue}`,
   paused: (name: string) => `Paused. Every order ${name} asks about is blocked, and it has been told to stop.`,
-  disconnected: (name: string) => `Disconnected. ${name}’s ${APP_NAME} keys are revoked.`,
+  disconnected: (name: string, robinhood = false) => `Disconnected. ${name}’s ${APP_NAME} keys are revoked.${robinhood && ROBINHOOD_MCP ? ROBINHOOD_MCP.disconnectedSuffix : ''}`,
   order: (side: string, amount: string, instrument: string) => `${side} ${amount} of ${instrument}`,
   today: (amount: string) => `${amount} today`,
   approve: (name: string, side: string, amount: string, instrument: string) => `Approve: ${name} may ${side} ${amount} of ${instrument}?`,
@@ -329,7 +360,7 @@ export const MISSION_TEXT = {
 export const CONNECT_STEPS = {
   connector: ['Open Customize → Connectors', 'Paste the MCP URL', `Click Connect, then approve on ${APP_NAME}`, 'Add the harness instructions'],
   key: ['Generate a harness key', `Add ${APP_NAME} to your MCP servers`, 'Give your agent the harness instructions', 'Check it’s connected'],
-  approvals: 'Know what the checks can’t stop',
+  approvals: pick({ elysium: 'Know what the checks can’t stop', robinhood: 'Check trade approvals are on in Robinhood' }),
   connectorReturn: 'Your browser returns to the client’s registered callback. Add the harness instructions there, then return here to Verify.',
   keyConfig: 'The key goes in the Authorization header. Copy the config with your key filled in.',
   keyCheck: `Turn on the agent journal, then ask your agent to check in with ${APP_NAME}. Its first journal event will appear below.`,

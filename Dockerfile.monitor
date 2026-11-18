@@ -4,7 +4,7 @@
 FROM node:22.23.4-bookworm-slim@sha256:5991875dfb80938dd8a6ba3fe3e96fd04929e70792762b3319d8caadbbe229bc
 WORKDIR /app
 COPY scripts/monitor-edge.mjs scripts/verify-edge.mjs scripts/
-COPY packages/chain/addresses.99901.yaml packages/chain/
+COPY packages/chain/addresses.99901.yaml packages/chain/addresses.4663.yaml packages/chain/
 COPY apps/edge/live-config.json apps/edge/
 USER node
 CMD ["node", "scripts/monitor-edge.mjs"]

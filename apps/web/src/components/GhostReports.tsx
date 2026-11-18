@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { GhostReportListSchema, ghostReportFindings, ghostReportShare, formatGuardReason,
-  GUARD_CHECK_LABELS, DYOR, NON_AFFILIATION, type GhostReportRecord } from '@eko/shared';
+  GUARD_CHECK_LABELS, DYOR, type GhostReportRecord } from '@eko/shared';
+import { NON_AFFILIATION } from '../copy';
 import { fetchParsed, isRateLimited, MOCKS } from '../lib/api';
 import { Link } from '../lib/Link';
 

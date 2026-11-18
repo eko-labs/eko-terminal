@@ -1,17 +1,14 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { rename, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import { graduationBps } from './graduation.js';
 import type { CoinState, Tracker } from './tracker.js';
 
 /**
- * Keeps the graduation columns through a restart. The tracker holds coins in memory only and a restart replays the
- * last few minutes of chain, while Montra's graduates are hours old. So the coins that matter to the columns (graduated,
- * or at least SAVE_FROM_BPS of the way to the line, which covers the ones still climbing) are written to a file on the
- * volume every minute and at shutdown, and handed back to the tracker at start (Tracker.restore). It is small: Montra
- * has graduated about 130 coins in all.
+ * Keeps the tracked coins through a restart. The tracker holds coins in memory only and a restart replays the last hour
+ * of chain, while coins stay on the radar (and tradable) for a day. So every followed coin is written to a file on the
+ * volume every minute and at shutdown, and handed back to the tracker at start (Tracker.restore, then the chain's
+ * rebase for running balances such as a Pons curve's reserves).
  */
-export const SAVE_FROM_BPS = 1000;
 const VERSION = 1;
 
 const replacer = (_: string, v: unknown) => typeof v === 'bigint' ? { $n: v.toString() } : v;
@@ -25,11 +22,14 @@ export function decodeCoins(text: string): CoinState[] {
 
 export class ColumnSnapshot {
   private writing = false;
-  constructor(private readonly path: string, private readonly tracker: Tracker, private readonly openMcapHype = () => tracker.openMcapHype) {}
+  constructor(private readonly path: string, private readonly tracker: Tracker) {}
 
-  /** The coins worth keeping: graduated, or far enough along to reach the columns. */
+  /**
+   * Every coin the tracker follows. A restart replays only the last hour, and EKO checks and trades only coins it
+   * follows, so a coin left out here would drop off the radar (and out of trading) at every deploy until it aged out.
+   */
   coins(): CoinState[] {
-    return [...this.tracker.coins.values()].filter(c => c.graduated || (graduationBps(c, this.openMcapHype()) ?? 0) >= SAVE_FROM_BPS);
+    return [...this.tracker.coins.values()];
   }
 
   /** The saved coins, or none when there is no file or it cannot be read. */

@@ -169,7 +169,7 @@ describe('storage bounds per account (rescore: storage growth not fully bounded)
 
   it('keeps ORDERS_KEPT settled orders per account and never deletes one in flight', async () => {
     const store = new HistoryStore(':memory:'), wallet = getAddress('0x00000000000000000000000000000000000a11ce');
-    const trading = new Trading({ db: store.db, rpc: { request: async () => '0x' }, registry, coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 250 });
+    const trading = new Trading({ db: store.db, rpc: { request: async () => '0x' }, chain: registry, coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 250 });
     const insert = (id: string, status: string, t: number) => store.db.prepare(`INSERT INTO orders(id, account_id, wallet, quote_id, idem, coin, side, amount_in, min_out, status, created_at, updated_at)
       VALUES(?, 'acct_o', ?, 'q', ?, '0x0', 'buy', '1', '1', ?, ?, ?)`).run(id, wallet.toLowerCase(), id, status, t, t);
     for (let i = 0; i < ORDERS_KEPT + 100; i++) insert(`old_${i}`, 'confirmed', i);
@@ -177,7 +177,7 @@ describe('storage bounds per account (rescore: storage growth not fully bounded)
     const key = { currency0: '0x0000000000000000000000000000000000000000', currency1: getAddress('0x4da0ff60be75fdff37bfb2252adf23ea27a9acce'), fee: 0, tickSpacing: 60,
       hooks: getAddress('0x3ab88ddc3cf2a012af88b60828edb4553697e5dc') };
     (trading as unknown as { quotes: Map<string, unknown> }).quotes.set('q_new', { quote: { id: 'q_new', account: wallet, coin: key.currency1, side: 'buy',
-      expiresAt: new Date(Date.now() + 60_000).toISOString(), guard: { decision: 'allow', checks: [] } }, key, amountIn: 1n, minOut: 1n, at: Date.now() });
+      expiresAt: new Date(Date.now() + 60_000).toISOString(), guard: { decision: 'allow', checks: [] } }, route: { kind: 'v4', key, token: key.currency1 }, amountIn: 1n, minOut: 1n, at: Date.now() });
     await trading.order('acct_o', wallet, { quoteId: 'q_new', idempotencyKey: 'new-1', acknowledged: [] });
     expect(count(store, `SELECT count(*) AS n FROM orders WHERE account_id = 'acct_o' AND status = 'confirmed'`)).toBeLessThanOrEqual(ORDERS_KEPT);
     expect(count(store, `SELECT count(*) AS n FROM orders WHERE id IN ('in_flight')`)).toBe(1);
@@ -185,7 +185,7 @@ describe('storage bounds per account (rescore: storage growth not fully bounded)
 
   it('limits public quotes per client address (each spends paid-lane RPC reads)', async () => {
     const store = new HistoryStore(':memory:'), accounts = new AccountStore(store.db);
-    const trading = new Trading({ db: store.db, rpc: { request: async () => '0x' }, registry, coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 250 });
+    const trading = new Trading({ db: store.db, rpc: { request: async () => '0x' }, chain: registry, coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 250 });
     const { app } = server({ store, accounts, trading });
     const codes: number[] = [];
     for (let i = 0; i <= QUOTES_PER_MIN; i++) codes.push((await app.inject({ method: 'POST', url: '/v1/trade/quote', headers: json, payload: {} })).statusCode);
@@ -198,10 +198,10 @@ describe('orders, data deletion, daily journal quota and the storage guard (seco
   const count = (store: HistoryStore, sql: string, ...args: unknown[]) => (store.db.prepare(sql).get(...(args as never[])) as { n: number }).n;
   const key = { currency0: '0x0000000000000000000000000000000000000000', currency1: getAddress('0x4da0ff60be75fdff37bfb2252adf23ea27a9acce'), fee: 0, tickSpacing: 60,
     hooks: getAddress('0x3ab88ddc3cf2a012af88b60828edb4553697e5dc') } as const;
-  const tradingWith = (store: HistoryStore, calls: { n: number }) => new Trading({ db: store.db, rpc: { request: async () => { calls.n++; return '0x'; } }, registry,
+  const tradingWith = (store: HistoryStore, calls: { n: number }) => new Trading({ db: store.db, rpc: { request: async () => { calls.n++; return '0x'; } }, chain: registry,
     coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 250 });
   const putQuote = (t: Trading, id: string, wallet: string) => (t as unknown as { quotes: Map<string, unknown> }).quotes.set(id, { quote: { id, account: wallet, coin: key.currency1,
-    side: 'buy', expiresAt: new Date(Date.now() + 60_000).toISOString(), guard: { decision: 'allow', checks: [] } }, key, amountIn: 1n, minOut: 1n, at: Date.now() });
+    side: 'buy', expiresAt: new Date(Date.now() + 60_000).toISOString(), guard: { decision: 'allow', checks: [] } }, route: { kind: 'v4', key, token: key.currency1 }, amountIn: 1n, minOut: 1n, at: Date.now() });
 
   it('limits orders per account a minute, before any simulation', async () => {
     const store = new HistoryStore(':memory:'), accounts = new AccountStore(store.db), calls = { n: 0 };
@@ -289,7 +289,7 @@ describe('trading\'s paid-lane budget, service-level limits, new accounts and er
   it('limits quotes per wallet and orders per account inside trading, so MCP\'s trade_prepare gets the same limits', async () => {
     const store = new HistoryStore(':memory:'), wallet = getAddress('0x00000000000000000000000000000000000a11ce');
     let calls = 0;
-    const t = new Trading({ db: store.db, rpc: { request: async () => { calls++; throw new Error('insufficient funds'); } }, registry,
+    const t = new Trading({ db: store.db, rpc: { request: async () => { calls++; throw new Error('insufficient funds'); } }, chain: registry,
       coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 250 });
     const q = { coin: getAddress('0xabababababababababababababababababababab'), side: 'buy' as const, amountUsd: 1, slippageBps: 100 };
     for (let i = 0; i < QUOTES_PER_MIN; i++) await expect(t.quote(q, wallet)).rejects.toMatchObject({ status: 404 }); // not followed: no RPC
@@ -300,7 +300,7 @@ describe('trading\'s paid-lane budget, service-level limits, new accounts and er
     const quotes = (t as unknown as { quotes: Map<string, unknown> }).quotes;
     for (let i = 0; i <= ORDERS_PER_MIN; i++) {
       quotes.set(`q${i}`, { quote: { id: `q${i}`, account: wallet, coin: key.currency1, side: 'buy', expiresAt: new Date(Date.now() + 60_000).toISOString(), guard: { decision: 'allow', checks: [] } },
-        key, amountIn: 1n, minOut: 1n, at: Date.now() });
+        route: { kind: 'v4', key, token: key.currency1 }, amountIn: 1n, minOut: 1n, at: Date.now() });
       await expect(t.order('agent:agt_x', wallet, { quoteId: `q${i}`, idempotencyKey: `same-ref-${i}`, acknowledged: [] })).rejects.toMatchObject({ status: i < ORDERS_PER_MIN ? 409 : 429 });
     }
     expect(calls).toBe(ORDERS_PER_MIN);
@@ -327,7 +327,7 @@ describe('trading\'s paid-lane budget, service-level limits, new accounts and er
       expect((await app.inject({ method: 'POST', url: '/v1/watch', headers: authed, payload: { kind: 'coin', target: getAddress('0xabababababababababababababababababababab') } })).statusCode).toBe(507);
       expect((await app.inject({ method: 'PUT', url: '/v1/me/journal-consent', headers: authed, payload: { optedIn: true } })).statusCode).toBe(507);
     } finally { setStorageGuard(() => true); }
-    new Trading({ db: store.db, rpc: { request: async () => '0x' }, registry, coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 250 });
+    new Trading({ db: store.db, rpc: { request: async () => '0x' }, chain: registry, coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 250 });
     const agent = (await app.inject({ method: 'POST', url: '/v1/agents', headers: authed, payload: { name: 'Bot' } })).json();
     store.db.prepare(`INSERT INTO orders(id, account_id, wallet, quote_id, idem, coin, side, amount_in, min_out, status, created_at, updated_at)
       VALUES('ord_agent', ?, '0x0', 'q', 'i', '0x0', 'buy', '1', '1', 'confirmed', 0, 0)`).run(`agent:${agent.id}`);
@@ -339,7 +339,7 @@ describe('trading\'s paid-lane budget, service-level limits, new accounts and er
 describe('signed-out quotes and settlement keep their own share (fourth independent check)', () => {
   it('gives signed-out quotes, all together, a slice of trading\'s budget, never all of it', async () => {
     const store = new HistoryStore(':memory:');
-    const t = new Trading({ db: store.db, rpc: { request: async () => '0x' }, registry, coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 250 });
+    const t = new Trading({ db: store.db, rpc: { request: async () => '0x' }, chain: registry, coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 250 });
     const q = { coin: getAddress('0xabababababababababababababababababababab'), side: 'buy' as const, amountUsd: 1, slippageBps: 100 };
     for (let i = 0; i < ANON_QUOTES_PER_MIN; i++) await expect(t.quote(q, null)).rejects.toMatchObject({ status: 404 });
     await expect(t.quote(q, null)).rejects.toMatchObject({ status: 429 });
@@ -352,7 +352,7 @@ describe('signed-out quotes and settlement keep their own share (fourth independ
     let receiptCalls = 0;
     const t = new Trading({ db: store.db, rpc: { request: async () => { throw new Error('shared slice must not be used'); } },
       receiptRpc: { request: async () => { receiptCalls++; throw Object.assign(new Error('busy'), { status: 429 }); } },
-      registry, coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 250 });
+      chain: registry, coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 250 });
     store.db.prepare(`INSERT INTO orders(id, account_id, wallet, quote_id, idem, coin, side, amount_in, min_out, status, tx_hash, created_at, updated_at)
       VALUES('ord_s', 'acct_s', '0x0', 'q', 'i', '0x0', 'buy', '1', '1', 'submitted', ?, 0, 0)`).run(`0x${'1'.repeat(64)}`);
     await t.reconcile();

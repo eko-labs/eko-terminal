@@ -1,6 +1,8 @@
-import { GAS_RESERVE_ETH, NETWORKS, NETWORK_FOR_MODE, formatQty, formatUsd, priceDecimals, sellQuantity, type Order, type Quote, type RouteDef } from '@eko/shared';
+import { CHAIN_NETWORK, GAS_RESERVE_ETH, NETWORKS, NETWORK_FOR_MODE, formatQty, formatUsd, priceDecimals, sellQuantity, type Order, type Quote, type RouteDef } from '@eko/shared';
+import { CHAIN_KEY } from './chain';
 import { ApiError, type api } from './api';
 import { isUserRejection } from './trade';
+import { CHAIN_COPY } from '../copy/chain';
 
 /**
  * The one-tap live flow, free of React: quote →
@@ -40,7 +42,7 @@ const FRIENDLY: Record<string, string> = {
   quote_expired: 'The price moved on — tap again',
   slippage_exceeded: 'The price moved too far — nothing was traded',
   network: 'Can’t reach EKO — check your connection',
-  rpc_unavailable: 'Elysium isn’t responding — try again shortly',
+  rpc_unavailable: CHAIN_COPY.rpcUnavailable,
   no_liquidity: 'Not enough liquidity for that size right now',
   live_disabled: 'Live trading is off on this server',
   wallet_required: 'Connect your wallet to trade live',
@@ -116,13 +118,14 @@ function quoteBlocker(q: Quote): Failure | null {
 }
 
 /**
- * Live (Elysium): size → confirm-if-large → right chain → SIWE → quote → exact approval
+ * Live (this build's chain): size → confirm-if-large → right chain → SIWE → quote → exact approval
  * (then re-quote) → order → wallet signature → submitted → resolves when confirmed or failed.
  * Nothing is signed before the checks pass, and nothing reaches the wallet for a trade the
  * user still has to confirm.
  */
 export async function runLive(req: InstantRequest, idempotencyKey: string, env: LiveEnv): Promise<InstantResult> {
-  const net = NETWORKS[NETWORK_FOR_MODE[env.mode]];
+  // Live signs on this build's chain (the only one the wallet config knows); testnet keeps its own network.
+  const net = NETWORKS[env.mode === 'live' ? CHAIN_NETWORK[CHAIN_KEY] : NETWORK_FOR_MODE[env.mode]];
   const base = req.market.split('-')[0]!;
   const route = env.route;
   if (!route) return fail('no_route', env.mode === 'testnet' ? `${net.name} has no verified venue — trade on Paper` : `${base} trades on Paper only — Live supports ETH ⇄ USDG`);

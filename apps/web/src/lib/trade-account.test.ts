@@ -1,14 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { parseSiweMessage } from 'viem/siwe';
 import { SIWE_STATEMENT } from '@eko/shared';
+import { BUILD_CHAIN_ID } from './chain';
 
 const mocks = vi.hoisted(() => ({
   getConnection: vi.fn(), switchChain: vi.fn(), signMessage: vi.fn(), fetchParsed: vi.fn(),
   refreshSession: vi.fn(), reconnect: vi.fn(), storage: new Map<string, string>(),
 }));
-vi.mock('wagmi/actions', () => ({ ...mocks, sendTransaction: vi.fn(), waitForTransactionReceipt: vi.fn(), writeContract: vi.fn() }));
-vi.mock('./wallet', () => ({ wagmiConfig: {} }));
-vi.mock('./api', () => ({ api: vi.fn(), fetchParsed: mocks.fetchParsed }));
+vi.mock('wagmi/actions', () => ({ ...mocks, getPublicClient: vi.fn(() => ({})), sendTransaction: vi.fn(), waitForTransactionReceipt: vi.fn(), writeContract: vi.fn() }));
+vi.mock('./wallet', async (original) => ({ ...await original<typeof import('./wallet')>(), wagmiConfig: {} }));
+vi.mock('./api', () => ({ API_BASE: '/v1', api: vi.fn(), fetchParsed: mocks.fetchParsed }));
 vi.mock('../store/app', () => ({ useApp: { getState: () => ({ refreshSession: mocks.refreshSession }) } }));
 vi.mock('../store/shell', () => ({ useShell: { getState: () => ({ realtime: { reconnect: mocks.reconnect }, me: { account: { id: 'sample-wallet' } } }) } }));
 import { siweSignIn } from './trade';
@@ -20,7 +21,7 @@ beforeEach(() => {
   vi.clearAllMocks(); mocks.storage.clear();
   vi.stubGlobal('window', { location: { href: 'https://app.eko.example/?ref=sample-ref' }, history: { state: null, replaceState: vi.fn((_state, _title, url) => { window.location.href = String(url); }) } });
   vi.stubGlobal('localStorage', { getItem: (k: string) => mocks.storage.get(k) ?? null, setItem: (k: string, v: string) => mocks.storage.set(k, v), removeItem: (k: string) => mocks.storage.delete(k) });
-  mocks.getConnection.mockReturnValue({ address, chainId: 4663 });
+  mocks.getConnection.mockReturnValue({ address, chainId: BUILD_CHAIN_ID });
   mocks.switchChain.mockResolvedValue(undefined); mocks.signMessage.mockResolvedValue('0xabcd');
   mocks.fetchParsed.mockImplementation(async (path: string) => path === '/auth/siwe/nonce' ? challenge : { account: { wallet: address } });
   mocks.refreshSession.mockResolvedValue(undefined);
@@ -28,26 +29,26 @@ beforeEach(() => {
 
 describe('wallet v1 account flow (mock transports, no wallet or RPC)', () => {
   it('uses server challenge times, v1 POSTs and attribution, then reloads /me before reconnecting', async () => {
-    await siweSignIn(4663);
+    await siweSignIn(BUILD_CHAIN_ID);
     expect(mocks.fetchParsed.mock.calls.map(c => c[0])).toEqual(['/auth/siwe/nonce', '/auth/siwe/verify']);
     expect(mocks.fetchParsed.mock.calls[0][2]).toEqual({ method: 'POST' });
     const body = mocks.fetchParsed.mock.calls[1][2].body;
     const fields = parseSiweMessage(body.message);
-    expect(fields).toMatchObject({ chainId: 4663, domain: challenge.domain, uri: challenge.uri, statement: SIWE_STATEMENT });
+    expect(fields).toMatchObject({ chainId: BUILD_CHAIN_ID, domain: challenge.domain, uri: challenge.uri, statement: SIWE_STATEMENT });
     expect(fields.issuedAt?.toISOString()).toBe(challenge.issuedAt);
     expect(fields.expirationTime?.toISOString()).toBe(challenge.expirationTime);
     expect(body.ref).toBe('sample-ref');
     expect(mocks.storage.has('eko.ref')).toBe(false);
     expect(mocks.refreshSession.mock.invocationCallOrder[0]).toBeLessThan(mocks.reconnect.mock.invocationCallOrder[0]);
   });
-  it('switches to 4663 before asking for a challenge', async () => {
-    mocks.getConnection.mockReturnValueOnce({ address, chainId: 46630 });
-    await siweSignIn(46630);
-    expect(mocks.switchChain).toHaveBeenCalledWith({}, { chainId: 4663 });
+  it('switches to the build chain before asking for a challenge', async () => {
+    mocks.getConnection.mockReturnValueOnce({ address, chainId: 1 });
+    await siweSignIn(1);
+    expect(mocks.switchChain).toHaveBeenCalledWith({}, { chainId: BUILD_CHAIN_ID });
     expect(mocks.switchChain.mock.invocationCallOrder[0]).toBeLessThan(mocks.fetchParsed.mock.invocationCallOrder[0]);
   });
   it('blocks verification if the account changes while signing', async () => {
-    mocks.signMessage.mockImplementation(async () => { mocks.getConnection.mockReturnValue({ address: '0x2222222222222222222222222222222222222222', chainId: 4663 }); return '0xabcd'; });
+    mocks.signMessage.mockImplementation(async () => { mocks.getConnection.mockReturnValue({ address: '0x2222222222222222222222222222222222222222', chainId: BUILD_CHAIN_ID }); return '0xabcd'; });
     await expect(siweSignIn()).rejects.toThrow(/Wallet changed/);
     expect(mocks.fetchParsed).toHaveBeenCalledTimes(1); expect(mocks.reconnect).not.toHaveBeenCalled();
   });

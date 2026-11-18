@@ -5,15 +5,20 @@ import type { Assessment } from './assess.js';
 import { changePct, spark } from './market.js';
 import { graduationBps, HALF_WAY_BPS } from './graduation.js';
 import type { CoinState, FeedEvent } from './tracker.js';
+import { ELYSIUM_PROFILE } from './chains/profiles.js';
+import type { ChainProfile } from './chains/types.js';
 
 /**
  * Response builders: the shapes the EKO web app already validates (@eko/shared), filled from what the edge measures.
  * Anything not measured yet (wallet labels, holders, depth) is zero in the number field and named in `unavailable` /
  * `meta.*.missing`, never presented as an observation.
  */
+/** hypeUsd is the chain's native coin in USD (HYPE on Elysium, ETH on Robinhood Chain), and every *Hype amount is in it. */
 export interface ViewContext { nowSec: number; head: number; hypeUsd: number | null;
   /** Base of the graduation line for launchpads without one (Tracker.openMcapHype). */
-  openMcapHype?: number }
+  openMcapHype?: number;
+  /** The native coin's symbol (default HYPE). */
+  native?: 'HYPE' | 'ETH' }
 
 const NOT_YET = ['flow', 'signal'] as const;
 const usd = (hype: number, ctx: ViewContext) => ctx.hypeUsd ? hype * ctx.hypeUsd : 0;
@@ -85,6 +90,9 @@ export function pairColumn(c: CoinState, ctx: ViewContext): PairRow['column'] {
   return (progressBps(c, ctx) ?? 0) >= HALF_WAY_BPS ? 'near_grad' : 'new';
 }
 
+/** A Pons coin's curve holds its reserves until graduation; after it, the lock is claimed only once the probe proved it. */
+const unprovenPonsLock = (c: CoinState, a: Assessment | undefined) => c.launchpad === 'pons' && c.graduated && a?.lp !== 'locked';
+
 export function coinCard(c: CoinState, a: Assessment | undefined, ctx: ViewContext): CoinCard {
   const verdict = a?.verdict ?? pendingVerdict(c, ctx.head);
   const feeBps = a?.config ? a.config.totalFeePips / 100 : 0;
@@ -94,16 +102,20 @@ export function coinCard(c: CoinState, a: Assessment | undefined, ctx: ViewConte
   return {
     identity: { address: c.token, name: toUntrusted(a?.name ?? c.name ?? '', UNTRUSTED_LIMITS.name), symbol: toUntrusted(a?.symbol ?? c.symbol ?? '', UNTRUSTED_LIMITS.symbol),
       deployer: c.creator, createdAt: new Date(c.ts * 1000).toISOString(), launchpad: c.launchpad, stage: c.graduated ? 'graduated' : 'curve',
-      quoteAsset: c.quote === zeroAddress ? 'HYPE' : 'other',
-      pools: [{ id: c.poolId, venue: 'uniswap_v4', poolId: c.poolId, ...(a?.key ? { hooks: a.key.hooks } : {}), quote: c.quote, feeBps,
-        liquidityUsd: usd(Math.max(0, c.netHype), ctx), executable: false }] },
+      // A bonding-curve coin's way to graduation, in %, as the coin page's Venue row shows it ("curve 42.1%").
+      ...(c.curve && !c.graduated ? (bps => bps === null ? {} : { curvePct: bps / 100 })(progressBps(c, ctx)) : {}),
+      quoteAsset: c.quote === zeroAddress ? ctx.native ?? 'HYPE' : 'other',
+      // Before graduation a bonding-curve coin trades on its curve (no v4 pool yet).
+      pools: [c.curve && !c.graduated ? { id: c.curve.address, venue: 'pons_curve', address: c.curve.address, quote: c.quote, feeBps, liquidityUsd: usd(Math.max(0, c.netHype), ctx), executable: false }
+        : { id: c.poolId, venue: 'uniswap_v4', poolId: c.poolId, ...(a?.key ? { hooks: a.key.hooks } : {}), quote: c.quote, feeBps,
+          liquidityUsd: usd(Math.max(0, c.netHype), ctx), executable: false }] },
     // The probe runs at about $1,000: the $100 and $10k figures are not measured (named in meta.tradeability.missing).
     tradeability: { exitCostPct: { usd100: cost ?? 0, usd1k: cost ?? 0, usd10k: cost ?? 0 }, buyTaxPct: a?.taxPct?.buy ?? 0, sellTaxPct: a?.taxPct?.sell ?? 0,
       honeypot: verdict.playbooks.some(m => m.id === 'honeypot' && m.level === 'danger'),
       ...(a?.config ? { hookFeePct: a.config.totalFeePips / 1e4 } : {}), ...(a?.antiSnipe ? { antiSnipe: a.antiSnipe } : {}) },
     // Montra, HyperForge and tax-launchpad liquidity cannot be removed (docs and verified source); the Flaunch fork's hook
     // is unverified, so its status is named missing below rather than claimed.
-    liquidity: { depthUsd: { pct2: 0, pct5: 0, pct10: 0 }, lpStatus: c.launchpad === 'flaunch' ? 'removable' : 'locked', feeTiers: a?.config ? [feeBps] : [] },
+    liquidity: { depthUsd: { pct2: 0, pct5: 0, pct10: 0 }, lpStatus: c.launchpad === 'flaunch' ? 'removable' : c.launchpad === 'pons' ? 'pons_locked' : 'locked', feeTiers: a?.config ? [feeBps] : [] },
     supply: { top10Pct: a ? pct(a.stats.holders.top10Share) : 0, devPct: a ? pct(a.stats.dev.heldShare) : 0, bundlesHeldPct: a ? pct(earlyHeld(a)) : 0,
       exemptWalletsHeldPct: 0, freshWalletsPct: 0, burnedPct: 0, circulating: c.supply.toString() },
     // Montra launches are clones of the factory's token master: no owner, tax, blacklist, pause, mint or upgrade. Other
@@ -114,7 +126,7 @@ export function coinCard(c: CoinState, a: Assessment | undefined, ctx: ViewConte
     meta: {
       tradeability: { confidence: cost === null ? 0 : 1, asOfBlock: block, ...(cost === null ? { unavailable: true, missing: ['exitCostPct'] } : { missing: ['exitCostPct.usd100', 'exitCostPct.usd10k'] }),
         flags: [`probe_usd_${Math.round(a?.probeUsd ?? 1000)}`] },
-      liquidity: { confidence: a?.config ? 1 : 0, asOfBlock: block, missing: c.launchpad === 'flaunch' ? ['depthUsd', 'lpStatus'] : ['depthUsd'] },
+      liquidity: { confidence: a?.config ? 1 : 0, asOfBlock: block, missing: c.launchpad === 'flaunch' || unprovenPonsLock(c, a) ? ['depthUsd', 'lpStatus'] : ['depthUsd'] },
       // bundlesHeldPct here is what the first minute's buyers still hold (funding is not traced, so no same-funder bundles).
       supply: a ? { confidence: 1, asOfBlock: block, missing: ['freshWalletsPct', 'exemptWalletsHeldPct'], flags: ['early_cohort_not_funder_bundles'] } : meta(['top10Pct', 'devPct', 'bundlesHeldPct', 'freshWalletsPct']),
       control: c.launchpad === 'montra' ? { confidence: 1, asOfBlock: block, flags: ['montra_factory_clone'] } : meta(['canChangeTax', 'canBlacklist', 'canPause', 'canMint', 'upgradeable']),
@@ -130,15 +142,22 @@ export function feedItem(e: FeedEvent, a: Assessment | undefined, c?: CoinState)
     ...(e.side ? { side: e.side } : {}), ...(e.wallet ? { wallet: e.wallet } : {}) } as FeedItem;
 }
 
-export function publicConfig(trading?: { router: Address; permit2: Address; maxTradeUsd: number }, features: { accounts?: boolean; flags?: ReadonlySet<string> } = {}): PublicConfig {
+/**
+ * What the web reads at boot. `chain` is the deployment's (EKO_CHAIN). Trading lists the contracts the wallet may call
+ * (routers) and approve (spenders) on this chain; a Pons curve is named per quote instead (its route's poolId), since
+ * every coin has its own.
+ */
+export function publicConfig(trading?: { routers: readonly Address[]; spenders: readonly Address[]; permit2: Address; maxTradeUsd: number }, features: { accounts?: boolean; flags?: ReadonlySet<string> } = {},
+  chain: ChainProfile = ELYSIUM_PROFILE): PublicConfig {
   // With accounts open, Mission Control's approvals are served; other features are on when EKO_FLAGS names them (flags.ts).
   const on = new Set<string>([...(features.accounts ? ['approvals'] : []), ...(features.flags ?? [])]);
   return {
+    chain: { key: chain.key, id: chain.id, name: chain.name, native: chain.native, explorerUrl: chain.explorerUrl, publicRpcUrl: chain.publicRpc },
     phase: 'launch_week', flags: Object.fromEntries(FlagNameSchema.options.map(f => [f, on.has(f)])) as PublicConfig['flags'],
     tiers: (['listener', 'reader', 'oracle', 'source'] as const).map(tier => ({ tier, minBalance: null, feeBps: 0,
       limits: { agents: 1, deepResearchPerDay: 0, loopBacktestsPerDay: 0, realtime: true }, perks: [] })),
-    // Wallet trading through Uniswap's Universal Router when enabled (no fee); no receipts contract, burn or dev wallet.
-    trading: trading ? { liveEnabled: true, maxTradeUsd: trading.maxTradeUsd, routers: [trading.router], spenders: [trading.permit2], permit2: trading.permit2 }
+    // Wallet trading when enabled (no fee); no receipts contract, burn or dev wallet.
+    trading: trading ? { liveEnabled: true, maxTradeUsd: trading.maxTradeUsd, routers: [...trading.routers], spenders: [...trading.spenders], permit2: trading.permit2 }
       : { liveEnabled: false, maxTradeUsd: 0, routers: [], spenders: [] },
     contracts: { receiptsRegistry: zeroAddress }, wallets: { burn: zeroAddress, dev: zeroAddress },
     burnBoard: { heroPctSupply: 0, heroUsd24h: 0 }, drops: [], loops: { maxBars: 10000, syncMaxBars: 2000 }, exampleScans: [] as Address[],

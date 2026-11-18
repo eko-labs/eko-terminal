@@ -47,7 +47,7 @@ async function world() {
   const store = new HistoryStore(':memory:'), accounts = new AccountStore(store.db);
   const rpc: Rpc = { request: async () => { throw new Error('no rpc'); } };
   const edge = new Edge(new Tracker(rpc, registry), rpc, registry, new HypeUsd(async () => new Response('{}')));
-  const trading = new Trading({ db: store.db, rpc, registry, coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 250 });
+  const trading = new Trading({ db: store.db, rpc, chain: registry, coin: () => undefined, assess: async () => undefined, hypeUsd: () => 30, maxTradeUsd: 250 });
   const app = buildServer(edge, { store, accounts, trading, maxTradeUsd: 250, relay: relayFromRpc({ request: async () => '0x1' }) }); apps.push(app);
   const agents = new AgentStore(accounts.db);
 

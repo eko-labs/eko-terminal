@@ -3,6 +3,7 @@ import { useInView, useReducedMotion } from "framer-motion";
 import FlowGradient from "../lib/FlowGradient";
 import { AnimatedLines } from "../lib/animations";
 import ekoMark from "../assets/eko-mark.svg";
+import { CHAIN_NAME, NON_AFFILIATION } from "../chain";
 
 const arrow = <span aria-hidden="true">↗</span>;
 function Label({ children }: { children: ReactNode }) {
@@ -693,8 +694,7 @@ export function Footer() {
         </a>
       </div>
       <p className="eko-nonaffiliation">
-        Built on Elysium · Not affiliated with, endorsed by, or
-        officially connected with Kinetiq or Hyperliquid.
+        Built on {CHAIN_NAME} · {NON_AFFILIATION}
       </p>
     </footer>
   );

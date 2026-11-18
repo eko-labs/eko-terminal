@@ -25,6 +25,7 @@ import { trackEvent } from './lib/telemetry';
 import { captureReferral } from './lib/referral';
 import { SkipLink } from './components/SkipLink';
 import { useShareMeta } from './lib/share';
+import { deploymentMismatch } from './lib/deployment';
 
 const pages = new Map([...ROUTES, ...INTERNAL_ROUTES].map((route) => [route, lazy(route.load)]));
 /** Wallet-gated Mission Control pages still say what they are before asking for a wallet. */
@@ -93,6 +94,8 @@ export function App({ walletEnabled = false }: { walletEnabled?: boolean }) {
   const Page = resolved ? pages.get(resolved.route)! : null;
   // The title follows the resolved route, which can change after /config loads its flags; focus moves only on navigation.
   const pageTitle = resolved?.route.title ?? C.notFound;
+  // A server on another chain than this build: wallet signing is blocked in lib/wallet; say why on every page.
+  const mismatch = deploymentMismatch(config);
   useShareMeta(path, pageTitle);
   const gatedMission = !!resolved && resolved.route.workspace === 'mission' && resolved.route.auth === 'siwe' && !signedIn && !MOCKS && (path.startsWith('/mission/agents/') || path === '/mission/approvals' || path.startsWith('/approve/'));
   // Connect stays readable signed out: its steps are the pitch; only creating the agent or key needs a wallet. The
@@ -101,6 +104,7 @@ export function App({ walletEnabled = false }: { walletEnabled?: boolean }) {
     {['/scan/', '/bags/r/', '/receipt/'].some(prefix => path.startsWith(prefix)) && <div className="shell-note"><p>{DYOR}</p><p>{NON_AFFILIATION}</p></div>}
   </> : <NotFound />;
   return <RealtimeContext.Provider value={sharedRealtime}><WatchRuntime owner={MOCKS ? 'demo-account' : signedIn ? account!.walletAddress : null} /><AlertsDrawer /><div className="eko-shell" data-style="desk" data-density={density}><SkipLink /><Header /><div className="shell-frame"><Sidebar /><MobileBar /><main className="shell-main" id="main" tabIndex={-1}><RateNotice />
+    {mismatch && <div className="shell-error" role="alert" data-testid="deployment-error">{mismatch}</div>}
     {error && <div className="shell-error" role="status">{C.configError} <button className="btn" onClick={() => void loadConfig()}>{C.retry}</button></div>}
     <Suspense fallback={<div className="shell-page"><div className="skel" style={{ height: 200 }} /></div>}>
       {walletEnabled ? <WalletRuntime>{page}</WalletRuntime> : page}

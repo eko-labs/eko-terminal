@@ -2,14 +2,17 @@ import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { resolveRoute } from '../../routes';
-import { BUILT_ON, DYOR, NON_AFFILIATION } from '../../copy';
+import { POLICY_DISCLOSURES } from '../../copy/legal';
 import { NO_TOKEN, NOT_PUBLISHED, PENDING_OWNER, PROJECT_LINKS } from '../../copy/trust';
 import { LegalLine } from '../../components/shell/Shell';
+import { CHAIN_KEY } from '../../lib/chain';
 import { Official, Security, Transparency } from './Launch';
 
 const PAGES = [['/official', Official], ['/transparency', Transparency], ['/security', Security]] as const;
 // Every outbound link must be one of the verified project links; nothing else may look official.
-const VERIFIED = new Set([PROJECT_LINKS.site, PROJECT_LINKS.repo, PROJECT_LINKS.advisory, PROJECT_LINKS.findings, PROJECT_LINKS.securityPolicy, `mailto:${PROJECT_LINKS.mailbox}`]);
+const VERIFIED = new Set([PROJECT_LINKS.site, PROJECT_LINKS.elysiumSite, PROJECT_LINKS.repo, PROJECT_LINKS.advisory, PROJECT_LINKS.findings, PROJECT_LINKS.securityPolicy, `mailto:${PROJECT_LINKS.mailbox}`]);
+// The page-by-page wording below is the Elysium build's; trust.chains.test.tsx checks both chains' copy.
+const ELYSIUM = CHAIN_KEY === 'elysium';
 const outbound = (html: string) => [...html.matchAll(/href="((?:https?:|mailto:)[^"]*)"/g)].map(m => m[1]!);
 const text = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/&#x27;|&#39;/g, '\'').replace(/&amp;/g, '&').replace(/\s+/g, ' ');
 
@@ -20,7 +23,7 @@ describe('public trust pages', () => {
     expect((await route!.route.load()).default).toBe(Page);
     const html = renderToStaticMarkup(<Page />);
     expect(NO_TOKEN).toBe('We have no token yet; any token claiming to be EKO is fake.');
-    for (const line of [BUILT_ON, NON_AFFILIATION, DYOR, NO_TOKEN]) expect(text(html)).toContain(line);
+    for (const line of [...Object.values(POLICY_DISCLOSURES), NO_TOKEN]) expect(text(html)).toContain(line);
     expect(html).toContain(`<a aria-current="page" href="${path}">`);
   });
 
@@ -32,7 +35,7 @@ describe('public trust pages', () => {
     expect(html).not.toMatch(/\baudited\b|\btrustless\b|automated burns?|\bownerless\b|guaranteed?|win rate|rug-proof|\bsafe\b|protects your Robinhood account/i);
   });
 
-  it('official links list only verified channels and mark every unpublished identifier', () => {
+  it.runIf(ELYSIUM)('official links list only verified channels and mark every unpublished identifier', () => {
     const html = renderToStaticMarkup(<Official />);
     for (const href of [PROJECT_LINKS.repo, PROJECT_LINKS.advisory, `mailto:${PROJECT_LINKS.mailbox}`, PROJECT_LINKS.securityTxt]) expect(html).toContain(`href="${href}"`);
     expect((html.match(new RegExp(NOT_PUBLISHED, 'g')) ?? []).length).toBe(7); // six rows plus the section heading
@@ -43,7 +46,7 @@ describe('public trust pages', () => {
     expect(text(html)).toContain('treat it as unofficial');
   });
 
-  it('transparency explains wallet roles without addresses, the current fee and the token stance, with no past-dated plans', () => {
+  it.runIf(ELYSIUM)('transparency explains wallet roles without addresses, the current fee and the token stance, with no past-dated plans', () => {
     const html = text(renderToStaticMarkup(<Transparency />));
     expect((html.match(new RegExp(NOT_PUBLISHED, 'g')) ?? []).length).toBe(4);
     for (const line of ['AI-assisted and automated review, not a professional audit.', 'Every finding and its status is in the findings log.',
@@ -56,7 +59,7 @@ describe('public trust pages', () => {
     expect(html).toContain('Read the findings log');
   });
 
-  it('security page opens private reporting now, with no bug bounty and the good-faith promise pending owner confirmation', () => {
+  it.runIf(ELYSIUM)('security page opens private reporting now, with no bug bounty and the good-faith promise pending owner confirmation', () => {
     const html = renderToStaticMarkup(<Security />), plain = text(html);
     expect(html).toContain(`href="mailto:${PROJECT_LINKS.mailbox}"`);
     expect(html).toContain(`href="${PROJECT_LINKS.advisory}"`);

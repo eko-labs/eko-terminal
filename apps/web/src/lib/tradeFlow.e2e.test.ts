@@ -5,6 +5,7 @@ import { GuardedTradeFlow, TradeFlowError, materiallyChanged, type GuardedEnv } 
 import { createGuardedTradeClient } from './guardedTradeClient';
 import { createApi } from './api';
 import type { TradeHandoff } from '../components/trade/TradeContext';
+import { BUILD_CHAIN_ID } from './chain';
 
 // Offline end-to-end transport/flow/wallet spies. No provider, RPC, keys, funds or ports.
 const account = '0x00000000000000000000000000000000000000aa', router = '0x00000000000000000000000000000000000000bb';
@@ -16,8 +17,8 @@ function setup() {
     approvals: [], fee: { bps: 0, usd: 0, destination: null }, route: { venue: 'uniswap_v3', executable: true }, guard: { decision: 'allow', checks: [] }, expiresAt: new Date(now + 15000).toISOString() };
   let order: TradeOrder | null = null, orderCount = 0, dropped = '', quoteNumber = 0;
   const bodies = new Map<string, { order: TradeOrder; body: string }>();
-  let tx: UnsignedTx = { chainId: 4663, to: router, data: '0xabcd', value: '0' };
-  const state: ReturnType<GuardedEnv['current']> = { wallet: { address: account, chainId: 4663 }, accountId: 'sample-account', verifiedWallet: account,
+  let tx: UnsignedTx = { chainId: BUILD_CHAIN_ID, to: router, data: '0xabcd', value: '0' };
+  const state: ReturnType<GuardedEnv['current']> = { wallet: { address: account, chainId: BUILD_CHAIN_ID }, accountId: 'sample-account', verifiedWallet: account,
     config: { ...createPublicConfig(), trading: { liveEnabled: true, maxTradeUsd: 250, routers: [router], spenders: [router] } } };
   const client = createGuardedTradeClient(createApi('/v1', async (url, init) => {
     const path = url.replace('/v1', ''), body = init.body ? JSON.parse(String(init.body)) : null;
@@ -113,7 +114,7 @@ describe('guarded v1 flow: offline wallet-spy end-to-end', () => {
   it.each(['router', 'chain', 'value', 'data'])('invalid %s swap makes zero swap requests', async kind => {
     const f = setup();
     if (kind === 'router') f.setTx({ to: account });
-    if (kind === 'chain') f.setTx({ chainId: 1 as 4663 });
+    if (kind === 'chain') f.setTx({ chainId: 1 as UnsignedTx['chainId'] });
     if (kind === 'value') f.setTx({ value: '1' });
     if (kind === 'data') f.setTx({ data: '0xabc' });
     await refusal(f.flow.execute(f.handoff())); expect(f.env.send).not.toHaveBeenCalled();

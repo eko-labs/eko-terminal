@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import profiles from "../../../web/src/mocks/demo/radar-profiles.json";
 import ekoMark from "../assets/eko-mark.svg";
 import "./eko-dashboard.css";
+import { CHAIN_NAME } from "../chain";
 
 export const radarProfiles = profiles;
 export type RadarProfile = (typeof profiles)[number];
@@ -173,7 +174,7 @@ export default function EkoDashboard({
             <a href="/radar" className="ed-wallet">
               Open terminal ↗
             </a>
-            <small>Built on Elysium</small>
+            <small>Built on {CHAIN_NAME}</small>
           </div>
         </aside>
         <div className="ed-content">
@@ -181,7 +182,7 @@ export default function EkoDashboard({
             <div>
               <h3>Radar</h3>
               <p>
-                Every live play on Elysium, scanned by the guard, most
+                Every live play on {CHAIN_NAME}, scanned by the guard, most
                 traded first.
               </p>
             </div>

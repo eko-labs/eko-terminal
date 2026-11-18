@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { BUILT_ON, DYOR, NON_AFFILIATION } from '../../copy';
+import { POLICY_DISCLOSURES as D } from '../../copy/legal';
 import { NOT_PUBLISHED, OFFICIAL_COPY as O, PENDING_OWNER, PROJECT_LINKS, SECURITY_COPY as S, TRANSPARENCY_COPY as T, TRUST_COPY as C } from '../../copy/trust';
 import { Link } from '../../lib/Link';
 import '../legal.css';
@@ -18,7 +18,7 @@ function Frame({ title, path, children }: { title: string; path: string; childre
     <nav className="policy-links" aria-label={C.nav}>{PAGES.map(([to, label]) => <Link key={to} to={to} aria-current={to === path ? 'page' : undefined}>{label}</Link>)}</nav>
     <aside className="legal-review trust-warning" aria-label={C.warningTitle}><h2>{C.warningTitle}</h2>{C.warning.map(text => <p key={text}>{text}</p>)}</aside>
     <article>{children}</article>
-    <footer className="legal-footer"><p>{BUILT_ON}</p><p>{NON_AFFILIATION}</p><p>{DYOR}</p></footer>
+    <footer className="legal-footer"><p>{D.builtOn}</p><p>{D.nonAffiliation}</p><p>{D.dyor}</p></footer>
   </div>;
 }
 function Facts({ rows }: { rows: readonly { label: string; note: string; value: ReactNode }[] }) {

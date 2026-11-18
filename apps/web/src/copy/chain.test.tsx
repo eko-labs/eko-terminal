@@ -3,11 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { createRadarRows } from '../mocks/demo/radar';
 import { RadarRowView } from '../pages/terminal/RadarParts';
 import { CHAIN_NAME, CHAIN_TITLE, launchpadLabel } from './chain';
+import { BUILD_CHAIN_ID, pick } from '../lib/chain';
 
 describe('chain and launchpad context', () => {
   it('names the one chain and its ID', () => {
-    expect(CHAIN_NAME).toBe('Elysium');
-    expect(CHAIN_TITLE).toContain('99901');
+    expect(CHAIN_NAME).toBe(pick({ elysium: 'Elysium', robinhood: 'Robinhood Chain' }));
+    expect(CHAIN_TITLE).toContain(String(BUILD_CHAIN_ID));
   });
   it('labels launchpads the same way on every surface', () => {
     expect(launchpadLabel('pons')).toBe('Pons');

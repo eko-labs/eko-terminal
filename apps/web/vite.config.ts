@@ -28,6 +28,16 @@ function serveLanding(): Connect.NextHandleFunction {
     next();
   };
 }
+// One web build per chain (VITE_EKO_CHAIN, from Dockerfile.edge). index.html carries the Elysium description; a Robinhood
+// build swaps the description and og:description for the Robinhood line, so search results and link previews name the
+// right chain and the right non-affiliation.
+const ROBINHOOD_DESCRIPTION = 'The harness your trading agent runs inside. Built on Robinhood Chain. Not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.';
+const chainHtml = (): Plugin => ({ name: 'eko-chain-html', transformIndexHtml(html) {
+  if (process.env.VITE_EKO_CHAIN !== 'robinhood') return html;
+  const next = html.replace(/(<meta (?:name="description"|property="og:description") content=")[^"]*(")/g, `$1${ROBINHOOD_DESCRIPTION}$2`);
+  if ((next.match(/Robinhood Markets, Inc\./g) ?? []).length !== 2) throw new Error('index.html must carry description and og:description metas for the Robinhood build to replace');
+  return next;
+} });
 const landing = (): Plugin => ({ name: 'eko-landing', configureServer: (s) => { s.middlewares.use(serveLanding()); }, configurePreviewServer: (s) => { s.middlewares.use(serveLanding()); } });
 
 const api = process.env.EKO_API ?? 'http://localhost:8710';
@@ -35,7 +45,7 @@ const api = process.env.EKO_API ?? 'http://localhost:8710';
 const remote = api.startsWith('https://');
 
 export default defineConfig({
-  plugins: [react(), landing(), pwa(), budgetGraph()],
+  plugins: [react(), chainHtml(), landing(), pwa(), budgetGraph()],
   server: {
     port: Number(process.env.WEB_PORT ?? 5180),
     strictPort: true,

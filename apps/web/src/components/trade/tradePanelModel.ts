@@ -1,6 +1,6 @@
 import type { CoinCard, CoinCardV2, TradeQuote, TradeQuoteRequest } from '@eko/shared';
 import { TRADE_COPY as C } from '../../copy/trade';
-import { CHAIN_ID } from '@eko/shared';
+import { BUILD_CHAIN_ID } from '../../lib/chain';
 
 export interface QuoteSnapshot {
   requestKey: string;
@@ -84,7 +84,7 @@ export function panelBlock(g: PanelGate): string | null {
   if (s.loading) return C.refresh;
   if (!input.account) return C.connect;
   if (g.wallet && g.wallet.address.toLowerCase() !== input.account.toLowerCase()) return C.wallet_mismatch;
-  if (g.wallet && g.wallet.chainId !== CHAIN_ID) return C.wrongNetwork;
+  if (g.wallet && g.wallet.chainId !== BUILD_CHAIN_ID) return C.wrongNetwork;
   if (!q.binding) return C.indicative;
   if ((q.fee.bps === 0 && (q.fee.destination !== null || q.fee.usd !== 0)) || (q.fee.bps > 0 && q.fee.destination !== 'burn_wallet')) return C.unavailable;
   if (!g.signerAvailable) return C.signingUnavailable;

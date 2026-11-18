@@ -5,6 +5,7 @@ import ekoMark from '../assets/eko-mark.svg'
 import PortfolioDashboard from './EkoDashboard'
 import { popIn, AnimatedLines, DrumText, HoverLine, ScrambleText } from '../lib/animations'
 import DotMatrix from '../lib/DotMatrix'
+import { pick } from '../chain'
 
 const DESIGN_WIDTH = 1512
 const DESIGN_HEIGHT = 935
@@ -352,7 +353,10 @@ function MobileHero() {
           <AnimatedLines
             as="p"
             lines={[
-              'A trench terminal for Elysium. Every new Montra launch, checked for scam playbooks.',
+              pick({
+                elysium: 'A trench terminal for Elysium. Every new Montra launch, checked for scam playbooks.',
+                robinhood: 'A trench terminal for Robinhood Chain. Every new Pons launch and Uniswap pool, scanned for scam playbooks.',
+              }),
             ]}
             isInView={true}
             className="mt-[14px] text-[14px] font-medium text-white/80"
@@ -587,8 +591,10 @@ export default function Hero() {
         <AnimatedLines
           as="p"
           lines={[
-            'A trench terminal for Elysium.',
-            'Every new Montra launch,',
+            ...pick({
+              elysium: ['A trench terminal for Elysium.', 'Every new Montra launch,'],
+              robinhood: ['A trench terminal for Robinhood Chain.', 'Every new Pons launch and Uniswap pool,'],
+            }),
             'scanned for scam playbooks.',
           ]}
           isInView={true}

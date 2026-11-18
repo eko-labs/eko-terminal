@@ -1,5 +1,6 @@
 import { PAPER_STARTING_CASH } from '@eko/shared';
 import type { TermId } from './Term';
+import { pick } from '../../lib/chain';
 
 /**
  * The single source for every plain-English definition in EKO: inline <Term> tooltips,
@@ -32,7 +33,10 @@ export const GLOSSARY: Record<TermId, GlossaryEntry> = {
   },
   live: {
     term: 'Live trading',
-    short: 'Real swaps on Elysium mainnet (chain 99901) through Uniswap v4, signed by your own wallet. Trading from EKO opens after launch; until then checks and charts are live.',
+    short: pick({
+      elysium: 'Real swaps on Elysium mainnet (chain 99901) through Uniswap v4, signed by your own wallet. Trading from EKO opens after launch; until then checks and charts are live.',
+      robinhood: 'Real swaps on Robinhood Chain mainnet (chain 4663), signed by your own wallet: on a coin’s Pons bonding curve, then in its Uniswap v4 pool once the curve fills.',
+    }),
     more: 'EKO never holds your funds or keys. A live order is “submitted” when your wallet broadcasts it and only “confirmed” once the receipt is reconciled.',
     aka: ['real funds', 'mainnet', 'on-chain'],
   },
@@ -44,14 +48,25 @@ export const GLOSSARY: Record<TermId, GlossaryEntry> = {
   },
   gas: {
     term: 'Gas',
-    short: 'The network fee for an on-chain transaction, paid in HYPE on Elysium. Transactions are ordered by priority fee, so launch-block trades can cost more.',
+    short: pick({
+      elysium: 'The network fee for an on-chain transaction, paid in HYPE on Elysium. Transactions are ordered by priority fee, so launch-block trades can cost more.',
+      robinhood: 'The network fee for an on-chain transaction, paid in ETH on Robinhood Chain. Keep a little ETH in your wallet for fees.',
+    }),
     aka: ['network fee', 'fees'],
   },
-  usdg: {
-    term: 'HYPE',
-    short: 'Hyperliquid’s token and Elysium’s gas token. Most Elysium launches trade against native HYPE.',
-    aka: ['whype', 'gas token', 'hyperliquid'],
-  },
+  // The native coin launches trade against (the id predates the chain switch).
+  usdg: pick({
+    elysium: {
+      term: 'HYPE',
+      short: 'Hyperliquid’s token and Elysium’s gas token. Most Elysium launches trade against native HYPE.',
+      aka: ['whype', 'gas token', 'hyperliquid'],
+    },
+    robinhood: {
+      term: 'ETH',
+      short: 'Ether, Robinhood Chain’s gas token. Pons launches trade against native ETH, on the curve and in the pool after graduation.',
+      aka: ['weth', 'gas token', 'ether'],
+    },
+  }),
   approval: {
     term: 'Token approval',
     short: 'Before a swap can spend your USDG, your wallet approves the Uniswap router for the exact amount of that trade — never an unlimited allowance.',
@@ -86,11 +101,18 @@ export const EXTRA_TERMS: GlossaryEntry[] = [
     short: 'A free signature that proves you own your wallet. It doesn’t authorise any transaction or spending.',
     aka: ['siwe', 'verify', 'sign in'],
   },
-  {
-    term: 'Elysium',
-    short: 'Kinetiq’s Arbitrum Orbit layer-2 for Hyperliquid, settling to HyperEVM. EKO is an independent app on it — not a Kinetiq or Hyperliquid product.',
-    aka: ['chain 99901', 'l2', 'kinetiq', 'hyperliquid'],
-  },
+  pick({
+    elysium: {
+      term: 'Elysium',
+      short: 'Kinetiq’s Arbitrum Orbit layer-2 for Hyperliquid, settling to HyperEVM. EKO is an independent app on it — not a Kinetiq or Hyperliquid product.',
+      aka: ['chain 99901', 'l2', 'kinetiq', 'hyperliquid'],
+    },
+    robinhood: {
+      term: 'Robinhood Chain',
+      short: 'An Arbitrum Orbit layer-2 network. EKO is an independent app on it — not a Robinhood Markets product.',
+      aka: ['chain 4663', 'l2', 'arbitrum'],
+    },
+  }),
 ];
 
 export const ALL_TERMS: (GlossaryEntry & { id: string })[] = [
