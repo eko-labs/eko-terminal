@@ -3,16 +3,18 @@ import { useConnect, useConnection, useConnectors, useDisconnect } from 'wagmi';
 import { NETWORKS, shortAddress } from '@eko/shared';
 import { api } from '../lib/api';
 import { navigate } from '../lib/router';
-import { ensureChain, isUserRejection, siweSignIn } from '../lib/trade';
+import { ensureChain, isUserRejection } from '../lib/trade';
 import { useApp } from '../store/app';
 import { useWalletState } from '../lib/walletState';
 import { useOutside } from './hooks';
 import { IconAlert, IconCheck, IconWallet } from './icons';
-import { BUILD_CHAIN_ID } from '../lib/chain';
 import { BUILD_NETWORK, deploymentMismatch } from '../lib/deployment';
 import { useShell } from '../store/shell';
+import { verifyWallet, useWalletVerification } from '../lib/walletVerification';
+import { WALLET_COPY as C } from '../copy/wallet';
+import { TRADE_COPY } from '../copy/trade';
 
-export function WalletButton() {
+export function WalletButton({ trade = false }: { trade?: boolean }) {
   const conn = useConnection();
   const chainId = conn.chainId;
   const connectors = useConnectors();
@@ -21,22 +23,26 @@ export function WalletButton() {
   const account = useApp((s) => s.account);
   const mode = useApp((s) => s.mode);
   const refreshSession = useApp((s) => s.refreshSession);
-  const toast = useApp((s) => s.toast);
-  const [open, setOpen] = useState(useWalletState.getState().open);
+  const { pending, failure } = useWalletVerification();
+  const [open, setOpen] = useState(trade || useWalletState.getState().open);
   const [err, setErr] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(false), []);
   useOutside(ref, close, open);
   useEffect(() => {
+    if (trade) return;
     const h = () => setOpen(true);
     window.addEventListener('eko:open-wallet', h);
     return () => window.removeEventListener('eko:open-wallet', h);
-  }, []);
+  }, [trade]);
   // One chain per build: a wallet on any other chain is on the wrong network, whatever the trading mode.
   const target = mode === 'paper' ? null : BUILD_NETWORK;
   const mismatch = deploymentMismatch(useShell((s) => s.config));
   const wrong = !!conn.address && !!target && chainId !== target.chainId;
   const verified = !!conn.address && account?.kind === 'wallet' && account.walletAddress === conn.address.toLowerCase();
+  const canVerify = !!conn.address && !verified && !mismatch;
+  const verify = () => { if (conn.address) void verifyWallet(conn.address); };
+  const verifyMessage = pending === conn.address?.toLowerCase() ? C.verifying : failure?.address === conn.address?.toLowerCase() ? failure?.message : null;
   const unique = useMemo(() => {
     const seen = new Set<string>();
     return connectors.filter((c) => {
@@ -47,14 +53,15 @@ export function WalletButton() {
     });
   }, [connectors]);
 
-  const verify = async () => {
+  const connectWallet = async (connector: (typeof connectors)[number]) => {
     setErr(null);
     try {
-      await siweSignIn(BUILD_CHAIN_ID);
-      await refreshSession();
-      toast({ kind: 'ok', title: 'Wallet verified', body: 'Signed in with Ethereum (EIP-4361).' });
+      const { accounts: [address] } = await connect.mutateAsync({ connector });
+      if (!trade) setOpen(true);
+      // TODO(spec): §4.2 leaves prompt timing open. Prompt on an explicit connection, while restored connections and account changes use the Verify button.
+      if (address) void verifyWallet(address, true);
     } catch (e) {
-      setErr(isUserRejection(e) ? 'Signature rejected.' : (e as Error).message);
+      setErr(isUserRejection(e) ? 'Connection rejected.' : (e as Error).message);
     }
   };
   const go = (p: string) => {
@@ -62,21 +69,27 @@ export function WalletButton() {
     navigate(p);
   };
 
+  if (trade && conn.address) return null;
   return (
-    <div className="wallet" ref={ref}>
+    <div className={trade ? 'wallet tp-wallet-picker' : 'wallet'} ref={ref}>
+      {!trade && canVerify && (
+        <button type="button" className="btn btn-primary wallet-verify" aria-disabled={!!pending} onClick={verify}>
+          {C.verify}
+        </button>
+      )}
       <button
-        className={`wallet-btn btn ${conn.address ? 'is-on' : 'btn-primary'} ${wrong ? 'is-wrong' : ''}`}
+        className={trade ? 'btn tp-submit' : `wallet-btn btn ${conn.address ? 'is-on' : 'btn-primary'} ${wrong ? 'is-wrong' : ''}`}
         onClick={() => setOpen(!open)}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={conn.address ? `Wallet ${shortAddress(conn.address)}` : 'Connect wallet'}
-        data-testid="wallet-button"
-        data-tour="wallet"
+        aria-label={trade ? undefined : conn.address ? `Wallet ${shortAddress(conn.address)}` : 'Connect wallet'}
+        data-testid={trade ? undefined : 'wallet-button'}
+        data-tour={trade ? undefined : 'wallet'}
       >
-        <IconWallet size={16} />
-        {conn.address ? (
+        {!trade && <IconWallet size={16} />}
+        {trade ? TRADE_COPY.connect : conn.address ? (
           <>
-            <span className="num wallet-addr">{shortAddress(conn.address)}</span>
+            {!canVerify && <span className="num wallet-addr">{shortAddress(conn.address)}</span>}
             {wrong ? <IconAlert size={12} /> : verified ? <IconCheck size={12} /> : null}
           </>
         ) : (
@@ -102,10 +115,8 @@ export function WalletButton() {
                     key={c.uid}
                     className="menu-row"
                     role="menuitem"
-                    onClick={() => {
-                      setErr(null);
-                      connect.mutate({ connector: c }, { onError: (e) => setErr(isUserRejection(e) ? 'Connection rejected.' : e.message), onSuccess: () => setOpen(true) });
-                    }}
+                    disabled={connect.isPending}
+                    onClick={() => void connectWallet(c)}
                   >
                     {c.icon ? <img src={c.icon} alt="" width={18} height={18} style={{ borderRadius: 4 }} /> : <IconWallet size={16} />}
                     <span className="menu-main">
@@ -137,10 +148,13 @@ export function WalletButton() {
                   <IconAlert size={14} /> Switch to {target!.name}
                 </button>
               ) : null}
-              {mismatch ? <div className="menu-err" role="alert">{mismatch}</div> : !verified ? (
-                <button className="menu-row" role="menuitem" onClick={() => void verify()}>
-                  <IconCheck size={14} /> Verify wallet · sign a message, no transaction
-                </button>
+              {mismatch ? <div className="menu-err" role="alert">{mismatch}</div> : canVerify ? (
+                <>
+                  <button className="btn btn-primary wallet-menu-verify" role="menuitem" aria-disabled={!!pending} onClick={verify}>
+                    <IconCheck size={14} /> {C.verify}
+                  </button>
+                  {verifyMessage && <div className="menu-err" role="status">{verifyMessage}</div>}
+                </>
               ) : null}
               <button
                 className="menu-row"

@@ -22,16 +22,12 @@ test.describe('EKO day-one shell', () => {
   test('wrong-network detection, switching and Sign-In With Ethereum', async ({ page }) => {
     const acct = await installMockWallet(page, { key: generatePrivateKey(), chainId: 1 });
     await boot(page);
-    // Exercise the retained network banner explicitly; signing also enforces chain 4663.
-    await page.evaluate(() => (window as unknown as { __eko: { getState(): { setMode(m: string): void } } }).__eko.getState().setMode('live'));
     await connectWallet(page);
-    await expect(page.getByTestId('wallet-button').filter({ visible: true })).toContainText(acct.address.slice(0, 6));
-    // Wallet is on Ethereum mainnet → the account menu offers the switch, then SIWE.
-    await page.getByRole('menuitem', { name: /Switch to Robinhood Chain/ }).click();
-    await expect(page.getByRole('menuitem', { name: /Switch to Robinhood Chain/ })).toHaveCount(0);
     await verifyWallet(page);
-    // Verified once the session rotated to the wallet account (asking the server any earlier would race the rotation).
-    await expect(page.getByRole('menuitem', { name: /Verify wallet/ })).toHaveCount(0);
+    const requests = await page.evaluate(() =>
+      (window as unknown as { __ekoWalletRequests: { method: string }[] }).__ekoWalletRequests.map(request => request.method));
+    expect(requests.filter(method => ['wallet_switchEthereumChain', 'personal_sign', 'eth_sendTransaction'].includes(method)))
+      .toEqual(['wallet_switchEthereumChain', 'personal_sign']);
     await expect(page.getByTestId('wallet-button').filter({ visible: true })).toContainText(acct.address.slice(0, 6));
     await expect.poll(async () => (await (await page.request.get('/v1/me')).json()).account).toMatchObject({ wallet: acct.address.toLowerCase() });
   });

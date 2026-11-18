@@ -7,12 +7,13 @@ import { useApp } from './store/app';
 if (import.meta.env.DEV) (window as unknown as { __eko: typeof useApp }).__eko = useApp;
 export default function TerminalApp() {
   const path = usePath(), requested = useWalletState(s => s.requested);
-  const needsWallet = requested || /^\/(coin\/|bags$|orders$|settings(?:\/|$)|oauth\/|mission(?:\/|$)|approve\/|watch$|internal\/review\/)/.test(path);
+  const pageNeedsWallet = /^\/(coin\/|bags$|orders$|settings(?:\/|$)|oauth\/|mission(?:\/|$)|approve\/|watch$|internal\/review\/)/.test(path);
+  const needsWallet = requested || pageNeedsWallet;
   useEffect(() => { if (needsWallet && !requested) useWalletState.setState({ requested: true }); }, [needsWallet, requested]);
   useEffect(() => {
     registerPwa();
     window.addEventListener('eko:open-wallet', requestWallet);
     return () => window.removeEventListener('eko:open-wallet', requestWallet);
   }, []);
-  return <App walletEnabled={needsWallet} />;
+  return <App walletEnabled={needsWallet} pageNeedsWallet={pageNeedsWallet} />;
 }

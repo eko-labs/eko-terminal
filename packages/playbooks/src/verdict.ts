@@ -19,6 +19,7 @@ const templates: Record<PlaybookId, string> = {
   dev_dump: 'The deployer sold on buyers or holds a large share of supply.',
   run_up: 'Much of the supply has already been bought out of the launch curve.',
   launch_snipers: 'Wallets bought within a second of launch and hold a large share of supply.',
+  fake_mcap: 'The market cap is far above what buyers have paid into the pool.',
 };
 const rank: Record<Level, number> = { danger: 3, monitor: 2, info: 1, clear: 0 };
 
@@ -27,6 +28,13 @@ export function reasonForMatch(match: PlaybookMatch): string {
   // Without a deep simulation (Elysium has no trace API), Danger rests on the buy-then-sell probe alone: say so.
   if (match.id === 'honeypot' && match.level === 'danger' && match.evidence.filter((e) => e.label === 'Buy-then-sell simulation').length === 1)
     return 'A buy-then-sell test could not sell, or got back less than 5% of what it paid.';
+  if (match.id === 'fake_mcap') {
+    const value = (label: string) => { const v = match.evidence.find((e) => e.kind === 'stat' && e.label === label)?.value; return typeof v === 'number' && Number.isFinite(v) ? v : null; };
+    const mcap = value('Market cap, price × supply (USD)'), paid = value('Paid into the pool on net (USD)'), volume = value('24h volume (USD)'), holders = value('Holders');
+    const usd = (n: number) => `$${n >= 100 ? Math.round(n).toLocaleString('en-US') : n.toFixed(2)}`;
+    if (mcap != null && paid != null && volume != null && holders != null)
+      return `Priced at a ${usd(mcap)} market cap with ${usd(paid)} paid into its pool, ${usd(volume)} traded in 24 hours and ${holders} holder${holders === 1 ? '' : 's'}: the price is not backed.`;
+  }
   if (match.id === 'launch_snipers') {
     const value = (label: string) => { const v = match.evidence.find((e) => e.kind === 'stat' && e.label === label)?.value; return typeof v === 'number' && Number.isFinite(v) ? v : null; };
     const wallets = value('Launch snipers'), bought = value('Snipers bought supply share'), held = value('Snipers still hold supply share'), tip = value('Highest sniper priority fee (gwei)');

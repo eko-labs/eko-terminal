@@ -9,10 +9,11 @@ import { createApi } from '../../lib/api';
 import { assessment } from '../../../../../packages/shared/test/fixtures/contracts/guard-v2';
 import { REAL_FUNDS, DYOR, NON_AFFILIATION } from '../../copy';
 import { TRADE_COPY as C } from '../../copy/trade';
+import { WALLET_COPY } from '../../copy/wallet';
 import { FeeLines, TradePanelView } from './TradePanel';
 import { TradeLock } from './TradeContext';
 import { BUILD_CHAIN_ID } from '../../lib/chain';
-import { antiSnipeDeadline, emptyQuote, panelBlock, quoteExpired, tradeErrorText, tradeRequestKey, TradeQuoteSession, type PanelGate } from './tradePanelModel';
+import { antiSnipeDeadline, emptyQuote, panelBlock, quoteExpired, tradeErrorText, tradeRequestKey, TradeQuoteSession, QUOTE_POLL_MS, type PanelGate } from './tradePanelModel';
 const css = readFileSync(new URL('./trade-panel.css', import.meta.url), 'utf8');
 import coinSource from '../../pages/terminal/Coin.tsx?raw';
 import radarSource from '../../pages/terminal/Radar.tsx?raw';
@@ -39,6 +40,17 @@ const warning = () => quote({ guard: { decision: 'warn', checks: [{ code: 'tax',
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe('shared guarded panel contract states', () => {
+  it('shows a direct, highlighted verify action for a connected wallet without a site session', () => {
+    const g = gate(quote({ binding: false, account: undefined }));
+    g.input.account = undefined;
+    g.snapshot.requestKey = tradeRequestKey(g.input);
+    const verification = { pending: false, message: WALLET_COPY.rejected, verify: vi.fn() };
+    const text = render(<TradePanelView gate={g} {...actions} verification={verification} />);
+    expect(text).toContain(`class="btn btn-primary tp-submit" aria-disabled="false">${WALLET_COPY.verify}`);
+    expect(text).toContain(WALLET_COPY.rejected);
+    expect(text).not.toContain(`>${C.connect}</button>`);
+    expect(text).not.toContain(WALLET_COPY.signature);
+  });
   it('renders allow with every quote quantity, cost, route and disclaimer before the action', () => {
     const g = gate(), text = html(g);
     expect(panelBlock(g)).toBeNull();
@@ -187,10 +199,10 @@ describe('visible quote lifecycle with fixture backend', () => {
     const g = gate(warning()), changed = vi.fn(), session = new TradeQuoteSession(g.input, backend, changed, Date.now, anti);
     return { session, backend, changed, g };
   }
-  it('quotes on visibility, every five seconds, resets ack, and stops while hidden or disposed', async () => {
+  it('quotes on visibility, every ten seconds, resets ack, and stops while hidden or disposed', async () => {
     const { session, backend } = setup(); session.setVisible(true); await vi.advanceTimersByTimeAsync(0);
     expect(backend).toHaveBeenCalledTimes(1); session.acknowledge(); expect(session.snapshot.acknowledged).toEqual(['tax', 'exit']);
-    await vi.advanceTimersByTimeAsync(5000); expect(backend).toHaveBeenCalledTimes(2); expect(session.snapshot.acknowledged).toEqual([]);
+    await vi.advanceTimersByTimeAsync(QUOTE_POLL_MS); expect(backend).toHaveBeenCalledTimes(2); expect(session.snapshot.acknowledged).toEqual([]);
     session.setVisible(false); await vi.advanceTimersByTimeAsync(20000); expect(backend).toHaveBeenCalledTimes(2);
     session.setVisible(true); await vi.advanceTimersByTimeAsync(0); expect(backend).toHaveBeenCalledTimes(3);
     session.dispose(); await vi.advanceTimersByTimeAsync(20000); expect(backend).toHaveBeenCalledTimes(3);
@@ -212,7 +224,7 @@ describe('visible quote lifecycle with fixture backend', () => {
     const { session, backend } = setup(undefined, vi.fn(async () => warning()));
     vi.setSystemTime(now + 16000); session.setVisible(true); await vi.advanceTimersByTimeAsync(0);
     session.acknowledge(); expect(session.snapshot.acknowledged).toEqual([]); expect(backend).toHaveBeenCalledTimes(1);
-    await vi.advanceTimersByTimeAsync(5000); expect(backend).toHaveBeenCalledTimes(2); session.dispose();
+    await vi.advanceTimersByTimeAsync(QUOTE_POLL_MS); expect(backend).toHaveBeenCalledTimes(2); session.dispose();
   });
   it('aborts and ignores out-of-order responses, including after disposal', async () => {
     const pending: ((q: TradeQuote) => void)[] = [], signals: AbortSignal[] = [];

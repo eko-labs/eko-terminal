@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { generatePrivateKey } from 'viem/accounts';
-import { boot } from './helpers';
+import { boot, connectWallet, verifyWallet } from './helpers';
 import { installMockWallet } from './mockWallet';
 
 /** Retained live flow runs in the browser while the terminal controls are being replaced. */
@@ -19,10 +19,8 @@ async function fund(address: string) {
 async function connect(page: Page) {
   await boot(page);
   await page.evaluate(() => (window as unknown as { __eko: { getState(): { setMode(m: string): void } } }).__eko.getState().setMode('live'));
-  await page.getByTestId('wallet-button').click();
-  await page.getByRole('menuitem', { name: /Test Wallet/ }).click();
-  await page.getByRole('menuitem', { name: /Verify wallet/ }).click();
-  await expect(page.getByRole('menuitem', { name: /Verify wallet/ })).toHaveCount(0);
+  await connectWallet(page);
+  await verifyWallet(page);
 }
 
 async function sell(page: Page, address: string) {

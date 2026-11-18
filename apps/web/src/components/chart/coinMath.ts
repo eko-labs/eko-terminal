@@ -41,7 +41,9 @@ export const stretchScale = (k: number, delta: number) => Math.max(.25, Math.min
 export function aggregateTick(bars: readonly Bar[], tick: Tick, tf: CoinTimeframe): Bar[] {
   const ts = bucketStart(tick.ts, tf), last = bars.at(-1);
   if (last && ts < last.ts) return [...bars];
-  const bar: Bar = last?.ts === ts ? { ...last, h: Math.max(last.h, tick.price), l: Math.min(last.l, tick.price), c: tick.price, vUsd: last.vUsd + tick.volumeUsd } : { ts, o: tick.price, h: tick.price, l: tick.price, c: tick.price, vUsd: tick.volumeUsd };
+  // A new bar opens at the previous bar's close (as the server builds them), so a one-trade bar has a body.
+  const open = last?.c ?? tick.price;
+  const bar: Bar = last?.ts === ts ? { ...last, h: Math.max(last.h, tick.price), l: Math.min(last.l, tick.price), c: tick.price, vUsd: last.vUsd + tick.volumeUsd } : { ts, o: open, h: Math.max(open, tick.price), l: Math.min(open, tick.price), c: tick.price, vUsd: tick.volumeUsd };
   return [...(last?.ts === ts ? bars.slice(0, -1) : bars), bar];
 }
 

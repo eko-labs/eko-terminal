@@ -26,6 +26,7 @@ import { captureReferral } from './lib/referral';
 import { SkipLink } from './components/SkipLink';
 import { useShareMeta } from './lib/share';
 import { deploymentMismatch } from './lib/deployment';
+import { TradeProvider } from './components/trade/TradeContext';
 
 const pages = new Map([...ROUTES, ...INTERNAL_ROUTES].map((route) => [route, lazy(route.load)]));
 /** Wallet-gated Mission Control pages still say what they are before asking for a wallet. */
@@ -36,7 +37,8 @@ async function loadConfig(signal?: AbortSignal) {
   catch (err) { if ((err as Error).name !== 'AbortError' && !isRateLimited(err)) useShell.setState({ configError: (err as Error).message }); }
 }
 const WalletRuntime = lazy(() => import('./WalletRuntime'));
-export function App({ walletEnabled = false }: { walletEnabled?: boolean }) {
+const WalletScope = lazy(() => import('./WalletRuntime').then(m => ({ default: m.WalletScope })));
+export function App({ walletEnabled = false, pageNeedsWallet = false }: { walletEnabled?: boolean; pageNeedsWallet?: boolean }) {
   const density = useUi(s => s.density);
   const path = usePath(), config = useShell((s) => s.config), error = useShell((s) => s.configError);
   const account = useApp((s) => s.account), connection = useWalletState();
@@ -106,8 +108,11 @@ export function App({ walletEnabled = false }: { walletEnabled?: boolean }) {
   return <RealtimeContext.Provider value={sharedRealtime}><WatchRuntime owner={MOCKS ? 'demo-account' : signedIn ? account!.walletAddress : null} /><AlertsDrawer /><div className="eko-shell" data-style="desk" data-density={density}><SkipLink /><Header /><div className="shell-frame"><Sidebar /><MobileBar /><main className="shell-main" id="main" tabIndex={-1}><RateNotice />
     {mismatch && <div className="shell-error" role="alert" data-testid="deployment-error">{mismatch}</div>}
     {error && <div className="shell-error" role="status">{C.configError} <button className="btn" onClick={() => void loadConfig()}>{C.retry}</button></div>}
-    <Suspense fallback={<div className="shell-page"><div className="skel" style={{ height: 200 }} /></div>}>
-      {walletEnabled ? <WalletRuntime>{page}</WalletRuntime> : page}
-    </Suspense>
+    <TradeProvider>
+      {walletEnabled && <Suspense fallback={null}><WalletRuntime /></Suspense>}
+      <Suspense fallback={<div className="shell-page"><div className="skel" style={{ height: 200 }} /></div>}>
+        {pageNeedsWallet ? <WalletScope>{page}</WalletScope> : page}
+      </Suspense>
+    </TradeProvider>
   </main></div><MobileTabs /><Onboarding /><CommandPalette /><ShortcutsHelp /><Toasts /></div></RealtimeContext.Provider>;
 }

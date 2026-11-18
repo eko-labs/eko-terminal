@@ -52,6 +52,14 @@ describe('wallet v1 account flow (mock transports, no wallet or RPC)', () => {
     await expect(siweSignIn()).rejects.toThrow(/Wallet changed/);
     expect(mocks.fetchParsed).toHaveBeenCalledTimes(1); expect(mocks.reconnect).not.toHaveBeenCalled();
   });
+  it('does not prompt if the connected address changes while fetching the challenge', async () => {
+    mocks.fetchParsed.mockImplementationOnce(async () => {
+      mocks.getConnection.mockReturnValue({ address: '0x2222222222222222222222222222222222222222', chainId: BUILD_CHAIN_ID });
+      return challenge;
+    });
+    await expect(siweSignIn(BUILD_CHAIN_ID, address)).rejects.toThrow(/Wallet changed/);
+    expect(mocks.signMessage).not.toHaveBeenCalled();
+  });
   it('retains attribution after rejection and captures it before query-free navigation', async () => {
     captureReferral();
     window.location.href = 'https://app.eko.example/radar';

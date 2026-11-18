@@ -27,11 +27,10 @@
 .htile-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .htile-sym{font:400 22px/1 var(--display);letter-spacing:-.04em}
 .htile-tags{display:flex;gap:5px;flex:none}
-.htile-spark{display:block}
-.htile-facts{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted)}
+.htile-spark{display:block;flex:0 0 46px;width:100%}
+.htile-facts{display:flex;justify-content:space-between;gap:6px;width:100%;color:var(--muted)}
 .htile-facts>span{display:flex;flex-direction:column;gap:2px;white-space:nowrap}
 .htile{container-type:inline-size}
-@container (max-width:200px){.htile-facts>span:first-child b::after{display:none}}
 .htile-facts b{font:500 16px var(--sans);color:var(--ink)}
 .htile-facts b.up{color:var(--up)}
 
@@ -119,7 +118,7 @@
 @media (max-width:760px){
  .hot-grid{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -14px;padding:0 14px 4px;scrollbar-width:none}
  .hot-grid::-webkit-scrollbar{display:none}
- .htile{flex:0 0 76%;scroll-snap-align:start}
+ .htile{flex:0 0 max(76%,280px);scroll-snap-align:start}
  .toolbar{flex-wrap:nowrap;overflow-x:auto;margin:0 -14px 12px;padding:0 14px 2px;scrollbar-width:none}
  .toolbar::-webkit-scrollbar{display:none}
  .toolbar>*{flex:none}
@@ -191,14 +190,17 @@
 .radar .head-stats dt,.radar .rt th,.radar-insp .insp-sec>h3,.radar-insp .insp-bar>span{font:var(--type-label);letter-spacing:var(--type-label-ls);text-transform:uppercase}
 .radar .head-stats dd{font:var(--type-stat);letter-spacing:var(--type-stat-ls);font-variant-numeric:tabular-nums}
 .radar .ghost-report{border:1px solid #f08c7e40;border-left:2px solid var(--danger);background:#f08c7e08}
-.radar .htile{border:1px solid var(--edge);border-top-color:var(--accent);background:var(--panel);box-shadow:none;padding:16px 18px 15px;gap:12px}
+.radar .htile{border:1px solid var(--edge);border-top-color:var(--accent);background:var(--panel);box-shadow:none;padding:16px 18px 15px;gap:8px}
 .radar .htile.sel{border-color:var(--lit)}
 .radar .htile-sym{font-size:26px}
-.radar .htile-facts{align-items:flex-end}
-.radar .htile-facts>span{font:500 12px var(--mono);text-transform:uppercase;letter-spacing:.06em}
+.radar .htile-facts>span{font:var(--type-label);text-transform:uppercase;letter-spacing:var(--type-label-ls)}
 .radar .htile-facts b{font:var(--type-stat);letter-spacing:var(--type-stat-ls);font-variant-numeric:tabular-nums;text-transform:none}
-.radar .htile-facts .score::after{content:" /100";font:400 12px var(--sans);color:var(--muted)}
-.radar .htile-facts small{font:400 10px var(--sans);text-transform:none;letter-spacing:0}
+.radar .htile-facts .score::after{content:" /100";font:var(--type-meta);color:var(--muted)}
+.radar .htile-facts small{font:var(--type-meta);text-transform:none;letter-spacing:0}
+@container (max-width:300px){
+ .radar .htile-facts b{font:var(--type-stat-inline);letter-spacing:var(--type-stat-inline-ls)}
+ .radar .htile-facts .score::after{display:none}
+}
 .radar .rt-wrap{border:0;border-bottom:1px solid var(--rule2);border-radius:0;background:transparent}
 .radar .rt th{height:38px;color:var(--ink2);letter-spacing:.04em}
 .radar .rt td{height:62px;font-size:15px}.radar .rt.compact td{height:44px}
@@ -289,12 +291,18 @@
 .col-pick-menu label{display:flex;align-items:center;gap:8px;white-space:nowrap;cursor:pointer}
 .col-pick-menu .btn{justify-self:start;margin-top:2px}
 
-/* Layout shift: the Hot strip holds a tile's height before data and when nothing is hot (HotStrip). The tile's figures
-   use the big-stat role (26px desktop, 24px phones), so the reserve follows it. */
-.htile-skel,.htile-empty{min-height:188px}
-@media(max-width:700px){.htile-skel,.htile-empty{min-height:185px}}
+/* Reserve tile height across loading, empty and populated states. */
+.htile{height:188px}
+@media(max-width:700px){.htile{height:185px}}
 .htile-empty{display:flex;align-items:center;justify-content:center;margin:0;grid-column:1/-1;border:1px dashed var(--rule)}
 @media (max-width:760px){.htile-empty{flex:1 0 100%}}
+.radar .hot-strip .sec-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;row-gap:4px;margin-top:26px}
+.hot-strip .sec-head::after{grid-area:1/2}
+.hot-strip .sec-head .seg{display:inline-flex;grid-area:1/3}
+/* Both subtitles contribute their wrapped height so switching windows cannot move the tiles. */
+.hot-strip .sec-head .hot-description{display:grid;grid-column:1/-1}
+.hot-description>span{grid-area:1/1}
+.hot-description>[aria-hidden=true]{visibility:hidden}
 /* Layout shift: the sort menu is as wide as its longest option ("Market cap", "Agent flow") from the first paint; its
    options arrive with the coins, and the wider menu pushed the Columns button onto a second toolbar row. */
 .toolbar-sort .select{width:9.5rem}

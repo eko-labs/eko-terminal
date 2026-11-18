@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getConnection, sendTransaction } from 'wagmi/actions';
 import { useConnection } from 'wagmi';
 import type { Address, Hex } from 'viem';
 import type { TradeOrder } from '@eko/shared';
-import { TradeProvider, type TradeAdapter } from './TradeContext';
+import { usePublishTradeAdapter, type TradeAdapter } from './TradeContext';
 import { GuardedTradeFlow, TradeFlowError } from '../../lib/tradeFlow';
 import { guardedTradeClient, guardedOrderHistory } from '../../lib/guardedTradeClient';
 import { approveExactPermit2, approveExactToken } from '../../lib/trade';
@@ -14,14 +14,21 @@ import { useShell } from '../../store/shell';
 import { track } from '../../lib/telemetry';
 import { TRADE_COPY as C } from '../../copy/trade';
 import { BUILD_CHAIN_ID } from '../../lib/chain';
+import { deploymentMismatch } from '../../lib/deployment';
+import { useApp } from '../../store/app';
+import { useWalletVerification, verifyWallet } from '../../lib/walletVerification';
+import { WALLET_COPY } from '../../copy/wallet';
 
 function current() {
   const connection = getConnection(wagmiConfig), shell = useShell.getState();
   return { wallet: connection.address ? { address: connection.address, chainId: connection.chainId } : null,
     accountId: shell.me?.account.id ?? null, verifiedWallet: shell.me?.account.wallet ?? null, config: shell.config };
 }
-export function WalletTradeProvider({ children }: { children: ReactNode }) {
+export function WalletTradeProvider() {
   const connection = useConnection(), me = useShell(s => s.me), realtime = useShell(s => s.realtime), wsState = useShell(s => s.wsState);
+  const sessionWallet = useApp(s => s.account?.walletAddress);
+  const mismatch = useShell(s => deploymentMismatch(s.config));
+  const { pending, failure } = useWalletVerification();
   const identity = `${me?.account.id ?? ''}:${me?.account.wallet ?? ''}:${connection.address ?? ''}:${connection.chainId ?? ''}`;
   const [feedback, setFeedback] = useState<{ identity: string; message: string; order?: TradeOrder } | null>(null);
   const flow = useMemo(() => new GuardedTradeFlow({
@@ -60,10 +67,17 @@ export function WalletTradeProvider({ children }: { children: ReactNode }) {
       const { rows } = await guardedOrderHistory(); rows.forEach(receive); await flow.recover();
     });
   }, [realtime, flow, identity]);
-  const adapter: TradeAdapter = {
-    wallet: connection.address ? { address: connection.address, chainId: connection.chainId } : null,
+  const { address, chainId } = connection;
+  const adapter = useMemo<TradeAdapter>(() => ({
+    wallet: address ? { address, chainId } : null,
     identity, feedback: feedback?.identity === identity ? feedback : undefined,
     execute: h => flow.execute(h),
-  };
-  return <TradeProvider adapter={adapter}>{children}</TradeProvider>;
+    verification: address && address.toLowerCase() !== sessionWallet && !mismatch ? {
+      pending: !!pending,
+      message: pending === address.toLowerCase() ? WALLET_COPY.verifying : failure?.address === address.toLowerCase() ? failure.message : null,
+      verify: () => void verifyWallet(address),
+    } : undefined,
+  }), [address, chainId, identity, feedback, flow, sessionWallet, mismatch, pending, failure]);
+  usePublishTradeAdapter(adapter);
+  return null;
 }

@@ -74,6 +74,19 @@ describe('Hot right now strip', () => {
     expect(hottest(list.map(c => ({ ...c, change1hPct: -0.5 })))).toEqual([]);
     expect(hottest(list.map(c => ({ ...c, unavailable: ['flow', 'volume'] as ('flow' | 'volume')[] })))).toEqual([]);
   });
+  it('changes the ranking and eligibility when the strip uses 24h metrics', () => {
+    const [a, b, danger, d, e, , f, g] = rows();
+    const hourLeader = { ...a, volume1hUsd: 6_000, volume24hUsd: 12_000, trades24h: 60, change24hPct: 2 };
+    const dayLeader = { ...b, volume24hUsd: 11_000, trades24h: 90, change1hPct: -2, change24hPct: 50 };
+    const falling = { ...d, volume1hUsd: 4_000, volume24hUsd: 30_000, trades24h: 90, change24hPct: -4 };
+    const dayStats = { volume24hUsd: 40_000, trades24h: 100, change24hPct: 100 };
+    const thin = { ...e, ...dayStats, trades1h: 0, trades24h: 4 };
+    const legacy = { ...f, trades24h: 30, volume24hUsd: undefined };
+    const pending = { ...g, ...dayStats, verdictPending: true };
+    const list = [thin, dayLeader, falling, { ...danger, ...dayStats }, hourLeader, legacy, pending];
+    expect(hottest(list, 3, '1h')).toEqual([hourLeader, falling, legacy]);
+    expect(hottest(list, 3, '24h')).toEqual([dayLeader, hourLeader]);
+  });
   it('filters Hot by the tag rows show, including a Danger coin with unusual trading', () => {
     const list = rows(); list[2] = { ...list[2], volume1hUsd: 9_000 };
     expect(list[2].verdict).toBe('danger');

@@ -15,7 +15,7 @@ import { runUpScore } from '../../lib/runUp';
 import { exitMeasured, sellCheckOf } from '../../lib/sellCheck';
 import { memo, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import type { CoinCard, CoinSignal, RadarRow, Flow } from '@eko/shared';
-import { HeatTag, Info, UnavailableValue, UntrustedText, VerdictChip } from '../../components/ui';
+import { HeatTag, Info, Seg, UnavailableValue, UntrustedText, VerdictChip } from '../../components/ui';
 import { MiniBars, Spark } from '../../components/ui/charts';
 import { activityRatio, displayHeat, heatOf, marking, markClass, type HeatRow } from '../../lib/heat';
 import { fetchParsed, isRateLimited } from '../../lib/api';
@@ -25,7 +25,7 @@ import { useMedia } from '../../lib/useMedia';
 import { expandTo } from '../../lib/expand';
 import { Link } from '../../lib/Link';
 import { Decode, Roll } from './radarMotion';
-import { age, exitText, noMatchLabel, pct, PLAYBOOK_NAMES, price, refused, usd } from './radarModel';
+import { age, exitText, hotMetrics, marketCapOf, noMatchLabel, pct, PLAYBOOK_NAMES, price, refused, usd, type HotWindow } from './radarModel';
 import { formatAge, formatCoinPrice } from '../../lib/format';
 import { launchpadLabel } from '../../copy/chain';
 import { FlowBar, FLOW_SHARE_TITLE, buyShare, flowFigure } from './FlowBar';
@@ -61,14 +61,42 @@ export const RadarRowView = memo(function RadarRowView({ c, selected, select, tr
     <td className="c-act r"><button className={`btn btn-sm${no || !tradingLive || c.verdict === 'danger' ? '' : ' btn-primary'}`} disabled={c.verdictPending || no || !tradingLive} title={no ? REFUSED_TITLE(riskMode, c.hardDanger === true) : c.verdict === 'danger' ? DANGER_ACCEPTED_TITLE : !tradingLive ? TRADING_PAUSED_TITLE : undefined} aria-label={no ? 'Refused by the guard' : !tradingLive ? `Trade $${c.symbol.text}: ${TRADING_PAUSED_TITLE}` : `Trade $${c.symbol.text}`} onClick={(e) => { e.stopPropagation(); trade(c, e.currentTarget); }}>{no ? 'Refused' : 'Trade'}</button></td>
   </tr>;
 });
-export function HotStrip({ coins, selected, select, loading = false }: { coins: RadarRow[]; selected: string | null; select: (c: RadarRow, el: HTMLElement) => void; loading?: boolean }) {
-  // The strip keeps its height from the first paint (placeholder tiles while the radar loads, a note when nothing is
-  // hot), so the toolbar and the coin table below it never jump down when data arrives (layout shift).
-  const head = <div className="sec-head" style={{ marginTop: 26 }}><h2 id="hot-h">Hot right now</h2><span className="sub">Unusual trading in the last hour against each coin's usual hour, then the most active. Not a recommendation.</span></div>;
-  if (!coins.length) return <section className="hot-strip" aria-labelledby="hot-h" aria-busy={loading}>{head}<div className="hot-grid">{loading
-    ? [0, 1, 2].map((i) => <div key={i} className="htile htile-skel skel" aria-hidden="true" />)
-    : <p className="htile htile-empty muted">Nothing unusual in the last hour.</p>}</div></section>;
-  return <section className="hot-strip" aria-labelledby="hot-h">{head}<div className="hot-grid">{coins.map((c) => <button key={c.address} className={`htile ${markClass(marking(c))}${selected === c.address ? ' sel' : ''}`} aria-pressed={selected === c.address} onClick={(e) => select(c, e.currentTarget)}><span className="htile-top"><span className="htile-sym" title={`$${c.symbol.text}`}><Decode text={`$${c.symbol.text}`}><span>$<UntrustedText value={c.symbol} /></span></Decode></span><span className="htile-tags"><BlueChipBadge value={c.blueChip} /><HeatTag heat={heatOf(c)} /><CompactVerdictChip priceMove={c.priceMove} linked={false} level={c.verdict} stateLabel={noMatchLabel(c)} guard={c.guardV2} failed={c.guardRefreshFailed} pending={c.verdictPending} evaluatedPlaybooks={c.evaluatedPlaybooks} missing={c.missingChecks} /></span></span>{c.spark8h && <span className="htile-spark"><Spark series={c.spark8h} height={46} /></span>}<span className="htile-facts">{c.signal && <span><span className="htile-signal-label">Signal <span className="signal-beta">Beta</span></span><b className="num score">{c.signal.composite}</b></span>}<span>Vol 1h<b className="num">{c.volume1hUsd === undefined ? <UnavailableValue /> : usd(c.volume1hUsd)}</b><small className="htile-usual">{c.volumeBaselineUsd === undefined ? 'new coin' : `${activityRatio(c) >= 10 ? Math.round(activityRatio(c)) : activityRatio(c).toFixed(1)}× usual`}</small></span><span>1h<b className="num up">{c.unavailable?.includes('change') ? <UnavailableValue /> : <Roll value={pct(c.change1hPct)} />}</b></span></span></button>)}</div></section>;
+const HOT_WINDOWS = ['1h', '24h'] as const;
+export function HotStrip({ coins, window, onWindowChange, selected, select, loading = false }: {
+  coins: RadarRow[]; window: HotWindow; onWindowChange: (window: HotWindow) => void;
+  selected: string | null; select: (c: RadarRow, el: HTMLElement) => void; loading?: boolean;
+}) {
+  const day = window === '24h';
+  return <section className="hot-strip" aria-labelledby="hot-h" aria-busy={loading}>
+    <div className="sec-head">
+      <h2 id="hot-h">Hot right now</h2>
+      <Seg options={HOT_WINDOWS} value={window} onChange={(value) => onWindowChange(value === '24h' ? '24h' : '1h')} label="Hot trading window" />
+      <span className="sub hot-description">
+        <span aria-hidden={day}>Unusual trading in the last hour against each coin's usual hour, then the most active. Not a recommendation.</span>
+        <span aria-hidden={!day}>Trading in the last 24 hours ranked by volume and price change. Not a recommendation.</span>
+      </span>
+    </div>
+    <div className="hot-grid">{coins.length ? coins.map((c) => {
+      const { volume, change } = hotMetrics(c, window);
+      const cap = marketCapOf(c);
+      const ratio = activityRatio(c);
+      return <button type="button" key={c.address} className={`htile ${markClass(marking(c))}${selected === c.address ? ' sel' : ''}`} aria-pressed={selected === c.address} onClick={(e) => select(c, e.currentTarget)}>
+        <span className="htile-top"><span className="htile-sym" title={`$${c.symbol.text}`}><Decode text={`$${c.symbol.text}`}><span>$<UntrustedText value={c.symbol} /></span></Decode></span><span className="htile-tags"><BlueChipBadge value={c.blueChip} /><HeatTag heat={heatOf(c)} /><CompactVerdictChip priceMove={c.priceMove} linked={false} level={c.verdict} stateLabel={noMatchLabel(c)} guard={c.guardV2} failed={c.guardRefreshFailed} pending={c.verdictPending} evaluatedPlaybooks={c.evaluatedPlaybooks} missing={c.missingChecks} /></span></span>
+        <span className="htile-spark">{c.spark8h && <Spark series={c.spark8h} height={46} />}</span>
+        <span className="htile-facts">
+          {c.signal && <span><span className="htile-signal-label">Signal <span className="signal-beta">Beta</span></span><b className="num score">{c.signal.composite}</b></span>}
+          <span>Vol {window}<b className="num">{volume === undefined ? <UnavailableValue /> : usd(volume)}</b>
+            {!day && <small className="htile-usual">{c.volumeBaselineUsd === undefined ? 'new coin' : `${ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1)}× usual`}</small>}
+          </span>
+          <span>Market cap<b className="num">{cap === undefined ? <UnavailableValue /> : usd(cap)}</b></span>
+          <span>{window}<b className="num up">{change === undefined ? <UnavailableValue /> : <Roll value={pct(change)} />}</b></span>
+        </span>
+      </button>;
+    }) : loading
+      ? [0, 1, 2].map((i) => <div key={i} className="htile htile-skel skel" aria-hidden="true" />)
+      : <p className="htile htile-empty muted">Nothing unusual in the last {day ? '24 hours' : 'hour'}.</p>}
+    </div>
+  </section>;
 }
 function Section({ title, figure, children }: { title: string; figure?: ReactNode; children: ReactNode }) { return <section className="insp-sec"><h3>{title}{figure}</h3>{children}</section>; }
 export function InspectorGuard({ card, href, mark = '' }: { card: CoinCard; href: string; mark?: string }) {

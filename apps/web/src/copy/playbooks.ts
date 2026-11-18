@@ -19,4 +19,5 @@ export const PLAYBOOK_DESCRIPTIONS: Record<PlaybookId, string> = {
   dev_dump: 'The deployer sold on buyers fast, or still holds a large bag.',
   run_up: 'Much of the supply is already bought off the curve; late buyers pay far above the start.',
   launch_snipers: 'Bots bought within a second of launch, often outbidding on priority fees, and can dump on later buyers.',
+  fake_mcap: 'The creator set the price; almost nothing has been paid into the pool, so the market cap is not real.',
 };

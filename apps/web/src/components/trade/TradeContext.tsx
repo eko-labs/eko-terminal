@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 import type { TradeOrder, TradeQuote, TradeQuoteRequest } from '@eko/shared';
 import { panelBlock, type PanelGate } from './tradePanelModel';
 
@@ -14,6 +14,7 @@ export interface TradeAdapter {
   execute(handoff: TradeHandoff): Promise<TradeOrder>;
   feedback?: { message: string; order?: TradeOrder };
   identity?: string;
+  verification?: { pending: boolean; message: string | null; verify(): void };
 }
 export class TradeLock {
   busy = false;
@@ -31,9 +32,18 @@ export class TradeLock {
 }
 const sharedLock = new TradeLock();
 const TradeContext = createContext<{ adapter: TradeAdapter | null; lock: TradeLock }>({ adapter: null, lock: sharedLock });
-export function TradeProvider({ adapter, children }: { adapter: TradeAdapter | null; children: ReactNode }) {
+const PublishAdapter = createContext<(adapter: TradeAdapter | null) => void>(() => {});
+export function TradeProvider({ children }: { children: ReactNode }) {
   const lock = useMemo(() => new TradeLock(), []);
-  return <TradeContext.Provider value={{ adapter, lock }}>{children}</TradeContext.Provider>;
+  const [adapter, setAdapter] = useState<TradeAdapter | null>(null);
+  return <PublishAdapter.Provider value={setAdapter}><TradeContext.Provider value={{ adapter, lock }}>{children}</TradeContext.Provider></PublishAdapter.Provider>;
+}
+export function usePublishTradeAdapter(adapter: TradeAdapter) {
+  const publish = useContext(PublishAdapter);
+  useEffect(() => {
+    publish(adapter);
+    return () => publish(null);
+  }, [adapter, publish]);
 }
 export function useTradeExecution() {
   const context = useContext(TradeContext);

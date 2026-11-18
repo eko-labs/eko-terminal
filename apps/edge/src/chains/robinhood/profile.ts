@@ -86,3 +86,28 @@ export const PONS_LOCK = {
  * matches its retry rule).
  */
 export const ROBINHOOD_TRACKER = { backfillBlocks: 32_400, chunk: 500, blockTimeSec: ROBINHOOD_PROFILE.blockTimeSec } as const;
+
+/**
+ * Pangea on Robinhood Chain ("Pangea" is GMGN's name for it; nothing on chain names it). Read from all 62 launches since
+ * the launcher appeared at block 112,824,849 to block 117,470,682 (2026-11-18; docs/robinhood/CHAIN-FACTS.md §7). One
+ * transaction per launch: the launcher mints the coin's whole supply (1e18 base units, one whole token, on all 62),
+ * opens a Uniswap v4 pool keyed native ETH / coin with fee 0, tick spacing 60 and the registry's Pangea hook, at a price
+ * the creator picks, and adds the whole supply as one position whose upper tick is one tick above the opening price.
+ * So the pool opens with only the coin in it: every wei of ETH in it later was paid in by a buyer. The creator's price
+ * ranged from about 0.005 ETH to 56 ETH for the whole supply (about $10 to $100,000 at $1,800 an ETH). 58 launches were
+ * native-ETH pools; 4 were quoted in a token (GME, AI) and are skipped, as Pons' token-quoted curves are.
+ */
+export const PANGEA_TERMS = { fee: 0, tickSpacing: 60 } as const;
+/**
+ * Pangea's contracts, measured on chain 2026-11-18 (the registry schema has no place for them yet; scripts/
+ * check-addresses.mjs lists them as measured contracts). The launcher is an ERC-1967 proxy with no admin slot set:
+ * upgradeable (its implementation at block 117,470,682 is in docs/robinhood/CHAIN-FACTS.md §7).
+ */
+export const PANGEA = {
+  /** Called by every launch transaction; logs PANGEA_POOL_TOPIC (events.ts). */
+  launcher: '0xaA61764BD44df5468CaaE856232Ce9B711512449' as Address,
+  /** The hook on every Pangea pool (permission flags 0x28cc, both swap return deltas). */
+  hook: '0x8e1Bf182a2a1FEdF9850379127D4535F18EA68cc' as Address,
+  /** Initializes each pool and holds its single-sided launch position. */
+  liquidityManager: '0xbebe68fBfB62E18FBFEbf4365970D192C5f34DC1' as Address,
+} as const;

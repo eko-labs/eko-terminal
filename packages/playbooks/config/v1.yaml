@@ -16,3 +16,4 @@ holder_concentration: { top10Monitor: 0.20, top10Danger: 0.50, largestMonitor: 0
 dev_dump:            { cashOutMultiple: 1.5, firstSellSec: 30, minSoldShare: 0.01, heldMonitor: 0.05, heldDanger: 0.20 }
 run_up:              { outMonitor: 0.30, hourDanger: 0.30 }
 launch_snipers:      { monitorHeld: 0.10, dangerHeld: 0.25, monitorBoughtDumped: 0.20 }
+fake_mcap:           { minMcapUsd: 20000, maxBackingShare: 0.02, maxVolumeShare: 0.02, dangerHolders: 3 }

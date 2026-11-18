@@ -828,7 +828,7 @@ export class EngineWorker {
     const assembled=assembleVerdict(matches,{ coin:s.coin,asOfBlock:s.asOfBlock,receipt:{ id:'pending',hash:'',status:'pending' } });
     const incomplete=Object.entries(s.attributionCoverage ?? {}).filter(([,gap])=>gap.status==='incomplete');
     if(incomplete.length)assembled.reasons.push(`Not fully checked: ${incomplete.map(([key,gap])=>`${key.replaceAll('_',' ')} (${gap.reason.replaceAll('_',' ')})`).join(', ')}`);
-    // CA-34: Clear needs every check that has an input source (UNSOURCED_PLAYBOOKS has none yet and is named instead).
+    // CA-34: Clear needs every check that has an input source (those in UNSOURCED_PLAYBOOKS are named instead).
     const notRun=(Object.keys(rules) as PlaybookId[]).filter(id=>!evaluated.includes(id)),blocking=notRun.filter(id=>!UNSOURCED_PLAYBOOKS.includes(id));
     if (assembled.level==='clear' && (blocking.length>0 || incomplete.length>0)) assembled.level='pending';
     if (assembled.level==='pending' && blocking.includes('honeypot')) assembled.reasons.unshift('Waiting on a sell check: the buy-then-sell simulation has not completed.');

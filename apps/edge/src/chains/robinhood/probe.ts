@@ -72,7 +72,8 @@ export const FALLBACK_PROBE_WEI = 25n * 10n ** 16n;
 export async function probeRobinhoodCoin(coin: RobinhoodCoinState, block: bigint, deps: RobinhoodProbeDeps, priorTips: Record<string, number> = {}): Promise<RobinhoodProbed> {
   const { rpc, addrs } = deps, nowSec = Math.floor((deps.now?.() ?? Date.now()) / 1000);
   const curve = coin.curve && !coin.graduated ? coin.curve.address : null;
-  const key = coin.graduated && coin.key && v4PoolId(coin.key).toLowerCase() === coin.poolId.toLowerCase() ? coin.key : null;
+  // A Pons coin's pool from graduation; a Pangea coin's from launch (it has no curve).
+  const key = (coin.graduated || coin.launchpad === 'pangea') && coin.key && v4PoolId(coin.key).toLowerCase() === coin.poolId.toLowerCase() ? coin.key : null;
   const enc = (target: Address, abi: readonly unknown[], functionName: string, args: readonly unknown[] = []) =>
     ({ target, data: encodeFunctionData({ abi, functionName, args } as unknown as Parameters<typeof encodeFunctionData>[0]) });
   const curveCalls = curve ? [
@@ -80,7 +81,8 @@ export async function probeRobinhoodCoin(coin: RobinhoodCoinState, block: bigint
     ...(['realQuoteReserve', 'sellableTokens', 'graduated', 'readyToGraduate', 'token', 'pairToken', 'factory', 'launchedAt', 'snipeTaxSeconds'] as const)
       .map(fn => enc(curve, ponsCurveReadAbi, fn)),
   ] : [];
-  const lockCalls = key ? [enc(addrs.factory, factoryAbi, 'locker'), enc(addrs.factory, factoryAbi, 'positionManager'), enc(addrs.factory, factoryAbi, 'memeHook'),
+  // The lock proof is Pons' (its launch locker); a Pangea pool's position stays with Pangea's liquidity manager, unproven.
+  const lockCalls = key && coin.launchpad === 'pons' ? [enc(addrs.factory, factoryAbi, 'locker'), enc(addrs.factory, factoryAbi, 'positionManager'), enc(addrs.factory, factoryAbi, 'memeHook'),
     enc(PONS_LOCK.locker, lockerAbi, 'lockedPositions', [coin.token]), enc(PONS_LOCK.positionManager, posmAbi, 'poolManager')] : [];
   const read = await batch(rpc, addrs.multicall3, block, [enc(coin.token, erc20Abi, 'name'), enc(coin.token, erc20Abi, 'symbol'), ...curveCalls, ...lockCalls]);
   const name = read(0, d => decodeFunctionResult({ abi: erc20Abi, functionName: 'name', data: d })) ?? coin.name ?? '';
@@ -114,14 +116,16 @@ export async function probeRobinhoodCoin(coin: RobinhoodCoinState, block: bigint
   }
 
   let lock: PonsLockFacts | null = null;
-  if (key) {
+  if (key && lockCalls.length) {
     const l = 2 + curveCalls.length;
     lock = await readLock(rpc, addrs, coin, key, block, { locker: addr(l), positionManager: addr(l + 1), hook: addr(l + 2), tokenId: uint(l + 3), manager: addr(l + 4) },
       deps.pins ?? { locker: PONS_LOCK.lockerCodeHash, positionManager: PONS_LOCK.positionManagerCodeHash }).catch(() => null);
   }
 
   // The probe: about $1,000 of ETH. On the curve only while it trades (a graduated or ready curve is closed for sells
-  // and the pool takes over); on the pool only with a key that hashes to the coin's pool id.
+  // and the pool takes over); on the pool only with a key that hashes to the coin's pool id. A Pangea pool takes the
+  // same v4 route with empty hookData (its swaps through the Universal Router pass none; the probe sold on all five
+  // pools tried, 2026-11-18).
   const ethUsd = deps.ethUsd();
   const sizeWei = ethUsd ? BigInt(Math.round(1000 / ethUsd * 1e6)) * 10n ** 12n : FALLBACK_PROBE_WEI;
   const route: SellRoute | null = pons && !pons.graduated && !pons.readyToGraduate ? { venue: 'pons_curve', coin: coin.token, curve: pons.curve }
@@ -166,8 +170,11 @@ async function readLock(rpc: Rpc, addrs: RobinhoodAddresses, coin: RobinhoodCoin
 
 /**
  * Contracts that hold or route a Robinhood coin without being holders: its curve (the whole unsold supply before
- * graduation), the Pons factory, router and hook, the PoolManager (the pool's tokens after it) and the Pons locker.
+ * graduation), the Pons factory, router and hook, the PoolManager (the pool's tokens after it), the Pons locker, and
+ * Pangea's launcher, liquidity manager and hook.
  */
 export function robinhoodExcluded(coin: Pick<RobinhoodCoinState, 'curve'> | undefined, addrs: RobinhoodAddresses): Address[] {
-  return [...(coin?.curve ? [coin.curve.address] : []), addrs.factory, addrs.router, addrs.hook, addrs.poolManager, PONS_LOCK.locker];
+  return [...(coin?.curve ? [coin.curve.address] : []), addrs.factory, addrs.router, addrs.hook, addrs.poolManager, PONS_LOCK.locker,
+    // Pangea's launcher and liquidity manager pass the whole supply through at launch; its hook can hold fees.
+    addrs.pangeaLauncher, addrs.pangeaLiquidityManager, addrs.pangeaHook];
 }

@@ -380,6 +380,10 @@ function holders(o: Partial<NonNullable<PlaybookInput['holders']>> = {}): Playbo
 function runUp(o: Partial<NonNullable<PlaybookInput['runUp']>> = {}): PlaybookInput {
   return { ...base(), runUp: { outShare: 0, hourShare: 0, ageSec: 600, evidence: [evidence('Launch curve', 'tx')], ...o } };
 }
+/** SPd on Robinhood Chain five minutes after its Pangea launch (2026-11-18): $100k of market cap, under $1 paid in. */
+function fakeMcap(o: Partial<NonNullable<PlaybookInput['marketCap']>> = {}): PlaybookInput {
+  return { ...base(), marketCap: { mcapUsd: 100_242, backingUsd: 0.89, volume24hUsd: 172, holders: 1, evidence: [evidence('Pangea pool (opened with only the coin in it)', 'address')], ...o } };
+}
 function dev(o: Partial<NonNullable<PlaybookInput['dev']>> = {}): PlaybookInput {
   return { ...base(), dev: { heldShare: 0, cashInUsd: 100, cashOutUsd: 0, soldShare: 0, firstSellSec: null, evidence: [evidence('Deployer trade', 'tx')], ...o } };
 }
@@ -418,12 +422,33 @@ describe('run_up (calibrated 2026-10-12)', () => {
   });
 });
 
+describe('fake_mcap (set from Pangea launches, 2026-11-18)', () => {
+  it('is danger for a $100k market cap with under $1 paid in, $172 traded and one holder', () => level('fake_mcap', fakeMcap(), 'danger'));
+  it('is not measured without the market-cap source', () => level('fake_mcap', base(), null));
+  it.each([[19_999, null], [20_000, 'danger']] as const)('market cap $%s → %s (floor $20,000)', (mcapUsd, expected) =>
+    level('fake_mcap', fakeMcap({ mcapUsd, backingUsd: 0, volume24hUsd: 0 }), expected));
+  it.each([[1_999, 'danger'], [2_000, null], [50_000, null]] as const)('$%s paid into a $100,000 pool → %s (under 2%)', (backingUsd, expected) =>
+    level('fake_mcap', fakeMcap({ mcapUsd: 100_000, backingUsd }), expected));
+  it('is monitor when the coin trades and is held but the price still rests on almost nothing', () =>
+    level('fake_mcap', fakeMcap({ mcapUsd: 100_000, backingUsd: 500, volume24hUsd: 5_000, holders: 40 }), 'monitor'));
+  it.each([[3, 'danger'], [4, 'monitor']] as const)('trading 5%% of the market cap with %s holders → %s', (holders, expected) =>
+    level('fake_mcap', fakeMcap({ mcapUsd: 100_000, backingUsd: 500, volume24hUsd: 5_000, holders }), expected));
+  it('is danger on thin volume alone (2% of the market cap)', () =>
+    level('fake_mcap', fakeMcap({ mcapUsd: 100_000, backingUsd: 500, volume24hUsd: 1_999, holders: 40 }), 'danger'));
+  it('treats a negative net flow as nothing paid in', () => level('fake_mcap', fakeMcap({ backingUsd: -50 }), 'danger'));
+  it('names the numbers', () => {
+    expect(reasonForMatch(run('fake_mcap', fakeMcap())!)).toBe('Priced at a $100,242 market cap with $0.89 paid into its pool, $172 traded in 24 hours and 1 holder: the price is not backed.');
+    expect(reasonForMatch(run('fake_mcap', fakeMcap({ holders: 0, backingUsd: 0, volume24hUsd: 189.4 }))!)).toBe('Priced at a $100,242 market cap with $0.00 paid into its pool, $189 traded in 24 hours and 0 holders: the price is not backed.');
+  });
+});
+
 describe('pure registry and evidence', () => {
   const fixtures: Record<PlaybookId, () => PlaybookInput> = {
     honeypot: () => ({ ...base(), simulations: [sim()] }), tax_trap: () => taxes(30), removable_liquidity: () => lp(),
     fee_trap_pool: () => pool(), stuck_at_bonding: curve, wash_to_trend: wash, clone_swarm: clone,
     exempt_insiders: pons, bundle_dump: bundle, migration_dump: migration, malicious_hook: () => { const input = hook(); input.hook!.quoteSimGapPct = 3; return input; },
     agent_bait: bait, serial_deployer: () => serial(3), holder_concentration: () => holders({ top10Share: 0.3 }), dev_dump: () => dev({ heldShare: 0.06 }), run_up: () => runUp({ outShare: 0.4 }),
+    fake_mcap: () => fakeMcap(),
     launch_snipers: () => ({ ...base(), snipers: [{ wallet: '0x00000000000000000000000000000000000000b0', block: 2, boughtShare: 0.3, heldShare: 0.3, tipGwei: 12.5, evidence: [{ kind: 'address', ref: '0x00000000000000000000000000000000000000b0', label: 'Launch sniper' }] }] }),
   };
   it('contains exactly the shared ids', () => expect(Object.keys(rules)).toEqual(PlaybookIdSchema.options));

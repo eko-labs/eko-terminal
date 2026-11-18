@@ -91,6 +91,13 @@ export interface JudgeFacts {
   hook: { label: string; reviewed: boolean; sourceVerified: boolean; buyFeePct: number | null; sellFeePct: number | null };
   /** A bonding-curve coin's run-up (playbook run_up): supply bought out of the curve, in all and in the last hour. */
   runUp?: { outShare: number; hourShare: number; ageSec: number; evidence: { kind: 'address'; ref: Address; label: string }[] };
+  /**
+   * A coin whose pool opened with only the coin in it, followed from its launch (playbook fake_mcap): its market cap
+   * (price × supply), the native currency buyers paid into the pool on net (all the pool holds of it), and its 24-hour
+   * volume, all in native currency. Absent where the chain cannot say what backs the price (curves, pools seeded with
+   * quote, coins first seen after launch).
+   */
+  backing?: { mcap: number; paidIn: number; volume24h: number; evidence: { kind: 'address'; ref: string; label: string }[] };
 }
 
 /** Where a coin trades now: a launchpad's bonding curve before graduation, a v4 pool after. */

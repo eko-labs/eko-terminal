@@ -16,7 +16,7 @@ import { reducedMotion } from '../../lib/phosphor';
 import { useUi } from '../../store/ui';
 import { useShell } from '../../store/shell';
 import { Link } from '../../lib/Link';
-import { COLUMNS, COLUMNS_KEY, hiddenColumnClasses, noMatchLabel, parseColumns, type ColumnId, retainCompactGuard, sortAvailable, ascending, applyRadarEvents, currentAgeSec, filterRows, heatScore, RadarResponseSchema, receivedAt, scanDelayed, SORTS, sortRows, type Sort, hottest } from './radarModel';
+import { COLUMNS, COLUMNS_KEY, hiddenColumnClasses, noMatchLabel, parseColumns, type ColumnId, retainCompactGuard, sortAvailable, ascending, applyRadarEvents, currentAgeSec, filterRows, heatScore, RadarResponseSchema, receivedAt, scanDelayed, SORTS, sortRows, type Sort, hottest, type HotWindow } from './radarModel';
 import { serverNow } from '../../lib/clock';
 import { TradePanel } from '../../components/trade/TradePanel';
 import { CoinInspector, HeatLegend, HotStrip, RadarRowView } from './RadarParts';
@@ -33,6 +33,7 @@ function SortTh({ value, sort, setSort, className, children, disabled = false }:
   return <th className={className} aria-sort={!disabled && on ? ascending(sort) ? 'ascending' : 'descending' : 'none'}><button disabled={disabled} className={`rt-sort${on ? ' on' : ''}`} onClick={() => setSort(on ? 'Rank' : value)}>{children}<span aria-hidden="true">{on ? '▾' : ''}</span></button></th>;
 }
 const HIDE_REFUSED_KEY = 'eko.radar.hideRefused';
+const HOT_WINDOW_KEY = 'eko.radar.hotWindow';
 /** The Columns menu: tick the optional columns to show. Saved on this device. */
 function ColumnPicker({ columns, setColumns }: { columns: ColumnId[]; setColumns: (next: ColumnId[]) => void }) {
   const ref = useRef<HTMLDetailsElement>(null);
@@ -54,6 +55,13 @@ export default function Radar() {
   const [rows, setRows] = useState<RadarRow[]>([]), [cursor, setCursor] = useState<string | null>(null), [delayed, setDelayed] = useState(0);
   const [loading, setLoading] = useState(true), [error, setError] = useState<string | null>(null);
   const [show, setShow] = useState('All'), [stage, setStage] = useState('All'), [sort, setSort] = useState<Sort>('Rank');
+  const [hotWindow, setHotWindow] = useState<HotWindow>(() => {
+    try { return localStorage.getItem(HOT_WINDOW_KEY) === '24h' ? '24h' : '1h'; } catch { return '1h'; }
+  });
+  const chooseHotWindow = (window: HotWindow) => {
+    setHotWindow(window);
+    try { localStorage.setItem(HOT_WINDOW_KEY, window); } catch { /* optional */ }
+  };
   // Remembered on this device: a reader who hides refused coins wants them hidden on the next visit too.
   const [hideRefused, setHideRefused] = useState(() => { try { return localStorage.getItem(HIDE_REFUSED_KEY) === '1'; } catch { return false; } });
   const [columns, setColumnsState] = useState<ColumnId[]>(() => { try { return parseColumns(localStorage.getItem(COLUMNS_KEY)); } catch { return parseColumns(null); } });
@@ -119,7 +127,7 @@ export default function Radar() {
   }, [list, density]);
   const rowHeight = density === 'compact' ? 44 : 62;
   const windowed = useRadarWindow(listEl, list.length, rowHeight);
-  const hot = useMemo(() => hottest(rows.filter(r => !blueChipOnly || r.blueChip?.member)), [rows, blueChipOnly]);
+  const hot = useMemo(() => hottest(rows.filter(r => !blueChipOnly || r.blueChip?.member), 3, hotWindow), [rows, blueChipOnly, hotWindow]);
   const coin = rows.find((c) => c.address === selected);
   useEffect(() => { if (selected && !loading && !coin) close(); }, [selected, loading, coin, close]);
   const onCard = useCallback((card: CoinCard) => setCards((old) => ({ ...old, [card.identity.address]: card })), []);
@@ -139,7 +147,7 @@ export default function Radar() {
   return <div className={`with-insp radar-layout${coin ? ' open' : ''}`}><div className="page radar" ref={page} onTouchStart={(e) => { pullStart.current = window.scrollY <= 0 ? e.touches[0]?.clientY ?? null : null; }} onTouchEnd={(e) => { if (pullStart.current !== null && (e.changedTouches[0]?.clientY ?? 0) - pullStart.current > 80) void snapshot(); pullStart.current = null; }} inert={!wide && !!coin}>
     <div className="page-head"><div><h1>Radar</h1><p>{CHAIN_COPY.radarIntro}</p></div><dl className="head-stats"><div><dt>Scanned today</dt><dd><span className="num">{MOCKS ? '1,204' : totals?.evaluatedToday.toLocaleString() ?? '—'}</span>{MOCKS ? <MiniBars series={SCANS} height={22} label="Pairs scanned per hour, last 24 hours" /> : totals?.evaluatedByHour && <MiniBars series={totals.evaluatedByHour} height={22} label="Coins scanned per hour, last 24 hours" />}</dd></div><div><dt>Honeypots refused</dt><dd><span className="num">{MOCKS ? '37' : totals?.honeypotsRefused?.toLocaleString() ?? '—'}</span>{!MOCKS && totals && totals.honeypotsRefused === undefined && <small className="muted">not checked yet</small>}{MOCKS ? <MiniBars series={REFUSED} height={22} tone="warm" label="Honeypots refused per hour, last 24 hours" /> : totals?.refusedByHour && <MiniBars series={totals.refusedByHour} height={22} tone="warm" label="Coins whose buy the guard refused because the sell failed, per hour, last 24 hours" />}</dd></div><div><dt>Danger now</dt><dd><span className="num">{MOCKS ? rows.filter((c) => c.verdict === 'danger').length : totals?.danger.toLocaleString() ?? '—'}</span>{MOCKS ? <MiniBars series={DANGER} height={22} tone="warm" label="Coins marked Danger per hour, last 24 hours" /> : totals?.dangerByHour && <MiniBars series={totals.dangerByHour} height={22} tone="warm" label="Coins given a Danger verdict per hour, last 24 hours" />}</dd></div></dl></div>
     <GhostReports limit={1} />
-    <HotStrip coins={hot} selected={selected} select={select} loading={loading && !rows.length} />
+    <HotStrip coins={hot} window={hotWindow} onWindowChange={chooseHotWindow} selected={selected} select={select} loading={loading && !rows.length} />
     <div className="sec-head"><h2>All coins</h2><span className="sub num">{list.length} of {rows.length}</span><div className="end"><span className="toolbar-live" role="status"><span className={`sb-dot${stale ? ' stale' : ''}`} />{isDelayed ? `Delayed ~${delayed || 60} s` : stale ? 'Stale' : 'Live'} · updated {seen}s ago</span><Seg options={[{ value: 'comfortable', label: 'Comfortable' }, { value: 'compact', label: 'Compact' }]} value={density} onChange={(value) => setUi({ density: value === 'compact' ? 'compact' : 'comfortable' })} label="Row density" /></div></div>
     <div className="toolbar">{blueChipEnabled && <label><input type="checkbox" checked={blueChipOnly} onChange={e=>{setCursor(null);setBlueChipOnly(e.target.checked);}} /> Blue chip</label>}<Seg options={['All', 'Hot', NO_FLAGS, 'Monitor', 'Danger']} value={show} onChange={setShow} label="Show" /><Seg options={['All', 'Curve', 'Migrated', 'Uniswap']} value={stage} onChange={setStage} label="Stage" /><Seg options={[{ value: 'Shown', label: 'Show refused' }, { value: 'Hidden', label: 'Hide refused' }]} value={hideRefused ? 'Hidden' : 'Shown'} onChange={chooseRefused} label="Refused coins" /><label className="toolbar-sort"><span className="muted">Sort</span><select className="select" value={sort} onChange={(e) => setSort(e.target.value as Sort)}>{SORTS.filter((s) => sortAvailable(rows,s)).map((s) => <option key={s}>{s}</option>)}</select></label><ColumnPicker columns={columns} setColumns={setColumns} /><div className="toolbar-end"><HeatLegend /></div></div>
     {/* TODO(spec): RadarRow has topPlaybook but no match confidence; show confidence only after CoinCard supplies it. */}

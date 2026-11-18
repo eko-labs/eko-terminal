@@ -134,6 +134,6 @@ regexes = ['''^0x2Fd8Ed57C5FD829F042911996EAA4C591FFc0bB2$''']
 description = "Robinhood token contract addresses in trade fixtures and the fork-trade script."
 targetRules = ["generic-api-key"]
 condition = "AND"
-paths = ['''^scripts/robinhood/fork\-trade\.ts$''', '''^apps/edge/test/robinhood\-trade\.test\.ts$''', '''^apps/edge/test/fixtures/robinhood/pons\-graduation\.json$''']
+paths = ['''^scripts/robinhood/fork\-trade\.ts$''', '''^apps/edge/test/robinhood\-trade\.test\.ts$''', '''^apps/edge/test/fixtures/robinhood/pons\-graduation\.json$''', '''^apps/edge/test/fixtures/robinhood/pangea\-launch\.json$''']
 regexTarget = "secret"
 regexes = ['''^0x[0-9a-fA-F]{40}$''']

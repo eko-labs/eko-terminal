@@ -12,15 +12,29 @@ export const ascending = (sort: Sort) => ['Rank', 'Newest', 'Exit cost'].include
 // measured, agent buying; Rank keeps the exact server order.
 export const heatScore = (c: RadarRow) => activityRatio(c) * (1 + Math.max(0, c.unavailable?.includes('change') ? 0 : c.change1hPct) / 100)
   + (c.unavailable?.includes('flow') ? 0 : c.flow.agentPct / 10);
+export type HotWindow = '1h' | '24h';
+export function hotMetrics(c: RadarRow, window: HotWindow) {
+  const day = window === '24h';
+  return {
+    volume: c.unavailable?.includes('volume') ? undefined : day ? c.volume24hUsd : c.volume1hUsd,
+    change: c.unavailable?.includes('change') ? undefined : day ? c.change24hPct : c.change1hPct,
+    trades: day ? c.trades24h : c.trades1h,
+  };
+}
 /**
  * Hot right now: Hot coins first, then the most active of the rest, so the strip shows where trading is when
  * nothing clears the Hot bar. Danger, unscanned and falling coins are never featured; a coin needs some real trades.
- * At a quiet hour the strip can show fewer than three, or none.
+ * At a quiet window the strip can show fewer than three, or none.
  */
-export const hottest = (rows: readonly RadarRow[], n = 3): RadarRow[] => rows
-  .filter((c) => !c.verdictPending && (c.verdict === 'clear' || c.verdict === 'monitor') && !c.unavailable?.includes('volume')
-    && (c.trades1h ?? 0) >= 5 && (c.unavailable?.includes('change') || c.change1hPct >= 0))
-  .map((c) => ({ c, hot: heatOf(c) === 'hot', score: heatScore(c) }))
+export const hottest = (rows: readonly RadarRow[], n = 3, window: HotWindow = '1h'): RadarRow[] => rows
+  .flatMap((c) => {
+    const { volume, change, trades } = hotMetrics(c, window);
+    if (c.verdictPending || (c.verdict !== 'clear' && c.verdict !== 'monitor') || volume === undefined
+      || (trades ?? 0) < 5 || (change ?? 0) < 0) return [];
+    if (window === '1h') return [{ c, hot: heatOf(c) === 'hot', score: heatScore(c) }];
+    // TODO(spec): No 24h baseline or agent flow is supplied, so weight daily USD volume by the daily price move.
+    return [{ c, hot: false, score: volume * (1 + (change ?? 0) / 100) }];
+  })
   .sort((a, b) => Number(b.hot) - Number(a.hot) || b.score - a.score || a.c.address.localeCompare(b.c.address)).slice(0, n).map(({ c }) => c);
 /** When each row version arrived, in client milliseconds. `ageSec` is only meaningful relative to it. */
 export type ReceivedAt = ReadonlyMap<string, number>;
@@ -37,7 +51,7 @@ export const currentAgeSec = (row: { address: string; ageSec: number }, received
 /** "Scanning…" only while a first scan is plausibly running; after that the row says the scan is delayed. */
 export const scanDelayed = (row: { verdictPending?: boolean }, ageNowSec: number) => !!row.verdictPending && ageNowSec >= SCAN_DELAYED_AFTER_SEC;
 const priceOf = (c: RadarRow) => c.priceUnavailable ? undefined : c.priceUsd;
-const marketCapOf = (c: RadarRow) => c.unavailable?.includes('marketCap') || c.marketCapUsd === undefined ? undefined : c.marketCapUsd;
+export const marketCapOf = (c: RadarRow) => c.unavailable?.includes('marketCap') ? undefined : c.marketCapUsd;
 export const sortAvailable = (rows: readonly RadarRow[], sort: Sort) => sort === 'Price' ? rows.some(c => priceOf(c) !== undefined) : sort === 'Market cap' ? rows.some(c => marketCapOf(c) !== undefined)
   : rows.some(c => sortField(sort) === undefined || !c.unavailable?.includes(sortField(sort)!));
 const sortField = (sort: Sort): NonNullable<RadarRow['unavailable']>[number] | undefined => ({ '1h move':'change', 'Agent flow':'flow', 'Exit cost':'exitCost' } as const)[sort as '1h move'|'Agent flow'|'Exit cost'];
@@ -91,7 +105,7 @@ export function applyRadarEvents(rows: readonly RadarRow[], events: readonly Cha
   }
   return next;
 }
-export const PLAYBOOK_NAMES: Record<string, string> = { honeypot: 'Honeypot', tax_trap: 'Tax trap', removable_liquidity: 'Removable liquidity', fee_trap_pool: 'Fee-trap pool', stuck_at_bonding: 'Stuck at bonding', wash_to_trend: 'Wash to trend', clone_swarm: 'Clone', exempt_insiders: 'Exempt insiders', bundle_dump: 'Bundle dump', migration_dump: 'Migration dump', malicious_hook: 'Malicious hook', agent_bait: 'Agent bait', serial_deployer: 'Serial deployer', holder_concentration: 'Holder concentration', dev_dump: 'Deployer holdings', run_up: 'Run-up', launch_snipers: 'Launch snipers' };
+export const PLAYBOOK_NAMES: Record<string, string> = { honeypot: 'Honeypot', tax_trap: 'Tax trap', removable_liquidity: 'Removable liquidity', fee_trap_pool: 'Fee-trap pool', stuck_at_bonding: 'Stuck at bonding', wash_to_trend: 'Wash to trend', clone_swarm: 'Clone', exempt_insiders: 'Exempt insiders', bundle_dump: 'Bundle dump', migration_dump: 'Migration dump', malicious_hook: 'Malicious hook', agent_bait: 'Agent bait', serial_deployer: 'Serial deployer', holder_concentration: 'Holder concentration', dev_dump: 'Deployer holdings', run_up: 'Run-up', launch_snipers: 'Launch snipers', fake_mcap: 'Fake market cap' };
 export const pct = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`;
 export const usd = (v: number) => v >= 1e6 ? `$${(v / 1e6).toFixed(2)}M` : v >= 1000 ? `$${Math.round(v / 1000)}K` : `$${Math.round(v).toLocaleString('en-US')}`;
 export const price = (v: number) => `$${v.toFixed(v < .01 ? 7 : 2)}`;

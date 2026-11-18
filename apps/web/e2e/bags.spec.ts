@@ -51,12 +51,14 @@ async function fixture(page: Page, wallet: string) {
 for (const [width, height] of [[1512, 982], [1440, 900], [1280, 800], [390, 844]]) {
   test(`Bags connect, retry, disclosures and share parity at ${width}×${height}`, async ({ page }) => {
     await page.setViewportSize({ width, height });
-    const account = await installMockWallet(page, { key: generatePrivateKey(), chainId: 4663 });
+    const account = await installMockWallet(page, { key: generatePrivateKey(), chainId: 4663, rejectFirstSign: true });
     const data = await fixture(page, account.address);
     await page.goto('/bags');
     await expect(page.getByRole('heading', { name: 'Connect a wallet to scan what you hold' })).toBeVisible();
     await connectWallet(page);
+    await expect(page.locator('.wallet-menu:visible').getByText('Signature rejected.')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Connect a wallet to scan what you hold' })).toBeVisible();
+    await page.getByRole('menuitem', { name: /Verify wallet/ }).click();
     await verifyWallet(page);
     await expect(page.locator('.bags-page h1')).toHaveText('Scan my bags');
     const holdings = width === 390 ? page.locator('.bag-holding') : page.locator('.bags-table tbody tr');

@@ -56,6 +56,10 @@ html,body,#root{height:auto;min-height:100%;overflow:visible}body{overflow:auto;
 .eko-shell .wallet-btn.btn-primary{background:var(--dither-ink) 0 0/var(--dither-size),var(--lit);border-color:var(--lit);color:var(--brand-ink)}
 .eko-shell .wallet-btn.btn-primary:hover,.eko-shell .wallet-btn.btn-primary[aria-expanded=true]{background:var(--dither-ink) 0 0/var(--dither-size),#fff;border-color:#fff}
 .eko-shell .wallet-btn:focus-visible{outline-color:var(--accent)}
+.wallet:has(>.wallet-verify){display:flex;align-items:center;gap:4px}
+.side-foot .wallet:has(>.wallet-verify) .wallet-btn{width:auto}
+.wallet-verify{flex:1;padding-inline:8px;font-size:12px}
+.wallet-menu-verify{width:100%}
 .eko-shell .iconbtn,.eko-shell .scanbox button,.eko-shell .rt-pick{min-width:24px;min-height:24px}
 @media(pointer:coarse){.eko-shell .iconbtn,.eko-shell .scanbox button,.eko-shell .rt-pick{min-width:44px;min-height:44px}.eko-shell .side-item{min-height:44px}}
 @media(max-width:899px){

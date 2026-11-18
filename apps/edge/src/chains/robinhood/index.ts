@@ -6,7 +6,7 @@ import { ROBINHOOD_PROFILE } from '../profiles.js';
 import { robinhoodVenue } from '../robinhood-venue.js';
 import type { ChainAdapter, JudgeFacts } from '../types.js';
 import { robinhoodAddresses, type RobinhoodAddresses } from './addresses.js';
-import { applyRobinhoodEvent, CURVE_BUY_TOPIC, CURVE_SELL_TOPIC, decodeRobinhoodLog, INITIALIZE_TOPIC, NATIVE_TOPIC, robinhoodLogQueries, TOKEN_LAUNCHED_TOPIC, type RobinhoodCoinState } from './events.js';
+import { applyRobinhoodEvent, CURVE_BUY_TOPIC, CURVE_SELL_TOPIC, decodeRobinhoodLog, INITIALIZE_TOPIC, NATIVE_TOPIC, PANGEA_POOL_TOPIC, robinhoodLogQueries, TOKEN_LAUNCHED_TOPIC, type RobinhoodCoinState } from './events.js';
 import { EthUsd } from './price.js';
 import { probeRobinhoodCoin, robinhoodExcluded, type RobinhoodProbed } from './probe.js';
 import { PONS_LOCK, PONS_TERMS } from './profile.js';
@@ -42,6 +42,18 @@ export function curveRunUp(coin: CoinState & { curve: NonNullable<CoinState['cur
   const hour = coin.trades.filter(t => t.ts > nowSec - 3600).reduce((n, t) => n + (t.side === "buy" ? 1 : -1) * t.tokens, 0);
   return { outShare: Math.max(0, out) / supply, hourShare: Math.max(0, hour) / supply, ageSec: Math.max(0, nowSec - coin.ts),
     evidence: [{ kind: 'address' as const, ref: coin.curve.address, label: 'Launch curve' }] };
+}
+/**
+ * What backs a Pangea coin's price (playbook fake_mcap). Its pool opened with only the coin in it (profile.ts
+ * PANGEA_TERMS) and EKO follows it from its launch transaction, so the ETH buyers paid in on net is all the ETH the
+ * pool holds: price × supply can be set at any level with nothing behind it. Native-currency amounts.
+ */
+export function pangeaBacking(coin: CoinState, nowSec: number) {
+  const price = coin.trades.at(-1)?.priceHype ?? coin.openPrice ?? 0;
+  let volume24h = 0;
+  for (let i = coin.trades.length - 1; i >= 0 && coin.trades[i]!.ts > nowSec - 86_400; i--) volume24h += coin.trades[i]!.hype;
+  return { mcap: price * Number(coin.supply) / 1e18, paidIn: Math.max(0, coin.netHype), volume24h,
+    evidence: [{ kind: 'address' as const, ref: coin.poolId, label: 'Pangea pool (opened with only the coin in it)' }] };
 }
 /** EKO's memory on Robinhood Chain in blocks: 25 hours (the tracker's keepSec) at ~0.102 s blocks. */
 export const ROBINHOOD_KEEP_BLOCKS = 882_000n;
@@ -107,7 +119,8 @@ const rh = (coin: CoinState) => coin as unknown as RobinhoodCoinState;
 /**
  * Robinhood Chain: native ETH, Pons coins on their own bonding curve (native-ETH curves only; USDG- and token-quoted
  * launches are skipped) and, after graduation, in a Uniswap v4 pool with the Pons hook, where the tracker's v4 Swap path
- * takes over. Checks run at the head (the public RPC keeps about ten minutes of state).
+ * takes over. Pangea coins (native-ETH pools only) trade in their v4 pool from launch, on the same Swap path. Checks run
+ * at the head (the public RPC keeps about ten minutes of state).
  */
 export function robinhoodChain(registry: AddressRegistry = loadRegistry()): ChainAdapter {
   const addrs: RobinhoodAddresses = robinhoodAddresses(registry), trade = loadRobinhoodTradeAddresses();
@@ -161,13 +174,14 @@ export function robinhoodChain(registry: AddressRegistry = loadRegistry()): Chai
     // Initialize of a native-ETH pool on the PoolManager, kept only with the Pons hook.
     queries: robinhoodLogQueries(addrs),
     swapManagers: [addrs.poolManager],
-    isLaunch: (l) => l.topics[0] === TOKEN_LAUNCHED_TOPIC,
-    countsSwap: (coin, log) => coin.graduated && same(log.address, coin.manager),
+    isLaunch: (l) => l.topics[0] === TOKEN_LAUNCHED_TOPIC || l.topics[0] === PANGEA_POOL_TOPIC,
+    // A Pons coin's pool swaps count from graduation; a Pangea coin trades only in its pool, from launch.
+    countsSwap: (coin, log) => (coin.graduated || coin.launchpad === 'pangea') && same(log.address, coin.manager),
     graduatesOnTrade: () => false,
     apply(log, ts, t) {
       const e = decodeRobinhoodLog(log, addrs, (curve) => t.coinByPool(curve)?.token ?? null);
       if (!e) return;
-      if (e.kind === 'launch') {
+      if (e.kind === 'launch' || e.kind === 'pangea_launch') {
         const coin = applyRobinhoodEvent(undefined, e, { addrs, ts });
         if (coin) t.launch(coin as unknown as CoinState, log);
         return;
@@ -196,7 +210,7 @@ export function robinhoodChain(registry: AddressRegistry = loadRegistry()): Chai
     facts(coin, p, nowSec): JudgeFacts {
       const { pons, lock } = p as RobinhoodProbed, key = p.key;
       const elapsed = nowSec - coin.ts, antiSnipeActive = !!coin.curve && !coin.graduated && elapsed < PONS_SNIPE_SEC;
-      const ponsHook = !!key && same(key.hooks, addrs.hook);
+      const ponsHook = !!key && same(key.hooks, addrs.hook), pangeaHook = !!key && same(key.hooks, addrs.pangeaHook);
       return {
         antiSnipeActive,
         antiSnipe: antiSnipeActive ? { taxPct: PONS_SNIPE_BPS[Math.max(0, elapsed)]! / 100, endsInSec: coin.ts + PONS_SNIPE_SEC - nowSec } : null,
@@ -208,10 +222,16 @@ export function robinhoodChain(registry: AddressRegistry = loadRegistry()): Chai
         hook: {
           // TODO(review): the registry's Pons hook takes its documented cut through an after-swap return delta (flags 0x2044).
           // Treated as reviewed so its permission bits alone do not flag every graduated coin, as Montra's hook is on Elysium.
-          label: ponsHook ? 'Pons hook (registry-listed; takes its fee after the swap)' : 'v4 hook', reviewed: ponsHook, sourceVerified: false,
+          // Pangea's hook is not reviewed: its address grants before- and after-swap return deltas (flags 0x28cc), so it
+          // can change what a swap pays or returns. Measured 2026-11-18: EKO's 0.005 ETH sell probe lost 1.99% on five
+          // Pangea pools.
+          label: ponsHook ? 'Pons hook (registry-listed; takes its fee after the swap)'
+            : pangeaHook ? 'Pangea hook (not reviewed; can change swap amounts before and after each swap)' : 'v4 hook',
+          reviewed: ponsHook, sourceVerified: false,
           buyFeePct: null, sellFeePct: null,
         },
         ...(coin.curve && !coin.graduated && coin.supply > 0n ? { runUp: curveRunUp(coin as CoinState & { curve: NonNullable<CoinState['curve']> }, nowSec) } : {}),
+        ...(coin.launchpad === 'pangea' && coin.supply > 0n ? { backing: pangeaBacking(coin, nowSec) } : {}),
       };
     },
     trade: robinhoodVenue(trade),

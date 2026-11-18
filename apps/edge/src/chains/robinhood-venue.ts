@@ -6,14 +6,20 @@ const fail = (message: string, code: string, status: number) => Object.assign(ne
 
 /**
  * Trading on Robinhood Chain through the Robinhood trade module (chains/robinhood/trade.ts): a coin's Pons bonding curve
- * before it graduates, its Pons-hooked Uniswap v4 pool after. A v4 trade calls the Universal Router and a sell approves
- * Permit2 (the public config's routers and spenders). Every Pons coin has its own curve, so no curve is listed there:
- * the quote names the coin's curve (route venue pons_curve, poolId = the curve), and the web accepts it as the call's
- * target and as the spender of that coin's approval, for that quote only (apps/web/src/lib/tradeFlow.ts).
+ * before it graduates, its Pons-hooked Uniswap v4 pool after. Pangea coins are checked, never traded (precheck). A v4
+ * trade calls the Universal Router and a sell approves Permit2 (the public config's routers and spenders). Every Pons
+ * coin has its own curve, so no curve is listed there: the quote names the coin's curve (route venue pons_curve, poolId
+ * = the curve), and the web accepts it as the call's target and as the spender of that coin's approval, for that quote
+ * only (apps/web/src/lib/tradeFlow.ts).
  */
 export function robinhoodVenue(a: RobinhoodTradeAddresses): TradeVenue {
   return {
     routers: [a.universalRouter], spenders: [a.permit2], permit2: a.permit2,
+    precheck(coin) {
+      // Pangea pools run an unreviewed hook that can change what a swap pays or returns: EKO checks those coins but does
+      // not build trades into them.
+      if (coin.launchpad === 'pangea') throw fail('EKO checks Pangea coins but does not trade them: their pool\'s hook has not been reviewed.', 'route_unavailable', 409);
+    },
     route(coin, check) {
       if (coin.curve && !coin.graduated) return { kind: 'curve', curve: coin.curve.address, token: coin.token };
       const key = coin.key ?? check?.key;

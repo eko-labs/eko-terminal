@@ -3,7 +3,8 @@ import { v4PoolId, type V4PoolKey } from '@eko/chain';
 import type { CoinState } from '../../tracker.js';
 import type { Trade } from '../../market.js';
 import type { RobinhoodAddresses } from './addresses.js';
-import { PONS_TERMS } from './profile.js';
+import { openPriceAt } from '../../graduation.js';
+import { PANGEA_TERMS, PONS_TERMS } from './profile.js';
 
 /**
  * Pons on Robinhood Chain (4663), read from logs alone. A launch is the factory's TokenLaunched; each launch gets its own
@@ -34,6 +35,17 @@ export const v4InitializeAbi = parseAbi(['event Initialize(bytes32 indexed id, a
 export const INITIALIZE_TOPIC = toEventSelector(v4InitializeAbi[0]);
 /** A topic holding the zero address: native ETH as a v4 pool's currency0. */
 export const NATIVE_TOPIC = `0x${'0'.repeat(64)}` as Hex;
+/**
+ * Pangea's launch record, logged by its launcher after it opened the coin's pool (profile.ts PANGEA_TERMS). The event's
+ * name and ABI are not published: the layout is read from all 62 launches to block 117,470,682. Topics: launch id, coin,
+ * creator (the transaction's sender on all 62). Data, four words: the v4 pool id, a per-launch contract, the launch
+ * position's upper tick (int24, one above the opening tick on all 58 native pools), and a flag whose meaning is not
+ * known (it is not the quote: 39 of the 58 native pools have it set).
+ */
+export const PANGEA_POOL_TOPIC = '0xbdca3fcdb296a15c842ff17efa2156eea58d30d1f6ca44c2b3ab375503e540ca' as Hex;
+/** A native-ETH Pangea pool's key: the only key whose id can equal the pool id the launch logs. */
+export const pangeaPoolKey = (token: Address, hook: Address): V4PoolKey =>
+  ({ currency0: zeroAddress, currency1: getAddress(token), fee: PANGEA_TERMS.fee, tickSpacing: PANGEA_TERMS.tickSpacing, hooks: getAddress(hook) });
 /** The pool id a pre-graduation coin carries (CoinState.poolId is not optional). */
 export const NO_POOL_ID = `0x${'0'.repeat(64)}` as Hex;
 
@@ -44,12 +56,14 @@ export interface LogFilter { address?: Address | Address[]; topics: (Hex | Hex[]
  * PoolManager, which covers graduated coins):
  * - launches and curve trades in one topic-OR call with no address: curves are one contract per coin (about 45 new ones
  *   an hour), too many to list. Only TokenLaunched from the factory and trades from a curve it announced are kept.
- *   Without an address the public RPC allows 30,000 blocks a call (profile.ts).
+ *   Without an address the public RPC allows 30,000 blocks a call (profile.ts). Pangea's launch record rides in the same
+ *   call (kept only from Pangea's launcher, profile.ts PANGEA), so following Pangea costs no extra call: its pool's swaps and its
+ *   transfers come in through the tracker's own Swap and Transfer calls.
  * - v4 Initialize on the PoolManager with native ETH as currency0 (the hook is not indexed; it is checked in decode).
  */
 export function robinhoodLogQueries(addrs: Pick<RobinhoodAddresses, 'poolManager'>): LogFilter[] {
   return [
-    { topics: [[TOKEN_LAUNCHED_TOPIC, CURVE_BUY_TOPIC, CURVE_SELL_TOPIC]] },
+    { topics: [[TOKEN_LAUNCHED_TOPIC, CURVE_BUY_TOPIC, CURVE_SELL_TOPIC, PANGEA_POOL_TOPIC]] },
     { address: addrs.poolManager, topics: [INITIALIZE_TOPIC, null, NATIVE_TOPIC] },
   ];
 }
@@ -72,6 +86,10 @@ export type RobinhoodEvent = LogPlace & (
       /** Pons' trade events carry no reserves: applyRobinhoodEvent rebuilds them from the trades. */
       reserves: null }
   | { kind: 'graduated'; token: Address; key: V4PoolKey; poolId: Hex; manager: Address; sqrtPriceX96: bigint; tick: number }
+  /** A Pangea coin: it trades in its v4 pool from its launch transaction (no curve, no graduation). */
+  | { kind: 'pangea_launch'; token: Address; creator: Address; key: V4PoolKey; poolId: Hex;
+      /** The launch position's upper tick: the opening price is just below it (ETH per token = 1.0001^-openTick). */
+      openTick: number }
 );
 
 export interface RawRobinhoodLog { address: string; topics: Hex[]; data: Hex; blockNumber: Hex | string; transactionHash: Hex; logIndex: Hex | string | number; blockTimestamp?: Hex | string }
@@ -88,10 +106,11 @@ const place = (log: RawRobinhoodLog): LogPlace => {
  * tracker's map of launched coins); with it, trades on curves it does not know are dropped. Launches quoted in an
  * ERC-20 (USDG, a stock token, another Pons coin) are skipped: EKO prices native-ETH curves only.
  */
-export function decodeRobinhoodLog(log: RawRobinhoodLog, addrs: Pick<RobinhoodAddresses, 'factory' | 'hook' | 'poolManager'>,
+export function decodeRobinhoodLog(log: RawRobinhoodLog, addrs: Pick<RobinhoodAddresses, 'factory' | 'hook' | 'poolManager'> & Partial<Pick<RobinhoodAddresses, 'pangeaLauncher' | 'pangeaHook'>>,
   curveToken?: (curve: Address) => Address | null): RobinhoodEvent | null {
   const t0 = log.topics[0];
   try {
+    if (t0 === PANGEA_POOL_TOPIC) return decodePangeaLaunch(log, addrs);
     if (t0 === TOKEN_LAUNCHED_TOPIC) {
       // Only the registry's factory announces Pons launches.
       if (!same(log.address, addrs.factory)) return null;
@@ -126,6 +145,26 @@ export function decodeRobinhoodLog(log: RawRobinhoodLog, addrs: Pick<RobinhoodAd
   return null;
 }
 
+const MAX_TICK = 887_272;
+const word = (data: Hex, i: number) => `0x${data.slice(2 + 64 * i, 2 + 64 * (i + 1))}` as Hex;
+const topicAddress = (topic: Hex | undefined) => topic && /^0x0{24}[0-9a-fA-F]{40}$/.test(topic) ? getAddress(`0x${topic.slice(26)}`) : null;
+
+/**
+ * A Pangea launch record (PANGEA_POOL_TOPIC), or null: from another contract, malformed, or a pool not keyed native ETH /
+ * coin with Pangea's hook (its logged pool id must equal that key's id, so a token-quoted launch drops out).
+ */
+function decodePangeaLaunch(log: RawRobinhoodLog, addrs: Partial<Pick<RobinhoodAddresses, 'pangeaLauncher' | 'pangeaHook'>>): RobinhoodEvent | null {
+  if (!addrs.pangeaLauncher || !addrs.pangeaHook || !same(log.address, addrs.pangeaLauncher)) return null;
+  if (log.topics.length !== 4 || !/^0x[0-9a-fA-F]{256}$/.test(log.data)) return null;
+  const token = topicAddress(log.topics[2]), creator = topicAddress(log.topics[3]);
+  if (!token || !creator || token === zeroAddress) return null;
+  const key = pangeaPoolKey(token, addrs.pangeaHook), poolId = word(log.data, 0);
+  if (v4PoolId(key).toLowerCase() !== poolId.toLowerCase()) return null;
+  const tick = BigInt.asIntN(256, BigInt(word(log.data, 2)));
+  if (tick < -BigInt(MAX_TICK) || tick > BigInt(MAX_TICK)) return null;
+  return { kind: 'pangea_launch', ...place(log), token, creator, key, poolId: poolId.toLowerCase() as Hex, openTick: Number(tick) };
+}
+
 /** The pre-graduation curve of a Pons coin: the fields the chain seam adds to CoinState. */
 export interface PonsCurve {
   address: Address;
@@ -138,10 +177,10 @@ export interface PonsCurve {
 }
 /** What a Robinhood coin adds to, or changes in, CoinState (tracker.ts). Merged by the integrator. */
 export interface RobinhoodCoinFields {
-  launchpad: 'pons';
-  /** Null until graduation, then the Pons v4 pool's key. */
+  launchpad: 'pons' | 'pangea';
+  /** A Pons coin: null until graduation, then its Pons v4 pool's key. A Pangea coin: its pool's key from launch. */
   key: V4PoolKey | null;
-  /** NO_POOL_ID until graduation. */
+  /** A Pons coin: NO_POOL_ID until graduation. A Pangea coin: its pool's id from launch. */
   poolId: Hex;
   curve?: PonsCurve;
 }
@@ -164,7 +203,7 @@ export function curveTrade(e: Extract<RobinhoodEvent, { kind: 'curve_trade' }>, 
   return { ts, block: e.block, tx: e.tx, sender: e.trader, side: e.side, hype: Number(e.native) / 1e18, tokens, priceHype: Number(curveQuote) / 1e18 / tokens };
 }
 
-export interface ApplyOptions { addrs: Pick<RobinhoodAddresses, 'factory' | 'poolManager'>; ts?: number; maxTrades?: number }
+export interface ApplyOptions { addrs: Pick<RobinhoodAddresses, 'factory' | 'poolManager'> & Partial<Pick<RobinhoodAddresses, 'pangeaLauncher'>>; ts?: number; maxTrades?: number }
 
 /**
  * Apply one event to a coin, without changing the one passed in: a launch builds a new coin (an existing one is returned
@@ -174,6 +213,22 @@ export interface ApplyOptions { addrs: Pick<RobinhoodAddresses, 'factory' | 'poo
  */
 export function applyRobinhoodEvent(coin: RobinhoodCoinState | undefined, event: RobinhoodEvent, options: ApplyOptions): RobinhoodCoinState | undefined {
   const ts = event.ts ?? options.ts ?? 0;
+  if (event.kind === 'pangea_launch') {
+    if (coin) return coin;
+    return {
+      launchpad: 'pangea', key: event.key, poolId: event.poolId, flipped: false,
+      // The launch mints the whole supply (one token on every launch seen); it is summed from that mint, which the tracker
+      // applies right after the launch (launches come first in a span), rather than assumed.
+      supplyFromMints: true, supply: 0n,
+      launcher: getAddress(options.addrs.pangeaLauncher ?? zeroAddress), manager: getAddress(options.addrs.poolManager),
+      token: event.token, creator: event.creator, quote: zeroAddress, configId: 0n,
+      firstBuyIn: 0n, firstBuyOut: 0n, feeRecipient: event.creator, feeLocked: false,
+      block: event.block, ts, tx: event.tx, trades: [], netHype: 0, sqrtPriceX96: null, graduated: false,
+      // The price the creator opened at, shown (and the market cap measured) until the first swap.
+      openPrice: openPriceAt(event.openTick, true),
+      name: null, symbol: null, flows: [],
+    };
+  }
   if (event.kind === 'launch') {
     if (coin) return coin;
     const supply = event.supply ?? 0n;
@@ -208,14 +263,14 @@ export function applyRobinhoodEvent(coin: RobinhoodCoinState | undefined, event:
     return { ...coin, trades, curve, netHype: coin.netHype + (trade.side === 'buy' ? trade.hype : -trade.hype),
       ...(first ? { firstBuyIn: event.native, firstBuyOut: event.tokens } : {}) };
   }
-  // Graduation: the Pons hook's pool for this coin. Sticky; the first one counts.
-  if (!same(event.token, coin.token) || coin.graduated) return coin;
+  // Graduation: the Pons hook's pool for this coin. Sticky; the first one counts. Never for a Pangea coin (it has no curve).
+  if (coin.launchpad !== 'pons' || !same(event.token, coin.token) || coin.graduated) return coin;
   return { ...coin, key: event.key, poolId: event.poolId, manager: event.manager, flipped: false, graduated: true, graduatedTs: ts, sqrtPriceX96: event.sqrtPriceX96 };
 }
 
 /** Logs in chain order, launches first (a launch transaction logs its curve before TokenLaunched): the tracker's rule. */
 export function orderRobinhoodLogs<L extends RawRobinhoodLog>(logs: readonly L[]): L[] {
   const order = (a: L, b: L) => num(a.blockNumber) - num(b.blockNumber) || num(a.logIndex) - num(b.logIndex);
-  const isLaunch = (l: L) => l.topics[0] === TOKEN_LAUNCHED_TOPIC;
+  const isLaunch = (l: L) => l.topics[0] === TOKEN_LAUNCHED_TOPIC || l.topics[0] === PANGEA_POOL_TOPIC;
   return [...logs.filter(isLaunch).sort(order), ...logs.filter(l => !isLaunch(l)).sort(order)];
 }

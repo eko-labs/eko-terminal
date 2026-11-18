@@ -75,7 +75,7 @@ describe('frozen contract samples (FACTS §7, BACKEND §23)', () => {
     expect(contracts.PlaybookIdSchema.options).toEqual([
       'honeypot', 'tax_trap', 'removable_liquidity', 'fee_trap_pool', 'stuck_at_bonding',
       'wash_to_trend', 'clone_swarm', 'exempt_insiders', 'bundle_dump', 'migration_dump',
-      'malicious_hook', 'agent_bait', 'serial_deployer', 'holder_concentration', 'dev_dump', 'run_up', 'launch_snipers',
+      'malicious_hook', 'agent_bait', 'serial_deployer', 'holder_concentration', 'dev_dump', 'run_up', 'launch_snipers', 'fake_mcap',
     ]);
     expect(contracts.VerdictSchema.safeParse({ ...samples.Verdict, level: 'info' }).success).toBe(false);
     expect(contracts.EntitlementsSchema.safeParse({ ...samples.Entitlements, feeBps: 10 }).success).toBe(false);

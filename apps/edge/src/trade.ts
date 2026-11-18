@@ -43,13 +43,15 @@ export interface TradeDeps {
 interface StoredQuote { quote: TradeQuote; route: TradeRoute; amountIn: bigint; minOut: bigint; at: number }
 const QUOTE_TTL_MS = 30_000;
 /** Settled orders kept per account, and quotes per minute per address (each quote is two paid-lane RPC reads). */
-export const ORDERS_KEPT = 500, QUOTES_PER_MIN = 30;
+export const ORDERS_KEPT = 500, QUOTES_PER_MIN = 60;
 /** Orders per minute per account and per address (each new one is a paid-lane simulation), and orders in flight per account. */
 export const ORDERS_PER_MIN = 20, ORDERS_PER_MIN_PER_ADDRESS = 60, MAX_IN_FLIGHT = 10;
 /** Trading's whole share of the paid RPC lane: calls a minute and in flight, for every route and agent together. */
-export const TRADE_RPC_PER_MIN = 240, TRADE_RPC_IN_FLIGHT = 8;
-/** Quotes from signed-out clients, all together, a minute: they share a slice of trading's budget, never all of it. */
-export const ANON_QUOTES_PER_MIN = 40;
+export const TRADE_RPC_PER_MIN = 400, TRADE_RPC_IN_FLIGHT = 8;
+/** Quotes from signed-out clients, all together, a minute: they share a slice of trading's budget, never all of it.
+ *  Identical signed-out requests share one quote for ANON_QUOTE_SHARE_MS (most visitors look at the default amount), so
+ *  this counts distinct coin, side and amount combinations, not visitors. */
+export const ANON_QUOTES_PER_MIN = 80, ANON_QUOTE_SHARE_MS = 4000;
 
 /**
  * Trading's own budget on the shared RPC: quotes, order simulations and receipt checks from every route (web, MCP)
@@ -100,11 +102,26 @@ export class Trading {
     return await this.d.rpc.request({ method: 'eth_call', params: [{ to, data, ...(from ? { from } : {}), ...(value ? { value: hex(value) } : {}) }, typeof block === 'bigint' ? hex(block) : block] }) as Hex;
   }
 
+  private readonly anonShared = new Map<string, { quote: TradeQuote; at: number }>();
+  private readonly anonPending = new Map<string, Promise<TradeQuote>>();
   async quote(input: TradeQuoteRequest, wallet: Address | null): Promise<TradeQuote> {
+    if (wallet) return this.quoteFresh(input, wallet);
+    const key = JSON.stringify(input), hit = this.anonShared.get(key), now = Date.now();
+    if (hit && now - hit.at < ANON_QUOTE_SHARE_MS) return hit.quote;
+    const pending = this.anonPending.get(key);
+    if (pending) return pending;
+    const p = this.quoteFresh(input, null).finally(() => this.anonPending.delete(key));
+    this.anonPending.set(key, p);
+    const q = await p;
+    this.anonShared.set(key, { quote: q, at: Date.now() });
+    if (this.anonShared.size > 500) for (const [k, v] of this.anonShared) if (Date.now() - v.at >= ANON_QUOTE_SHARE_MS) this.anonShared.delete(k);
+    return q;
+  }
+  private async quoteFresh(input: TradeQuoteRequest, wallet: Address | null): Promise<TradeQuote> {
     if (wallet && !this.quoteLimit(wallet.toLowerCase())) throw Object.assign(new Error('Too many quotes. Try again in a minute.'), { code: 'rate_limited', status: 429 });
     if (!wallet && !this.anonQuotes('all')) throw Object.assign(new Error('Quotes are busy for signed-out visitors. Sign in to get one now.'), { code: 'rate_limited', status: 429 });
     const coin = this.d.coin(input.coin), venue = this.chain.trade, { native, text } = this.profile;
-    if (!coin) throw Object.assign(new Error(`EKO trades ${text.coins} it follows (launched in the last 24 hours).`), { code: 'not_found', status: 404 });
+    if (!coin) throw Object.assign(new Error(`EKO trades ${text.coins} it follows (launched in the last day, or graduated and still trading).`), { code: 'not_found', status: 404 });
     const hypeUsd = this.d.hypeUsd();
     if (!hypeUsd) throw Object.assign(new Error(`The ${native} price is unavailable; try again in a minute.`), { code: 'price_unavailable', status: 503 });
     if (!(input.amountUsd > 0) || input.amountUsd > this.d.maxTradeUsd) throw Object.assign(new Error(`Trades are $1 to $${this.d.maxTradeUsd}.`), { code: 'amount_out_of_range', status: 400 });

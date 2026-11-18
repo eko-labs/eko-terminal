@@ -13,7 +13,8 @@ beforeAll(async () => {
   output = await mkdtemp(path.join(tmpdir(), 'eko-pwa-test-'));
   await build({ root, logLevel: 'silent', build: { outDir: output, sourcemap: false } });
   source = await readFile(path.join(output, 'sw.js'), 'utf8');
-});
+  // A full production build: on a busy machine (the pre-push run beside other work) it outlasted the 30 s default.
+}, 120_000);
 afterAll(async () => { if (output) await rm(output, { recursive: true, force: true }); });
 
 function worker() {

@@ -60,6 +60,8 @@ export const RadarRowSchema = CoinSummarySchema.extend({
   volume1hUsd: z.number().nonnegative().optional(),
   trades1h: z.number().int().nonnegative().optional(),
   volumeBaselineUsd: z.number().nonnegative().optional(),
+  volume24hUsd: z.number().nonnegative().optional(),
+  trades24h: z.number().int().nonnegative().optional(),
 });
 export type RadarRow = z.infer<typeof RadarRowSchema>;
 // CA-36: totals cover every live coin, independent of the loaded page.

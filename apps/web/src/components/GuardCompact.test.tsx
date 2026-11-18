@@ -32,7 +32,7 @@ describe('037 compact rendering (synthetic fixtures)', () => {
   it('negotiates every existing compact row and keeps shadow separate from legacy', () => {
     const views = [
       render(<table><tbody><RadarRowView c={{...row,guardV2:guard}} selected={false} select={()=>{}} trade={()=>{}} pulse={0}/></tbody></table>),
-      render(<HotStrip coins={[{...row,guardV2:guard}]} selected={null} select={()=>{}} />),
+      render(<HotStrip coins={[{...row,guardV2:guard}]} window="1h" onWindowChange={()=>{}} selected={null} select={()=>{}} />),
       render(<PairView row={{...pair,guardV2:guard}} now={1000} at={1000} select={()=>{}} trade={()=>{}} stale={false}/>),
       render(<FeedRow item={FeedItemSchema.parse({id:'sample-feed',kind:'verdict',coin:guard.coin,symbol:row.symbol,level:'clear',block:123,ts:1000000,guardV2:guard})} />),
       render(<ResearchNotes notes={createResearchNotes().map(job=>({...job,note:job.note?{...job.note,guardV2:guard}:undefined}))}/>),
@@ -53,7 +53,7 @@ describe('037 compact rendering (synthetic fixtures)', () => {
     const {antiSnipe: _anti, ...nextPair} = pair;
     const pairUpdated = applyPairEvents([{...pair,guardV2:guard}],[{t:'ev',ch:'pairs',seq:1,ts:1,kind:'pair_upsert',data:nextPair}])[0];
     expect(pairUpdated.guardV2).toBe(guard);expect(pairUpdated.antiSnipe).toBeUndefined();
-    const html = render(<HotStrip coins={[{...row,guardV2:guard}]} selected={null} select={()=>{}} />);
+    const html = render(<HotStrip coins={[{...row,guardV2:guard}]} window="1h" onWindowChange={()=>{}} selected={null} select={()=>{}} />);
     expect(html).not.toContain('<a ');
   });
   it('retains a prior list assessment with stale status on a missing refresh', () => {

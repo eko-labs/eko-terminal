@@ -37,7 +37,7 @@ export interface CardSources {
   asOfSec: number;
   createdAtSec: number;
   createdAtBlock: number;
-  launchpad: 'pons' | 'occupy' | 'flap' | 'klik' | 'montra' | 'flaunch' | 'hyperforge' | 'taxlaunch' | 'unbranded' | 'other';
+  launchpad: 'pons' | 'pangea' | 'occupy' | 'flap' | 'klik' | 'montra' | 'flaunch' | 'hyperforge' | 'taxlaunch' | 'unbranded' | 'other';
   name: string;
   symbol: string;
   antiSnipeActive?: boolean;
@@ -97,6 +97,13 @@ export interface CardSources {
    * block, the share bought on net in the last hour, and the coin's age. Absent after graduation and off Pons.
    */
   runUp?: { outShare: number; hourShare: number; ageSec: number; evidence: EvidenceRef[] };
+  /**
+   * What backs the price of a coin whose pool opened with only the coin in it and that is followed from its launch:
+   * the market cap (price × supply), the native currency buyers paid into the pool on net (all of it the pool holds),
+   * the 24-hour volume, all in USD, and the holders (wallets with a balance; pool, launcher and burn addresses excluded).
+   * Absent where that is not known (a bonding curve, a pool seeded with quote, a coin first seen after its launch).
+   */
+  marketCap?: { mcapUsd: number; backingUsd: number; volume24hUsd: number; holders: number; evidence: EvidenceRef[] };
   /**
    * Launch-block snipers: wallets other than the deployer that bought within the first blocks of the launch (about a
    * second on Elysium), with the supply share each bought then and holds now, and the highest priority fee (gwei) any

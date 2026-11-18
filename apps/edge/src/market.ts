@@ -31,15 +31,22 @@ export const MAX_BARS = 5000;
 export type Timeframe = keyof typeof TIMEFRAMES;
 export interface Bar { ts: number; o: number; h: number; l: number; c: number; vUsd: number }
 
-/** OHLC bars in USD from trades (ascending by ts). Only buckets with trades are emitted; the chart fills gaps. */
+/**
+ * OHLC bars in USD from trades (ascending by ts). Only buckets with trades are emitted. Each bar opens at the previous
+ * bar's close (the last trade before it, even before `from`), as trading charts do: a bucket with a single trade (most
+ * 1-second bars) then shows the move from the last price as a body, not a flat sliver where open = high = low = close.
+ */
 export function barsFromTrades(trades: readonly Trade[], tf: Timeframe, hypeUsd: number, from: number, to: number): Bar[] {
   const step = TIMEFRAMES[tf], out: Bar[] = [];
-  let bar: Bar | null = null;
+  let bar: Bar | null = null, last: number | null = null;
   for (const t of trades) {
-    if (t.ts < from || t.ts > to) continue;
-    const bucket = Math.floor(t.ts / step) * step, price = t.priceHype * hypeUsd, vol = t.hype * hypeUsd;
-    if (!bar || bar.ts !== bucket) { bar = { ts: bucket, o: price, h: price, l: price, c: price, vUsd: 0 }; out.push(bar); }
+    if (t.ts > to) break;
+    const price = t.priceHype * hypeUsd;
+    if (t.ts < from) { last = price; continue; }
+    const bucket = Math.floor(t.ts / step) * step, vol = t.hype * hypeUsd;
+    if (!bar || bar.ts !== bucket) { const o = last ?? price; bar = { ts: bucket, o, h: o, l: o, c: price, vUsd: 0 }; out.push(bar); }
     bar.h = Math.max(bar.h, price); bar.l = Math.min(bar.l, price); bar.c = price; bar.vUsd += vol;
+    last = price;
   }
   return out;
 }

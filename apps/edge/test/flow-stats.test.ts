@@ -88,3 +88,30 @@ describe('flow stats', () => {
     expect(card.meta?.flow).toMatchObject({ unavailable: true, flags: ['activity_measured', 'wallet_labels_unavailable'] });
   });
 });
+
+describe('radar trading windows', () => {
+  it('uses the 24h cutoff for volume and trades, and the previous price for change', () => {
+    const c = coin();
+    trade(c, null, 'buy', 8, 86_401);
+    trade(c, null, 'sell', 4, 7_200);
+    trade(c, null, 'buy', 2, 60);
+    c.trades[0].priceHype = 2;
+    c.trades[1].priceHype = 3;
+    c.trades[2].priceHype = 6;
+    expect(RadarRowSchema.parse(radarRow(c, undefined, ctx, 1))).toMatchObject({
+      volume1hUsd: 2 * ETH_USD, trades1h: 1, change1hPct: 100,
+      volume24hUsd: 6 * ETH_USD, trades24h: 2, change24hPct: 200,
+    });
+  });
+
+  it('uses the available trades for a coin younger than 24 hours', () => {
+    const c = coin({ ts: NOW - 7_200 });
+    trade(c, null, 'buy', 2, 7_200);
+    trade(c, null, 'sell', 1, 60);
+    c.trades[0].priceHype = 4;
+    c.trades[1].priceHype = 3;
+    expect(RadarRowSchema.parse(radarRow(c, undefined, ctx, 1))).toMatchObject({
+      volume24hUsd: 3 * ETH_USD, trades24h: 2, change24hPct: -25,
+    });
+  });
+});

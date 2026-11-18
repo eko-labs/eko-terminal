@@ -68,11 +68,18 @@ workspace_setup() {
     pnpm install --frozen-lockfile
 }
 
+# Typecheck and web tests per chain run beside everything else; the builds write apps/web/dist, as the root checks do,
+# so those three run one after another.
 frontend() {
   local failed=0
   export VITE_EKO_CHAIN=$1
   pnpm --filter @eko/web --filter @eko/landing typecheck || failed=1
   pnpm --filter @eko/web test || failed=1
+  return "$failed"
+}
+frontend_build() {
+  local failed=0
+  export VITE_EKO_CHAIN=$1
   pnpm --filter @eko/landing build || failed=1
   pnpm --filter @eko/web build || failed=1
   return "$failed"
@@ -118,17 +125,15 @@ setup_status=$(head -n 1 "$logs/workspace-setup.status")
 if [[ $setup_status = PASS ]]; then
   run_job dependency-audit pnpm audit --prod --audit-level high &
   run_job workspace-typecheck pnpm typecheck &
-  (
-    # Root tests and both frontend builds write to apps/web/dist.
-    run_job workspace-checks pnpm test:checks
-    # Frontend jobs cover the web tests and the contracts job covers Forge.
-    run_job workspace-tests pnpm -r --workspace-concurrency=1 --no-bail --filter '!@eko/contracts' --filter '!@eko/web' test
-    run_job role-image pnpm test:role-image
-    run_job frontend-robinhood frontend robinhood
-    run_job frontend-elysium frontend elysium
-  ) &
+  # Frontend jobs cover the web tests and the contracts job covers Forge. Packages test three at a time (one at a time
+  # this took ~15 minutes); the two chains' web tests run beside them, and only writes to apps/web/dist take turns.
+  run_job workspace-tests pnpm -r --workspace-concurrency=3 --no-bail --filter '!@eko/contracts' --filter '!@eko/web' test &
+  ( run_job workspace-checks pnpm test:checks; run_job role-image pnpm test:role-image
+    run_job build-robinhood frontend_build robinhood; run_job build-elysium frontend_build elysium ) &
+  run_job frontend-robinhood frontend robinhood &
+  run_job frontend-elysium frontend elysium &
 else
-  for job in dependency-audit workspace-typecheck workspace-checks workspace-tests role-image frontend-robinhood frontend-elysium; do
+  for job in dependency-audit workspace-typecheck workspace-checks workspace-tests role-image frontend-robinhood frontend-elysium build-robinhood build-elysium; do
     record "$job" SKIPPED 'workspace setup failed'
   done
 fi
@@ -147,7 +152,7 @@ wait
 
 printf '\nLocal CI summary\n'
 failed=0
-for job in workspace-setup dependency-audit workspace-typecheck workspace-checks workspace-tests role-image frontend-robinhood frontend-elysium contracts slither semgrep gitleaks; do
+for job in workspace-setup dependency-audit workspace-typecheck workspace-checks workspace-tests role-image frontend-robinhood frontend-elysium build-robinhood build-elysium contracts slither semgrep gitleaks; do
   {
     read -r status
     printf '  %-8s %s\n' "$status" "$job"

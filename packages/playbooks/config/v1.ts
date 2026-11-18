@@ -17,6 +17,7 @@ export interface PlaybookConfig {
   dev_dump: { cashOutMultiple: number; firstSellSec: number; minSoldShare: number; heldMonitor: number; heldDanger: number };
   run_up: { outMonitor: number; hourDanger: number };
   launch_snipers: { monitorHeld: number; dangerHeld: number; monitorBoughtDumped: number };
+  fake_mcap: { minMcapUsd: number; maxBackingShare: number; maxVolumeShare: number; dangerHolders: number };
 }
 
 export const CONFIG_V1: Readonly<{ [K in keyof PlaybookConfig]: Readonly<PlaybookConfig[K]> }> = Object.freeze({
@@ -60,4 +61,10 @@ export const CONFIG_V1: Readonly<{ [K in keyof PlaybookConfig]: Readonly<Playboo
   // (Elysium orders by priority fee, so these buys won a fee auction). What they still hold is the overhang a later
   // buyer faces; a large buy mostly sold already is a flip. Refit on a few days of Elysium outcomes.
   launch_snipers: Object.freeze({ monitorHeld: 0.10, dangerHeld: 0.25, monitorBoughtDumped: 0.20 }),
+  // Robinhood Chain, 2026-11-18, NOT calibrated on outcomes: set from Pangea's 58 native-ETH launches. A Pangea creator
+  // picks the opening price of a one-token supply and the pool opens with no ETH in it. 52 opened at $10 to $4,600 of
+  // market cap; six opened at about $100,000 (GMGN's SPDA, SPc, SPd, SPb, SPe, SPf) and an hour later had $0 to $1.06
+  // of ETH in the pool, $104 to $216 of volume (33 to 312 tiny round trips) and 0 to 2 holders. A real single-sided launch
+  // that ran up r times holds (sqrt(r) - 1) / r of its market cap in quote: under 2% only past about 2,500 times.
+  fake_mcap: Object.freeze({ minMcapUsd: 20_000, maxBackingShare: 0.02, maxVolumeShare: 0.02, dangerHolders: 3 }),
 });

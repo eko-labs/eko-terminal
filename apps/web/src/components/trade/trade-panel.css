@@ -35,6 +35,11 @@
 .guarded-trade-panel .refuse{border-color:var(--v-danger)}
 .guarded-trade-panel .tp-warning{padding:0 12px}
 .guarded-trade-panel .tp-submit{width:100%;white-space:normal;min-height:44px;margin:14px 0 0;font:var(--type-panel)}
+.guarded-trade-panel .tp-wallet-picker .wallet-menu{position:static;width:100%;min-width:0;margin-top:8px}
+.guarded-trade-panel .tp-verify-hint{position:relative;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;padding:4px 8px;border:1px solid var(--accent);border-radius:var(--r1);background:var(--raise);color:var(--ink);font:var(--type-meta)}
+.guarded-trade-panel .tp-verify-hint::before{content:'';position:absolute;top:-5px;left:18px;width:8px;height:8px;transform:rotate(45deg);border-top:1px solid var(--accent);border-left:1px solid var(--accent);background:var(--raise)}
+.guarded-trade-panel .tp-verify-hint p{margin:0}
+.guarded-trade-panel .tp-verify-hint button{flex:none}
 .guarded-trade-panel .tp-retry{margin-top:8px}
 .guarded-trade-panel .tp-status{overflow-wrap:anywhere}
 .guarded-trade-panel :is(button,input,summary,a):focus-visible{outline:2px solid var(--brand);outline-offset:3px}

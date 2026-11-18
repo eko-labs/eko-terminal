@@ -7,9 +7,10 @@ describe('coin chart math',()=>{
  it.each(['1s','15s'] as const)('reconciles %s snapshots and incremental ticks at the REST exclusive end without filling gaps',tf=>{
    const initial=[{ts:120,o:2,h:2,l:2,c:2,vUsd:4}];
    const bars=reconcileCandleTicks(initial,[{ts:119,price:99,volumeUsd:100,block:1},{ts:122,price:1,volumeUsd:2,block:4},{ts:121,price:5,volumeUsd:10,block:3}],121,tf);
-   expect(bars).toEqual(tf==='1s' ? [...initial,{ts:121,o:5,h:5,l:5,c:5,vUsd:10},{ts:122,o:1,h:1,l:1,c:1,vUsd:2}] : [{ts:120,o:2,h:5,l:1,c:1,vUsd:16}]);
+   // Each new bar opens at the previous close, so a one-trade bar keeps a body.
+   expect(bars).toEqual(tf==='1s' ? [...initial,{ts:121,o:2,h:5,l:2,c:5,vUsd:10},{ts:122,o:5,h:5,l:1,c:1,vUsd:2}] : [{ts:120,o:2,h:5,l:1,c:1,vUsd:16}]);
    const next=aggregateTick(bars,{ts:165,price:3,volumeUsd:6,block:5},tf);
-   expect(next).toHaveLength(bars.length+1);expect(next.at(-1)).toEqual({ts:165,o:3,h:3,l:3,c:3,vUsd:6});
+   expect(next).toHaveLength(bars.length+1);expect(next.at(-1)).toEqual({ts:165,o:1,h:3,l:1,c:3,vUsd:6});
    expect(initial[0]).toEqual({ts:120,o:2,h:2,l:2,c:2,vUsd:4});
  });
  it('anchors each interval to its UTC bucket, including 1s and 15s',()=>{for(const tf of COIN_TIMEFRAMES){const step=seconds(tf);expect(bucketStart(100001.9,tf)).toBe(Math.floor(100001.9/step)*step);expect(anchorTime(100001.9,tf)).toBe(bucketStart(100001.9,tf));expect(bucketStart(step,tf)).toBe(step);expect(bucketStart(step-0.01,tf)).toBe(0);}});
@@ -25,7 +26,7 @@ describe('coin chart math',()=>{
  it('computes an EMA seeded with the first close',()=>{expect(emaOf([10,10,10],9)).toEqual([10,10,10]);const e=emaOf([10,20],3);expect(e[1]).toBeCloseTo(15);});
  it('pans by slot units at every zoom',()=>{for(const span of [12,36,72]){const v={s:10,e:10+span},next=panView(v,80,800);expect(next.e-next.s).toBeCloseTo(span);expect(next.s).toBeCloseTo(10-span*.1);}});
  it('stretches the price range exponentially with bounded wheel/drag scale',()=>{expect(stretchScale(1,100)).toBeCloseTo(Math.exp(.2));expect(stretchScale(stretchScale(1,100),-100)).toBeCloseTo(1);expect(stretchScale(1,-100000)).toBe(.25);expect(stretchScale(1,100000)).toBe(6);});
- it('aggregates live OHLC/volume and ignores ticks older than the last bucket',()=>{let bars=aggregateTick([],{ts:120,price:10,volumeUsd:20,block:1},'1m');bars=aggregateTick(bars,{ts:130,price:12,volumeUsd:30,block:2},'1m');bars=aggregateTick(bars,{ts:140,price:9,volumeUsd:10,block:3},'1m');expect(bars).toEqual([{ts:120,o:10,h:12,l:9,c:9,vUsd:60}]);expect(aggregateTick(bars,{ts:110,price:1,volumeUsd:10,block:1},'1m')).toEqual(bars);expect(aggregateTick(bars,{ts:180,price:11,volumeUsd:5,block:4},'1m').at(-1)).toEqual({ts:180,o:11,h:11,l:11,c:11,vUsd:5});});
+ it('aggregates live OHLC/volume and ignores ticks older than the last bucket',()=>{let bars=aggregateTick([],{ts:120,price:10,volumeUsd:20,block:1},'1m');bars=aggregateTick(bars,{ts:130,price:12,volumeUsd:30,block:2},'1m');bars=aggregateTick(bars,{ts:140,price:9,volumeUsd:10,block:3},'1m');expect(bars).toEqual([{ts:120,o:10,h:12,l:9,c:9,vUsd:60}]);expect(aggregateTick(bars,{ts:110,price:1,volumeUsd:10,block:1},'1m')).toEqual(bars);expect(aggregateTick(bars,{ts:180,price:11,volumeUsd:5,block:4},'1m').at(-1)).toEqual({ts:180,o:9,h:11,l:9,c:11,vUsd:5});});
 });
 describe('flow markers',()=>{
  it('clusters greedily by declared, crew, likely, human then size and recency',()=>{const items=[marker({label:'human',sizeUsd:9000}),marker({label:'likely_agent'}),marker({label:'crew'}),marker({sizeUsd:50}),marker({sizeUsd:2000})].map((m,i)=>({marker:m,x:100+i,y:100}));const clusters=clusterMarkers(items);expect(clusters).toHaveLength(1);expect(clusters[0].marker.sizeUsd).toBe(2000);expect(clusters[0].items).toHaveLength(5);expect(clusterMarkers([{marker:marker(),x:0,y:0},{marker:marker(),x:15,y:0},{marker:marker(),x:0,y:20}])).toHaveLength(3);});

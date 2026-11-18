@@ -15,6 +15,9 @@ export function addressViolations(files, registryText) {
   // locker and v4 PositionManager that hold each graduation's liquidity.
   // TODO(spec): move them into addresses.4663.yaml once its schema has places for them.
   for (const a of ['0x52e65B17fB6E5BA00Ed806f37Afcd2DaA50271Ca', '0x267444D099b10fB5Ed7c3Cc7B7c767AdcA574952', '0x58daec3116aae6D93017bAAea7749052E8a04fA7']) allowed.add(a.toLowerCase());
+  // Pangea's launcher, pool hook and liquidity manager (measured on chain 2026-11-18, chains/robinhood/profile.ts PANGEA;
+  // docs/robinhood/CHAIN-FACTS.md §7). TODO(spec): move them into addresses.4663.yaml with the others above.
+  for (const a of ['0xaA61764BD44df5468CaaE856232Ce9B711512449', '0x8e1Bf182a2a1FEdF9850379127D4535F18EA68cc', '0xbebe68fBfB62E18FBFEbf4365970D192C5f34DC1']) allowed.add(a.toLowerCase());
   return files.flatMap(({ path, text }) => [...text.matchAll(/(?<![0-9a-fA-F])0x[0-9a-fA-F]{40}(?![0-9a-fA-F])/g)].flatMap(match => {
     const address = match[0].toLowerCase();
     if (allowed.has(address) || heritageTestnet.get(path)?.has(address)) return [];

@@ -81,12 +81,10 @@ export async function boot(page: Page, path = '/radar') {
 export async function connectWallet(page: Page) {
   await page.getByTestId('wallet-button').filter({ visible: true }).click();
   await page.getByRole('menuitem', { name: /Test Wallet/ }).click();
-  await expect(page.getByRole('menuitem', { name: /Verify wallet/ })).toBeVisible();
 }
 
 export async function verifyWallet(page: Page) {
-  await page.getByRole('menuitem', { name: /Verify wallet/ }).click();
+  await expect(page.locator('.wallet-menu:visible .wallet-rows')).toContainText('Yes');
   await expect(page.getByRole('menuitem', { name: /Verify wallet/ })).toHaveCount(0);
-  await expect(page.locator('.wallet-menu .wallet-rows')).toContainText('Yes');
   await page.getByTestId('wallet-button').filter({ visible: true }).click();
 }

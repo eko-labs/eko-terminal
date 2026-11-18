@@ -381,10 +381,33 @@ export const launchSnipers: Rule<'launch_snipers'> = {
     ]);
   },
 };
+/**
+ * A market cap nothing backs: price × supply far above the native currency buyers have paid into a pool that opened
+ * with only the coin in it. The creator picked the price; a holder can only sell into what other buyers paid in. Danger
+ * when hardly anyone trades it or holds it as well (thresholds set from Pangea's launches, config v1); Monitor when it
+ * trades and is held but the price still rests on almost nothing.
+ */
+export const fakeMcap: Rule<'fake_mcap'> = {
+  id: 'fake_mcap', evaluate(s, h, cfg) {
+    const m = s.marketCap;
+    if (!m || !(m.mcapUsd >= cfg.minMcapUsd)) return null;
+    const backing = Math.max(0, m.backingUsd) / m.mcapUsd, volume = Math.max(0, m.volume24hUsd) / m.mcapUsd;
+    if (backing >= cfg.maxBackingShare) return null;
+    const level = volume < cfg.maxVolumeShare || m.holders <= cfg.dangerHolders ? 'danger' : 'monitor';
+    const round = (v: number, d: number) => Math.round(v * d) / d;
+    return match(s, h, this.id, level, [
+      stat(s, this.id, 'mcap', 'Market cap, price × supply (USD)', round(m.mcapUsd, 1)),
+      stat(s, this.id, 'backing', 'Paid into the pool on net (USD)', round(Math.max(0, m.backingUsd), 100)),
+      stat(s, this.id, 'backingShare', 'Paid in as a share of market cap', round(backing, 1_000_000)),
+      stat(s, this.id, 'volume', '24h volume (USD)', round(Math.max(0, m.volume24hUsd), 100)),
+      stat(s, this.id, 'holders', 'Holders', m.holders), ...m.evidence,
+    ]);
+  },
+};
 export const rules: { [K in keyof PlaybookConfig]: Rule<K> } = { honeypot, tax_trap: taxTrap, removable_liquidity: removableLiquidity, fee_trap_pool: feeTrapPool,
   stuck_at_bonding: stuckAtBonding, wash_to_trend: washToTrend, clone_swarm: cloneSwarm, exempt_insiders: exemptInsiders,
   bundle_dump: bundleDump, migration_dump: migrationDump, malicious_hook: maliciousHook, agent_bait: agentBait, serial_deployer: serialDeployer,
-  holder_concentration: holderConcentration, dev_dump: devDump, run_up: runUp, launch_snipers: launchSnipers,
+  holder_concentration: holderConcentration, dev_dump: devDump, run_up: runUp, launch_snipers: launchSnipers, fake_mcap: fakeMcap,
 };
 
 export function evaluatePlaybooks(input: PlaybookInput, config: PlaybookConfig = CONFIG_V1): PlaybookMatch[] {

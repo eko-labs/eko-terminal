@@ -63,6 +63,52 @@ verdicts.
 | --- | --- | --- |
 | WETH/USDG v3 pool vs Hyperliquid | PASS | The deepest pool is fee 100, `0x52e65B17fB6E5BA00Ed806f37Afcd2DaA50271Ca` (liquidity 1.15e18): **1,797.95 USDG per WETH**. Hyperliquid `allMids` ETH was 1,799.25, a difference of **−0.07%**. The other tiers read 1,798.11 (fee 500), 1,796.85 (fee 3000) and 1,785.37 (fee 10000, thin) |
 
+## 7. Pangea (added Nov 18, 2026)
+
+Measured with the paid archive RPC the edge uses (dRPC) at head block 117,470,682 (Nov 18, 2026). Nothing was signed or
+sent. The three contracts are pinned in `apps/edge/src/chains/robinhood/profile.ts` (`PANGEA`) and listed as measured
+contracts in `scripts/check-addresses.mjs`: the registry's schema has no place for them yet, and every registry entry
+needs captured code for `verify:chain`'s tests. "Pangea" is GMGN's name for this launchpad: nothing on chain names it, and its contracts have no verified source
+(Blockscout cannot be scripted, §5). The coins the owner saw on GMGN are on chain under these symbols, all launched by
+the contract below: SPDA `0xf1b9b807be71299e56b73fcacd918bd4c38d76ea`, SPc `0x9c732ed7c2740cb99f282bf8228819162c9b16ea`,
+SPd `0xf3475f0cb31c5167e91033b51ee53cbd7a52f6ea`, SPb `0x5ca6bab43a75aa6ee710a81c5bfd9c76b3a166ea`, SPe
+`0xb82b79100c77e1c29970f3d423b473729038d6ea`, SPf `0xad0dbfd58877fd518660c94b4d9852901aaaa6ea`. Found by scanning every
+ERC-20 mint in the last 800,000 blocks (4,113 tokens) for these symbols.
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Launcher | `0xaA61764BD44df5468CaaE856232Ce9B711512449` (`PANGEA.launcher` in `apps/edge/src/chains/robinhood/profile.ts`) | Every SP\* launch transaction calls it (selector `0x2b3ea872`). 130 bytes of code: an ERC-1967 proxy whose implementation is `0x9edFF721992e4bDcA07b8D9A7e73eDe1f7581909`, with no admin slot set, so it is upgradeable by whatever the implementation allows. Its code first appears at block 112,824,849; first launch at block 112,878,001 (tx `0xf947c000e7c488eeecad96a83b324384cd08b86da73d34fcb89c8f5c8dc6dc70`) |
+| Launches | **62** to block 117,470,682 | 4, 4, 3, 3, 26 and 22 over the last six days, newest last. Counted from the launcher's records below |
+| Launch transaction | **one transaction, pool from the first block** | The launcher mints the whole supply to itself, passes it to the liquidity manager `0xbebe68fBfB62E18FBFEbf4365970D192C5f34DC1` (`PANGEA.liquidityManager`), which initializes a Uniswap v4 pool on the registry PoolManager and adds the whole supply as one position from tick −887,220 up to one tick above the opening tick. Then the creator's optional buys go through `0x8414D1B0aE32ee2e08AbcDeA8855e30a181a4C92` to wallets the creator names (SPd: six buys of 0.00333 ETH to six wallets, tx `0x81be7eb02493563f46d9ebb2c7c44d651e3022dd8bf662455e86eb98e903c5f5`) |
+| Supply | **1e18 base units (one whole token)** on all 62 | The mint `Transfer(0 → launcher)` in each launch transaction |
+| Pool key | **native ETH / coin, fee 0, tick spacing 60, hook `0x8e1Bf182a2a1FEdF9850379127D4535F18EA68cc`** (`PANGEA.hook`) | 58 of 62 pool ids equal the id of that key. The other 4 are quoted in a token: 3 in GME `0x1b0e319c6a659f002271b69db8a7df2f911c153e`, 1 in AI `0x2e8c31162b855a2ffa90f6f8634643ad6f111e18`. **Not WETH**: GMGN shows these pools as WETH-quoted, but on chain currency0 is native ETH (`0x0`), not WETH `0x0Bd7…AD73` |
+| Opening price | **set by the creator; the pool opens with no ETH in it** | The position sits entirely below the opening price, so it holds only the coin: buying moves the price into it, and every wei of ETH in the pool was paid in by a buyer. At $1,800 an ETH, 52 native launches opened between $10 and $4,617 of market cap; the six SP\* coins opened at $100,242 to $100,845 (tick −40,201 or −40,261: 55.7 to 56.0 ETH for the one token) |
+| Launch records | two launcher events per launch (names and ABI not published) | `0x726b030b…6d53` (topics: launch id, coin; data: name, symbol, a cross-chain registry `0x52a4b40fa6d72f44fbAADb0e38cBc087b3Af0880`, the hook, and the numbers 100 and 10,000). `0xbdca3fcd…40ca` (topics: launch id, coin, creator = the transaction's sender on all 62; data: pool id, a per-launch contract, the position's upper tick, and a flag set on 39 of the 58 native launches whose meaning is unknown: it is not the quote). EKO reads the second. The registry logs the chain ids 4663, 8453, 99901 and `0x536f6c4d` ("SolM") for each coin; what that registration does was not checked |
+| Hook permissions | **flags `0x28cc`** | beforeInitialize, beforeAddLiquidity, beforeSwap, afterSwap, **beforeSwapReturnDelta, afterSwapReturnDelta**: the hook can change what a swap pays or returns. Not reviewed |
+| Trading on the native pools | 2,703 swaps since the first launch | 1,114 buys (5.78 ETH in), 1,589 sells (5.72 ETH out); 40 of the 58 pools traded, 38 of them with sells; 2,052 of the swaps sent by the Universal Router `0x204F…0498` |
+| The six SP\* coins an hour after launch | **$0 to $1.06 of ETH in the pool, $104 to $216 of volume, 0 to 2 holders** | Volume is many tiny round trips (33 to 312 swaps each). Holders here count balances built from transfers to and from the PoolManager and the launcher, so a wallet-to-wallet transfer would be missed: an approximation |
+| Sell check (honeypot) | **sellable, 1.99% round trip** | EKO's own `runSellProbe` on the `uniswap_v4` route with empty `hookData`, 0.005 ETH, at the head, on SPc, SPd, SPb, SPe and SPf: buy and sell both went through and returned 98.01% of the ETH. Consistent with a 1% hook fee each way (the launch record's 100 / 10,000), not verified. With the native key, the GME-quoted pool's buy fails, as it should |
+
+### What EKO does with it
+
+- The tracker reads `0xbdca3fcd…` in the existing topic-OR launch query (no extra `eth_getLogs` per span), keeps only records from
+  the registry's launcher whose pool id equals the native-ETH key's id, and follows the coin from its launch: its pool's swaps
+  and its transfers come through the tracker's own Swap and Transfer calls. Supply is summed from the coin's mint.
+- New playbook `fake_mcap`: price × supply against the ETH buyers paid into the pool on net. Danger at a market cap of $20,000
+  or more with under 2% of it paid in, when 24-hour volume is also under 2% of it or there are 3 holders or fewer; Monitor
+  when only the first two hold. Set from these launches, not calibrated on outcomes.
+- The sell check runs on the Pangea pool (v4 route, empty `hookData`); the hook shows as unreviewed (a `malicious_hook`
+  Monitor); the liquidity status is named missing, never claimed. EKO checks Pangea coins but does not trade them.
+
+### Unknown
+
+- The launcher events' names and full layout, the flag word, and what the per-launch contract does.
+- Whether the liquidity manager can remove a pool's launch position, and who can upgrade the launcher.
+- The hook's fee rule beyond the measured 1.99% round trip, and whether it can block sells for some wallets.
+- Pangea coins launched before a restart are kept only through the snapshot and the start-up replay (about 55 minutes); the
+  start-up warm-up does not rebuild older Pangea launches the way it rebuilds Pons launches.
+- The fake_mcap thresholds against outcomes (what buyers of these coins got back a day later).
+
 ## Blocks trading / safe to ship / unknown
 
 ### Blocks trading until handled

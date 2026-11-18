@@ -29,7 +29,7 @@ function checking(html: string) {
 describe('CA-34 pending verdict presentation', () => {
   it('keeps Radar rows, tiles and the inspector in the checking state', () => {
     checking(render(<table><tbody><RadarRowView c={row} selected={false} select={() => {}} trade={() => {}} pulse={0} /></tbody></table>));
-    checking(render(<HotStrip coins={[row]} selected={null} select={() => {}} />));
+    checking(render(<HotStrip coins={[row]} window="1h" onWindowChange={() => {}} selected={null} select={() => {}} />));
     checking(render(<CoinInspector row={row} close={() => {}} onCard={() => {}} />));
     const guard = render(<InspectorGuard card={card} href={`/coin/${row.address}`} />);
     expect(guard).toContain('Not fully checked');

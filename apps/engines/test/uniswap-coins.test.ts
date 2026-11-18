@@ -5,7 +5,7 @@ import { loadRegistry } from '@eko/chain';
 import { CoinCardSchema, type Address, type CoinCard, type PlaybookId } from '@eko/shared';
 import { rules } from '@eko/playbooks';
 import type { Hex } from 'viem';
-import { evaluatedPlaybooks } from '../src/card.js';
+import { evaluatedPlaybooks, UNSOURCED_PLAYBOOKS } from '../src/card.js';
 import { loadSources } from '../src/sources.js';
 import { EngineWorker, TRADED_RERATE_OTHER_SEC, TRADED_RERATE_SEC, staleRatings, tradedSinceCard } from '../src/worker.js';
 
@@ -68,7 +68,8 @@ describe('a coin that launched on Uniswap', () => {
     expect(s.mainPool).toEqual({ id: pool, hooks: takingHook });
     expect(s.hook).toMatchObject({ address: takingHook, permissionBits: 0x44, returnDeltaPermissionBits: 4, quoteSimGapPct: null, buyFeePct: null, sellFeePct: null });
     expect(s.liquidity?.positions).toMatchObject([{ owner: deployer, controlledBy: 'deployer', share: 1, status: 'removable' }]);
-    expect(evaluatedPlaybooks(s)).toEqual((Object.keys(rules) as PlaybookId[]).sort());
+    // Every check this engine has a source for (fake_mcap is measured by apps/edge, not here).
+    expect(evaluatedPlaybooks(s)).toEqual((Object.keys(rules) as PlaybookId[]).filter(id => !UNSOURCED_PLAYBOOKS.includes(id)).sort());
     await new EngineWorker(m.db, { now: () => epoch + 300, liveBacklogSec: 900 }).poll();
     const card = CoinCardSchema.parse((await m.db.sql.query<{ data: CoinCard }>('SELECT data FROM coin_card_latest WHERE coin=$1', [binary(coin)])).rows[0].data);
     const level = (playbook: PlaybookId) => card.playbooks.find(p => p.id === playbook)?.level;

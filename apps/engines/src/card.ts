@@ -9,8 +9,12 @@ import { keccak256, stringToHex } from 'viem';
 import { type LoadedSources } from './sources.js';
 
 /** Checks with no input source yet. Clear does not wait for them; the verdict names them (worker.ts). */
-/** Checks with no input source; Clear does not wait for them. None since 2026-10-12, when bundle_dump was sourced. */
-export const UNSOURCED_PLAYBOOKS: readonly PlaybookId[] = [];
+/**
+ * Checks with no input source; Clear does not wait for them. None from 2026-10-12 (bundle_dump sourced) to 2026-11-18,
+ * when fake_mcap was added: apps/edge measures it on pools that open with only the coin in them (Pangea); this engine
+ * reads no such launch, so on a Uniswap coin here it is named missing, never claimed.
+ */
+export const UNSOURCED_PLAYBOOKS: readonly PlaybookId[] = ['fake_mcap'];
 const zeroHook = /^0x0{40}$/i;
 let ponsHook: string | undefined | null;
 /** The launchpad's own graduation hook (registry pons.v4Hook, code verified), which every graduated Pons pool uses. */
@@ -45,6 +49,9 @@ export function evaluatedPlaybooks(s: LoadedSources): PlaybookId[] {
     run_up: s.runUp != null || !pons || graduated,
     // Elysium-only (priority-fee launch auctions, measured by apps/edge); the Robinhood Chain engine has nothing to measure.
     launch_snipers: s.snipers != null || s.launchpad !== 'montra',
+    // A Pons curve and its graduation pool hold quote from the start: nothing to measure on a Pons coin. Elsewhere this
+    // engine has no source for it (UNSOURCED_PLAYBOOKS).
+    fake_mcap: pons,
   };
   return (Object.keys(rules) as PlaybookId[]).filter(id => available[id]).sort();
 }

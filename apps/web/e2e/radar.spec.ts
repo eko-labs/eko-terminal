@@ -1,7 +1,11 @@
-import { expect } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
-import type { PublicConfig } from '@eko/shared';
+import { generatePrivateKey } from 'viem/accounts';
+import type { PublicConfig, TradeQuoteRequest } from '@eko/shared';
 import { TRADING_PAUSED_TITLE } from '../src/copy/availability';
+import { WALLET_COPY } from '../src/copy/wallet';
+import { createTradeQuote } from '../src/mocks/fixtures';
+import { installMockWallet } from './mockWallet';
 import { test, configureContext, patchDemoResponse } from './helpers';
 test.use({ demo: true });
 
@@ -80,6 +84,61 @@ test('trade opens an inert drawer and returns focus',async({page})=>{
   const trade=page.locator('.c-act button:not(:disabled)').first();await trade.click();
   await expect(page.locator('.radar-trade-drawer')).toBeVisible();await expect(page.locator('.radar-trade-drawer .tp-submit')).toBeDisabled();
   await page.keyboard.press('Escape');await expect(page.locator('.radar-trade-drawer')).toBeHidden();await expect(trade).toBeFocused();
+});
+
+test('trade connect prompts once on rejection and shows the verification tip once per browser', async ({ page }) => {
+  const connectFromTrade = async (tab: Page) => {
+    await installMockWallet(tab, { key: generatePrivateKey(), chainId: 4663, rejectFirstSign: true });
+    await patchDemoResponse<PublicConfig>(tab, '/v1/config', config => ({
+      ...config, trading: { ...config.trading, liveEnabled: true, maxTradeUsd: 250 },
+    }));
+    await tab.route('**/v1/trade/quote', route => {
+      const { coin, side, amountUsd, account } = route.request().postDataJSON() as TradeQuoteRequest;
+      return route.fulfill({ json: {
+        ...createTradeQuote(), coin, side, amountUsd, account, binding: false,
+        route: { venue: 'uniswap_v3', executable: true }, expiresAt: new Date(Date.now() + 15000).toISOString(),
+        guard: { decision: 'allow', checks: [{ code: 'sell_simulation', status: 'pass', label: 'Sell simulation' }] },
+      } });
+    });
+    await tab.setViewportSize({ width: 1512, height: 982 });
+    await tab.goto('/radar');
+    await tab.getByRole('button', { name: 'Close details', exact: true }).last().click();
+    await tab.locator('.c-act button:not(:disabled)').first().click();
+    const drawer = tab.locator('.radar-trade-drawer');
+    await drawer.getByRole('button', { name: 'Connect wallet to trade.' }).click();
+    await drawer.getByRole('menuitem', { name: /Test Wallet/ }).click();
+    await expect(drawer.getByText(WALLET_COPY.rejected)).toBeVisible();
+    return drawer;
+  };
+  const signRequests = (tab: Page) => tab.evaluate(() =>
+    (window as unknown as { __ekoWalletRequests: { method: string }[] }).__ekoWalletRequests
+      .map(request => request.method).filter(method => ['personal_sign', 'eth_sendTransaction'].includes(method)));
+
+  const drawer = await connectFromTrade(page);
+  const verify = drawer.getByRole('button', { name: WALLET_COPY.verify });
+  const dismiss = drawer.getByRole('button', { name: WALLET_COPY.dismissHint });
+  await expect(verify).toHaveAccessibleDescription(WALLET_COPY.signature);
+  await expect(dismiss).toBeVisible();
+  const buttonBounds = (await verify.boundingBox())!;
+  expect((await dismiss.boundingBox())!.y).toBeGreaterThan(buttonBounds.y + buttonBounds.height);
+  await dismiss.focus();
+  await page.keyboard.press('Escape');
+  await expect(dismiss).toHaveCount(0);
+  await expect(verify).toBeFocused();
+  expect(await signRequests(page)).toEqual(['personal_sign']);
+  await verify.click();
+  await expect(verify).toHaveCount(0);
+  expect(await signRequests(page)).toEqual(['personal_sign', 'personal_sign']);
+
+  const second = await page.context().newPage();
+  try {
+    const nextDrawer = await connectFromTrade(second);
+    await expect(nextDrawer.getByRole('button', { name: WALLET_COPY.verify })).toBeEnabled();
+    await expect(nextDrawer.getByText(WALLET_COPY.signature)).toHaveCount(0);
+    expect(await signRequests(second)).toEqual(['personal_sign']);
+  } finally {
+    await second.close();
+  }
 });
 
 test('phone scroll and top bar stay clear of the fixed navigation', async ({page}) => {

@@ -146,7 +146,7 @@ export const CoinCardSchema = z.object({
      */
     deployer: AddressSchema,
     createdAt: z.string(),
-    launchpad: z.enum(['pons', 'occupy', 'flap', 'klik', 'montra', 'flaunch', 'hyperforge', 'taxlaunch', 'unbranded', 'other']),
+    launchpad: z.enum(['pons', 'pangea', 'occupy', 'flap', 'klik', 'montra', 'flaunch', 'hyperforge', 'taxlaunch', 'unbranded', 'other']),
     stage: z.enum(['curve', 'graduated']),
     curvePct: z.number().optional(),
     quoteAsset: z.enum(['ETH', 'USDG', 'stock_token', 'HYPE', 'USDC', 'other']),

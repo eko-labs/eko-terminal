@@ -92,6 +92,9 @@ export function panelBlock(g: PanelGate): string | null {
 }
 
 /** Latest-request ownership, per-quote acknowledgement and bounded visible refreshes. */
+/** How often an open trade panel refreshes its quote (a quote holds for 15 s; every request counts against the
+ *  per-address quote limit, which a second tab or a shared mobile IP also draws on). */
+export const QUOTE_POLL_MS = 10_000;
 export class TradeQuoteSession {
   snapshot = emptyQuote();
   private controller: AbortController | null = null;
@@ -129,6 +132,8 @@ export class TradeQuoteSession {
   async refresh() {
     if (!this.visible || this.disposed || !validTradeInput(this.input)) return;
     if (this.snapshot.loading) return;
+    // A background tab asks for nothing; it checks again in a while and refreshes once it is in front.
+    if (typeof document !== 'undefined' && document.hidden) { if (this.poll) clearTimeout(this.poll); this.poll = setTimeout(() => void this.refresh(), QUOTE_POLL_MS); return; }
     if (this.poll) clearTimeout(this.poll);
     if (this.now() < this.nextRequest) { this.poll = setTimeout(() => void this.refresh(), this.nextRequest - this.now()); return; }
     if (this.expiry) clearTimeout(this.expiry);
@@ -143,7 +148,7 @@ export class TradeQuoteSession {
       if (!quoteMatches(q, this.input)) throw { code: 'quote_changed' };
       this.publish({ quote: q, requestKey: tradeRequestKey(this.input), requestedAt, loading: false, error: null, acknowledged: [] });
       this.failures = 0;
-      this.poll = setTimeout(() => void this.refresh(), 5000);
+      this.poll = setTimeout(() => void this.refresh(), QUOTE_POLL_MS);
       if (this.expiry) clearTimeout(this.expiry);
       const remaining = Math.min(Date.parse(q.expiresAt), requestedAt + 15_000) - this.now();
       // An already-expired backend response must not create a zero-delay retry loop.

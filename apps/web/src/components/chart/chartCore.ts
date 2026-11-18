@@ -85,8 +85,18 @@ export class ChartCore {
   onRedraw(l:()=>void) { this.listeners.add(l);return()=>{this.listeners.delete(l);}; }
   scheduleRedraw() { this.cachedRange=null; if(this.raf||this.dead)return;this.raf=requestAnimationFrame(()=>{this.raf=0;if(this.dead)return;this.paint();this.listeners.forEach(l=>l());}); }
   private label(_c: CanvasRenderingContext2D, value: number, step?: number) { return this.axisSupply===1?formatCoinPrice(value):formatCompactUsd(value,step); }
+  /** The chart without the crosshair, kept after each full paint: moving the pointer only pastes it back and draws the
+   *  crosshair (a full paint redraws every glow and dither dot; doing that per mousemove lagged the page). */
+  private base: HTMLCanvasElement | null = null;
+  private baseKey = '';
+  private key() { const l = this.data.at(-1); return [this.data.length, l?.ts, l?.o, l?.h, l?.l, l?.c, l?.vUsd, this.view.s, this.view.e, this.scale, this.shift, this.mode, this.opts.volume, this.opts.log, this.opts.ema.join(','), this.width, this.height, this.axisSupply, this.progress, this.canvas.width].join('|'); }
   private paint() {
     if(!this.data.length||!this.width)return;
+    const key=this.key(),c0=this.canvas.getContext('2d');
+    if(c0&&this.base&&key===this.baseKey&&this.base.width===this.canvas.width&&this.base.height===this.canvas.height){
+      c0.save();c0.setTransform(1,0,0,1,0,0);c0.globalCompositeOperation='copy';c0.drawImage(this.base,0,0);c0.restore();
+      this.paintCrosshair(c0);return;
+    }
     const i0=Math.max(0,Math.floor(this.view.s)-1),i1=Math.min(this.data.length,Math.ceil(this.view.e)+1),bars=this.data.slice(i0,i1),slot=this.slot(),B=this.mainPaneHeight()-42;
     const g={W:this.width,H:this.height,L:this.L,R:this.R,T:this.T,B,slot,candles:bars,series:bars.map(b=>b.c),x:(i:number)=>this.xForIndex(i0+i),y:(p:number)=>this.yForPrice(p)!,clip:{x:this.L,y:this.T,w:this.paneWidth(),h:this.mainPaneHeight()-this.T},noHalo:i1<this.data.length};
     if(this.mode==='Line')paintArea(this.canvas,g,this.progress);else paintCandles(this.canvas,g,this.progress);
@@ -100,11 +110,21 @@ export class ChartCore {
     const last=this.data.at(-1)!,lastY=this.yForPrice(last.c)!;
     if(lastY>=this.T&&lastY<=B&&this.xForIndex(this.data.length-1)<=this.width-this.R){c.strokeStyle='rgba(200,232,252,.5)';c.setLineDash([2,3]);c.beginPath();c.moveTo(this.L,lastY);c.lineTo(this.width-this.R,lastY);c.stroke();c.setLineDash([]);c.fillStyle='#c8e8fc';c.fillRect(this.width-this.R+2,lastY-9,this.R-4,18);c.fillStyle='#04111a';c.fillText(this.label(c,last.c*this.axisSupply),this.width-this.R+8,lastY+4);c.fillStyle='#71879a';}
     for(const f of [.08,.36,.64,.92]){const i=Math.floor(this.view.s+f*(this.view.e-this.view.s));const bar=this.data[i];if(bar){c.textAlign='center';c.fillText(timeLabel(bar.ts,this.tf),this.xForIndex(i),this.height-10);}}c.textAlign='start';
+    c.restore();
+    this.el.dataset.scale=String(this.scale);this.el.dataset.slot=String(slot);
+    // Keep this frame (without the crosshair) for pointer moves.
+    if(!this.base)this.base=document.createElement('canvas');
+    if(this.base.width!==this.canvas.width||this.base.height!==this.canvas.height){this.base.width=this.canvas.width;this.base.height=this.canvas.height;}
+    const b=this.base.getContext('2d');if(b){b.setTransform(1,0,0,1,0,0);b.globalCompositeOperation='copy';b.drawImage(this.canvas,0,0);b.globalCompositeOperation='source-over';this.baseKey=key;}
+    this.paintCrosshair(c);
+  }
+  private paintCrosshair(c: CanvasRenderingContext2D) {
+    const B=this.mainPaneHeight()-42,dpr=this.canvas.width/Math.max(1,this.width);
+    c.save();c.setTransform(dpr,0,0,dpr,0,0);c.globalCompositeOperation='source-over';c.font='12px sans-serif';
     // Crosshair: the hovered bar's time line, and the pointer's price line with its value on the scale.
     const hovered=this.data[this.hoverIndex];if(hovered){const x=this.xForIndex(this.hoverIndex);if(x>=this.L&&x<=this.width-this.R){c.strokeStyle='rgba(200,232,252,.3)';c.setLineDash([3,3]);c.beginPath();c.moveTo(x,this.T);c.lineTo(x,this.mainPaneHeight());c.stroke();c.setLineDash([]);const t=timeLabel(hovered.ts,this.tf),w=c.measureText(t).width+12;c.fillStyle='#1b2a36';c.fillRect(x-w/2,this.height-24,w,18);c.fillStyle='#c8e8fc';c.textAlign='center';c.fillText(t,x,this.height-11);c.textAlign='start';}}
     if(this.hoverY>=this.T&&this.hoverY<=B){const y=this.hoverY;c.strokeStyle='rgba(200,232,252,.3)';c.setLineDash([3,3]);c.beginPath();c.moveTo(this.L,y);c.lineTo(this.width-this.R,y);c.stroke();c.setLineDash([]);c.fillStyle='#1b2a36';c.fillRect(this.width-this.R+2,y-9,this.R-4,18);c.fillStyle='#c8e8fc';c.fillText(this.label(c,this.priceForY(y)*this.axisSupply),this.width-this.R+8,y+4);}
     c.restore();
-    this.el.dataset.scale=String(this.scale);this.el.dataset.slot=String(slot);
   }
   destroy(){this.dead=true;this.observer.disconnect();this.stopSweep();cancelAnimationFrame(this.raf);this.listeners.clear();this.canvas.remove();}
 }

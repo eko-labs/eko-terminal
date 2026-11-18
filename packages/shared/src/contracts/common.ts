@@ -14,7 +14,7 @@ export const UntrustedSchema = z.object({
   flags: z.array(z.enum(['agent_bait', 'link', 'impersonation'])),
 });
 export type Untrusted = z.infer<typeof UntrustedSchema>;
-export const PlaybookIdSchema = z.enum(['honeypot', 'tax_trap', 'removable_liquidity', 'fee_trap_pool', 'stuck_at_bonding', 'wash_to_trend', 'clone_swarm', 'exempt_insiders', 'bundle_dump', 'migration_dump', 'malicious_hook', 'agent_bait', 'serial_deployer', 'holder_concentration', 'dev_dump', 'run_up', 'launch_snipers']);
+export const PlaybookIdSchema = z.enum(['honeypot', 'tax_trap', 'removable_liquidity', 'fee_trap_pool', 'stuck_at_bonding', 'wash_to_trend', 'clone_swarm', 'exempt_insiders', 'bundle_dump', 'migration_dump', 'malicious_hook', 'agent_bait', 'serial_deployer', 'holder_concentration', 'dev_dump', 'run_up', 'launch_snipers', 'fake_mcap']);
 export type PlaybookId = z.infer<typeof PlaybookIdSchema>;
 /**
  * Danger findings no risk mode can accept: the coin cannot be sold or costs most of the position to sell (honeypot, tax

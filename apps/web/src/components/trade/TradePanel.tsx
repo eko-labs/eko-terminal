@@ -14,7 +14,10 @@ import { TRADE_COPY as C, TRADE_LABELS as L } from '../../copy/trade';
 import { NOT_CHECKED } from '../../copy/availability';
 import { panelBlock, quoteMatches, tradeRequestKey, tradeErrorText, emptyQuote, type PanelGate, type QuoteSnapshot } from './tradePanelModel';
 import { useTradeQuote } from './useTradeQuote';
-import { useTradeExecution } from './TradeContext';
+import { useTradeExecution, type TradeAdapter } from './TradeContext';
+import { useWalletState } from '../../lib/walletState';
+import { WalletButton } from '../WalletSlot';
+import { TradeWalletVerification } from './TradeWalletVerification';
 import './trade-panel.css';
 
 const dollars = (n: number) => `$${n.toLocaleString('en-US', { maximumFractionDigits: 20 })}`;
@@ -49,14 +52,22 @@ export interface TradePanelProps {
 }
 /** Presentational surface exported for offline contract-state fixtures. */
 export function TradePanelView({ gate, tier, phase, priceUsd, priceUnavailable, priceFormat = formatCoinPrice, guard, busy = false, result, confirm = false,
-  changeSide, changeAmount, changeSlippage, acknowledge, submit, retry }: {
+  changeSide, changeAmount, changeSlippage, acknowledge, submit, retry, verification }: {
   gate: PanelGate; tier?: Entitlements['tier']; phase?: PublicConfig['phase']; priceUsd?: number; priceUnavailable?: boolean; priceFormat?: (value: number) => string; guard?: GuardAssessmentV2 | null;
   busy?: boolean; result?: string | null; confirm?: boolean; changeSide: (side: 'buy' | 'sell') => void; changeAmount: (amount: string) => void; changeSlippage: (percent: string) => void;
   acknowledge: () => void; submit: () => void; retry: () => void;
+  verification?: TradeAdapter['verification'];
 }) {
+  const [connectOpened, setConnectOpened] = useState(false);
+  const connect = () => {
+    setConnectOpened(true);
+    useWalletState.setState({ requested: true });
+  };
   const { input, snapshot } = gate, q = snapshot.quote && quoteMatches(snapshot.quote, input) && snapshot.requestKey === tradeRequestKey(input) ? snapshot.quote : null;
   const block = panelBlock(gate), warnings = q?.guard.checks.filter(c => c.status === 'warn') ?? [];
   const needsAck = warnings.some(c => !snapshot.acknowledged.includes(c.code));
+  const authBlocked = block === C.connect || block === C.wallet_mismatch;
+  const showVerify = verification && !busy && (authBlocked || connectOpened);
   return <>
     <fieldset disabled={busy}><legend className="sr-only">{L.side}</legend>
       <div className="tp-side"><Seg options={[{ value: 'buy', label: L.buy }, { value: 'sell', label: L.sell }]} value={input.side} onChange={v => changeSide(v as 'buy' | 'sell')} label={L.side} /><span className="tp-mode">{L.mode} <b>{modes[input.riskMode ?? 'safe']}</b></span></div>
@@ -69,7 +80,12 @@ export function TradePanelView({ gate, tier, phase, priceUsd, priceUnavailable, 
     {q && <><FeeLines quote={q} tier={tier} phase={phase} /><QuoteGuard quote={q} mode={input.riskMode ?? 'safe'} />{!q.binding && <p className="note">{C.indicative}</p>}</>}
     {guard && <GuardCompact verdict={{ version: 2, assessment: guard }} />}
     <p className={`tp-status${!busy && !result && block && block !== C.refused ? ' sr-only' : ''}`} role={block === C.refused ? 'alert' : 'status'} aria-live={block === C.refused ? 'assertive' : 'polite'}>{busy ? C.busy : result ?? block ?? (needsAck ? C.review : null)}</p>
-    {block === C.connect ? <button className="btn tp-submit" onClick={() => window.dispatchEvent(new Event('eko:open-wallet'))}>{C.connect}</button> : block ? <button className="btn tp-submit" disabled>{block}</button> : needsAck ? <button className="btn tp-submit" disabled={busy} onClick={acknowledge}>{C.acknowledge}</button> : <button className={`btn tp-submit${input.side === 'buy' ? ' btn-primary' : ''}`} disabled={busy} onClick={submit}>{confirm ? C.confirm : input.side === 'buy' ? L.buy : L.sell} {dollars(input.amountUsd)}</button>}
+    {showVerify && <TradeWalletVerification verification={verification} fromTradeConnect={connectOpened} />}
+    {!(showVerify && authBlocked) && (block === C.connect && !gate.wallet
+      ? connectOpened ? <WalletButton trade /> : <button className="btn tp-submit" onClick={connect}>{C.connect}</button>
+      : block ? <button className="btn tp-submit" disabled>{block}</button>
+      : needsAck ? <button className="btn tp-submit" disabled={busy} onClick={acknowledge}>{C.acknowledge}</button>
+      : <button className={`btn tp-submit${input.side === 'buy' ? ' btn-primary' : ''}`} disabled={busy} onClick={submit}>{confirm ? C.confirm : input.side === 'buy' ? L.buy : L.sell} {dollars(input.amountUsd)}</button>)}
     {snapshot.error && <button className="btn tp-retry" disabled={busy} onClick={retry}>{C.retry}</button>}
     <p className="note">{REAL_FUNDS}</p><AnalysisPolicyNotice />
   </>;
@@ -115,7 +131,7 @@ export function TradePanel({ coin, stale = false, visible = true, ...display }: 
   const feedbackMatches = feedback?.order?.coin.toLowerCase() === coin.toLowerCase() && (!lastOrder || lastOrder === feedback.order.id);
   const displayedResult = feedbackMatches && feedback?.order && ['confirmed', 'failed', 'rejected', 'expired'].includes(feedback.order.status) ? feedback.message : result ?? (feedbackMatches || !feedback?.order ? feedback?.message : null);
   // TODO(spec): CA-9 has no venue-link allowlist or per-wallet cap field. Do not trust quote.route.linkOut or parse caps from server prose; display the configured cap and current refusal.
-  return <div data-tour="trade" className="tpanel guarded-trade-panel" ref={panel}><TradePanelView gate={gate} tier={tier} phase={config?.phase} {...display} busy={execution.busy} confirm={confirm} result={displayedResult}
+  return <div data-tour="trade" className="tpanel guarded-trade-panel" ref={panel}><TradePanelView gate={gate} tier={tier} phase={config?.phase} {...display} busy={execution.busy} confirm={confirm} result={displayedResult} verification={visible ? execution.adapter?.verification : undefined}
     changeSide={v => { reset(); setSide(v); }} changeAmount={v => { reset(); setAmount(v === '' ? NaN : Number(v)); }} changeSlippage={v => { reset(); setSlippage(v === '' ? NaN : Math.round(Number(v) * 100)); }}
     acknowledge={() => { setResult(null); if (review) setReview({ ...review, acknowledged: [...new Set(review.quote!.guard.checks.filter(c => c.status === 'warn').map(c => c.code))] }); else quote.acknowledge(); }} submit={() => void submit()} retry={() => { reset(); quote.refresh(); }} /></div>;
 }

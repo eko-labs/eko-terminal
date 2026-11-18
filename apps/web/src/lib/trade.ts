@@ -19,10 +19,17 @@ export { flushPendingReports } from './pendingReports';
  * build's chain (the server verifies the same one); the argument is the wallet's current chain and is not trusted.
  * A deployment whose server reports another chain refuses before the wallet is asked anything.
  */
-export async function siweSignIn(_chainId: number = BUILD_CHAIN_ID) {
+export async function siweSignIn(_chainId: number = BUILD_CHAIN_ID, expectedAddress?: string) {
+  const walletChanged = 'Wallet changed — sign in again or switch back.';
   await ensureChain(walletChainId(BUILD_CHAIN_ID));
   const conn = getConnection(wagmiConfig);
   if (!conn.address) throw new Error('Connect a wallet first');
+  const address = conn.address.toLowerCase();
+  if (expectedAddress && address !== expectedAddress.toLowerCase()) throw new Error(walletChanged);
+  const stillConnected = () => {
+    const current = getConnection(wagmiConfig);
+    return current.address?.toLowerCase() === address && current.chainId === BUILD_CHAIN_ID;
+  };
   const { nonce, domain, uri, issuedAt, expirationTime } = await fetchParsed('/auth/siwe/nonce', SiweNonceSchema, { method: 'POST' });
   const message = createSiweMessage({
     domain,
@@ -35,8 +42,9 @@ export async function siweSignIn(_chainId: number = BUILD_CHAIN_ID) {
     issuedAt: new Date(issuedAt),
     expirationTime: new Date(expirationTime),
   });
-  const signature = await signMessage(wagmiConfig, { message });
-  if (getConnection(wagmiConfig).address?.toLowerCase() !== conn.address.toLowerCase() || getConnection(wagmiConfig).chainId !== BUILD_CHAIN_ID) throw new Error('Wallet changed — sign in again or switch back.');
+  if (!stillConnected()) throw new Error(walletChanged);
+  const signature = await signMessage(wagmiConfig, { message, account: conn.address });
+  if (!stillConnected()) throw new Error(walletChanged);
   const ref = capturedReferral();
   await fetchParsed('/auth/siwe/verify', MeSchema, { body: { message, signature, ...(ref ? { ref } : {}) } });
   clearReferral();

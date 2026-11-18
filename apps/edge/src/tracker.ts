@@ -20,7 +20,7 @@ export interface Flow { tx: Hex; block: number; ts: number; from: string; to: st
 
 export interface CoinState {
   /** Which launchpad launched it; Montra's own terms (config, fees) are read only for Montra coins. */
-  launchpad: LaunchpadId | 'pons';
+  launchpad: LaunchpadId | 'pons' | 'pangea';
   /** The pool key when the launch gave it (other launchpads); Montra coins read theirs from the hook. A bonding-curve
    *  coin has none (and a zero poolId, NO_POOL) until it graduates into its v4 pool. */
   key: V4PoolKey | null;

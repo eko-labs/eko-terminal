@@ -102,7 +102,7 @@ export interface JudgeContext {
 }
 export function judge(coin: CoinState, p: Probed, ctx: JudgeContext): Assessment {
   const { chain, nowSec } = ctx, { key, config, currentBuyFeePips, probe, name, symbol } = p;
-  const { antiSnipeActive, antiSnipe, feeBps, liquidity: locked, hook, runUp } = chain.facts(coin, p, nowSec);
+  const { antiSnipeActive, antiSnipe, feeBps, liquidity: locked, hook, runUp, backing } = chain.facts(coin, p, nowSec);
   const hypeUsd = ctx.hypeUsd;
   const asOfBlock = Math.max(ctx.head, p.block);
   const simulations: Simulation[] = probe && probe.status !== 'unavailable' ? [{
@@ -118,6 +118,9 @@ export function judge(coin: CoinState, p: Probed, ctx: JudgeContext): Assessment
     holders: stats.holders, earlyBuyers: stats.earlyBuyers, dev: stats.dev,
     coin: coin.token, deployer: coin.creator, asOfBlock, asOfSec: nowSec, createdAtSec: coin.ts, createdAtBlock: coin.block,
     launchpad: coin.launchpad, name, symbol, antiSnipeActive, simulations, ...(runUp ? { runUp } : {}),
+    // Without an ETH price no market cap is claimed, so fake_mcap stays silent rather than guessing.
+    ...(backing && hypeUsd ? { marketCap: { mcapUsd: backing.mcap * hypeUsd, backingUsd: backing.paidIn * hypeUsd, volume24hUsd: backing.volume24h * hypeUsd,
+      holders: stats.holderCount, evidence: backing.evidence } } : {}),
     ...(p.taxPct ? { taxes: { buyPct: p.taxPct.buy, sellPct: p.taxPct.sell, mutable: null, changes: [] } } : {}),
     ...(locked ? { liquidity: { positions: [{ owner: locked.owner, controlledBy: 'other' as const, share: 1, status: locked.status,
       evidence: [{ kind: 'address' as const, ref: locked.owner, label: locked.label }] }], priorRemovals: [] } } : {}),

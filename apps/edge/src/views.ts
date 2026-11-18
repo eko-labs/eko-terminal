@@ -5,7 +5,7 @@ import type { Assessment } from './assess.js';
 import { changePct, spark } from './market.js';
 import { graduationBps, HALF_WAY_BPS } from './graduation.js';
 import type { CoinState, FeedEvent } from './tracker.js';
-import { flowActivity, type FlowWindow } from './flow-stats.js';
+import { flowActivity, WINDOW_SEC, type FlowWindow } from './flow-stats.js';
 import { ELYSIUM_PROFILE } from './chains/profiles.js';
 import type { ChainProfile } from './chains/types.js';
 
@@ -63,8 +63,17 @@ export function coinSummary(c: CoinState, a: Assessment | undefined, ctx: ViewCo
 
 /** Volume (HYPE) and trade count over the last hour. */
 export function hourStats(c: CoinState, nowSec: number) {
-  const lastHour = c.trades.filter(t => t.ts >= nowSec - 3600);
-  return { volumeHype: lastHour.reduce((sum, t) => sum + t.hype, 0), trades: lastHour.length };
+  return tradeStats(c, nowSec - WINDOW_SEC['1h']);
+}
+
+function tradeStats(c: CoinState, since: number) {
+  let volumeHype = 0, trades = 0;
+  for (const trade of c.trades) {
+    if (trade.ts < since) continue;
+    volumeHype += trade.hype;
+    trades++;
+  }
+  return { volumeHype, trades };
 }
 
 const emptyFlow = { window: '1h' as const, agentPct: 0, crewPct: 0, humanPct: 0, washEstPct: 0, beta: true, confidence: 0 };
@@ -89,8 +98,11 @@ export function flowView(c: CoinState, ctx: ViewContext, window: FlowWindow, exc
 
 export function radarRow(c: CoinState, a: Assessment | undefined, ctx: ViewContext, rank: number): RadarRow {
   const h = hourStats(c, ctx.nowSec);
+  const dayStart = ctx.nowSec - WINDOW_SEC['24h'];
+  const day = tradeStats(c, dayStart);
   return { ...coinSummary(c, a, ctx), rank, flow: flowOf(c, ctx), exitCost1kPct: exitCost(a) ?? 0, spark8h: spark(c.trades, ctx.nowSec).map(p => p * (ctx.hypeUsd ?? 0)),
-    volume1hUsd: usd(h.volumeHype, ctx), trades1h: h.trades };
+    volume1hUsd: usd(h.volumeHype, ctx), trades1h: h.trades,
+    volume24hUsd: usd(day.volumeHype, ctx), change24hPct: changePct(c.trades, dayStart), trades24h: day.trades };
 }
 
 export function pairRow(c: CoinState, a: Assessment | undefined, ctx: ViewContext): PairRow {
@@ -138,7 +150,8 @@ export function coinCard(c: CoinState, a: Assessment | undefined, ctx: ViewConte
       ...(a?.config ? { hookFeePct: a.config.totalFeePips / 1e4 } : {}), ...(a?.antiSnipe ? { antiSnipe: a.antiSnipe } : {}) },
     // Montra, HyperForge and tax-launchpad liquidity cannot be removed (docs and verified source); the Flaunch fork's hook
     // is unverified, so its status is named missing below rather than claimed.
-    liquidity: { depthUsd: { pct2: 0, pct5: 0, pct10: 0 }, lpStatus: c.launchpad === 'flaunch' ? 'removable' : c.launchpad === 'pons' ? 'pons_locked' : 'locked', feeTiers: a?.config ? [feeBps] : [] },
+    // Pangea's launch position sits with its liquidity manager, unreviewed: its status is named missing, never claimed.
+    liquidity: { depthUsd: { pct2: 0, pct5: 0, pct10: 0 }, lpStatus: c.launchpad === 'flaunch' || c.launchpad === 'pangea' ? 'removable' : c.launchpad === 'pons' ? 'pons_locked' : 'locked', feeTiers: a?.config ? [feeBps] : [] },
     supply: { top10Pct: a ? pct(a.stats.holders.top10Share) : 0, devPct: a ? pct(a.stats.dev.heldShare) : 0, bundlesHeldPct: a ? pct(earlyHeld(a)) : 0,
       exemptWalletsHeldPct: 0, freshWalletsPct: 0, burnedPct: 0, circulating: (c.supply / 10n ** 18n).toString() }, // whole tokens (every tracked coin has 18 decimals), not wei
     // Montra launches are clones of the factory's token master: no owner, tax, blacklist, pause, mint or upgrade. Other
@@ -149,7 +162,7 @@ export function coinCard(c: CoinState, a: Assessment | undefined, ctx: ViewConte
     meta: {
       tradeability: { confidence: cost === null ? 0 : 1, asOfBlock: block, ...(cost === null ? { unavailable: true, missing: ['exitCostPct'] } : { missing: ['exitCostPct.usd100', 'exitCostPct.usd10k'] }),
         flags: [`probe_usd_${Math.round(a?.probeUsd ?? 1000)}`] },
-      liquidity: { confidence: a?.config ? 1 : 0, asOfBlock: block, missing: c.launchpad === 'flaunch' || unprovenPonsLock(c, a) ? ['depthUsd', 'lpStatus'] : ['depthUsd'] },
+      liquidity: { confidence: a?.config ? 1 : 0, asOfBlock: block, missing: c.launchpad === 'flaunch' || c.launchpad === 'pangea' || unprovenPonsLock(c, a) ? ['depthUsd', 'lpStatus'] : ['depthUsd'] },
       // bundlesHeldPct here is what the first minute's buyers still hold (funding is not traced, so no same-funder bundles).
       supply: a ? { confidence: 1, asOfBlock: block, missing: ['freshWalletsPct', 'exemptWalletsHeldPct'], flags: ['early_cohort_not_funder_bundles'] } : meta(['top10Pct', 'devPct', 'bundlesHeldPct', 'freshWalletsPct']),
       control: c.launchpad === 'montra' ? { confidence: 1, asOfBlock: block, flags: ['montra_factory_clone'] } : meta(['canChangeTax', 'canBlacklist', 'canPause', 'canMint', 'upgradeable']),

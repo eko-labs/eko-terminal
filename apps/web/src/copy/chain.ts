@@ -67,7 +67,7 @@ export const CHAIN_TITLE = CHAIN_COPY.title;
 type Launchpad = RadarRow['launchpad'];
 // Pairs, the coin view and the stage filter treat every non-launchpad pool as Uniswap. These label data values, so
 // both builds carry every launchpad: a label shows only when the server reports that launchpad.
-const LAUNCHPAD_LABELS: Record<Launchpad, string> = { pons: 'Pons', occupy: 'Occupy', flap: 'Flap', klik: 'Klik', montra: 'Montra', flaunch: 'Flaunch fork', hyperforge: 'HyperForge', taxlaunch: 'Tax launchpad', unbranded: 'Unbranded launcher', other: 'Uniswap' };
+const LAUNCHPAD_LABELS: Record<Launchpad, string> = { pons: 'Pons', pangea: 'Pangea', occupy: 'Occupy', flap: 'Flap', klik: 'Klik', montra: 'Montra', flaunch: 'Flaunch fork', hyperforge: 'HyperForge', taxlaunch: 'Tax launchpad', unbranded: 'Unbranded launcher', other: 'Uniswap' };
 /** "Pons", "Pons → pool" once a Pons coin has migrated, or the pool venue for everything else. */
 export function launchpadLabel(launchpad: Launchpad, migrated = false) {
   return launchpad === 'pons' && migrated ? 'Pons → pool' : LAUNCHPAD_LABELS[launchpad] ?? 'Uniswap';

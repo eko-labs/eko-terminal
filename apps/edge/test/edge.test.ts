@@ -70,7 +70,10 @@ describe('market maths', () => {
   it('builds USD bars, change and a sparkline from trades', () => {
     const t = (ts: number, priceHype: number, hype: number): Trade => ({ ts, block: ts, tx: '0x01', sender: '0x00000000000000000000000000000000000000a1', side: 'buy', hype, tokens: 1, priceHype });
     const trades = [t(60, 1, 1), t(90, 2, 1), t(130, 1.5, 2)];
-    expect(barsFromTrades(trades, '1m', 10, 0, 200)).toEqual([{ ts: 60, o: 10, h: 20, l: 10, c: 20, vUsd: 20 }, { ts: 120, o: 15, h: 15, l: 15, c: 15, vUsd: 20 }]);
+    // The second bar opens at the first one's close (20), so its single trade at 15 shows as a body, not a sliver.
+    expect(barsFromTrades(trades, '1m', 10, 0, 200)).toEqual([{ ts: 60, o: 10, h: 20, l: 10, c: 20, vUsd: 20 }, { ts: 120, o: 20, h: 20, l: 15, c: 15, vUsd: 20 }]);
+    // A window that starts after a trade still opens from that trade's price.
+    expect(barsFromTrades(trades, '1m', 10, 100, 200)).toEqual([{ ts: 120, o: 20, h: 20, l: 15, c: 15, vUsd: 20 }]);
     expect(changePct(trades, 60)).toBeCloseTo(50);
     expect(spark(trades, 200, 200, 4)).toEqual([1, 2, 1.5, 1.5]);
   });

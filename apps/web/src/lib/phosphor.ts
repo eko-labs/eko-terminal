@@ -33,19 +33,33 @@ export function paintArea(canvas:HTMLCanvasElement,g:AreaGeometry,progress=1){
  const yAt=(x:number)=>{const f=Math.max(0,Math.min(n,(x-x0)/span*n)),i=Math.floor(f),t=f-i,a=g.series[i],b=g.series[Math.min(n,i+1)];return g.y(a+(b-a)*t);};
  const cell=mini?2.5:3,dot=mini?1.3:1.8,base=g.base??g.B;
  c.fillStyle=mini?'rgba(70,120,160,.06)':'rgba(70,125,170,.075)';c.beginPath();
- for(let x=x0;x<=x1;x+=cell)for(let y=g.T;y<=g.B;y+=cell)c.rect(x,y,dot*.7,dot*.7);c.fill();
+ if(mini){for(let x=x0;x<=x1;x+=cell)for(let y=g.T;y<=g.B;y+=cell)c.rect(x,y,dot*.7,dot*.7);c.fill();}
+ else{c.save();c.translate(x0,g.T);c.fillStyle=dotPattern(c,dpr,'rgba(70,125,170,.075)',dot*.7);c.fillRect(0,0,x1-x0,g.B-g.T);c.restore();}
  c.globalCompositeOperation='lighter';
  const tones=['rgba(58,120,186,.38)','rgba(78,150,212,.5)','rgba(108,180,236,.62)','rgba(170,216,250,.76)'],buckets:number[][]=[[],[],[],[]];
  for(let x=x0;x<Math.min(xEnd,x1+.01);x+=cell){const ty=yAt(x),ix=Math.round((x-x0)/cell);
   for(let y=g.T+Math.ceil((ty-g.T)/cell)*cell;y<=base;y+=cell){const iy=Math.round((y-g.T)/cell),d=(y-ty)/Math.max(10,g.B-g.T),v=Math.exp(-d*3.4)*.92+.05;
    if(v*16>BAYER[(ix&3)+((iy&3)<<2)]+.5)buckets[Math.min(3,Math.floor(v*4))].push(x,y);}}
  buckets.forEach((b,k)=>{c.fillStyle=tones[k];c.beginPath();for(let i=0;i<b.length;i+=2)c.rect(b[i],b[i+1],dot,dot);c.fill();});
- const path=(dx=0,dy=0)=>{c.beginPath();for(let i=0;i<=n;i++){const x=g.x(i);if(x>xEnd+.01){c.lineTo(xEnd+dx,yAt(xEnd)+dy);break;}const y=g.y(g.series[i]);i?c.lineTo(x+dx,y+dy):c.moveTo(x+dx,y+dy);}};
- const k=g.hot?1.25:1;c.lineJoin='round';c.lineCap='round';
- c.save();c.shadowColor='rgba(64,156,240,.95)';c.shadowBlur=(mini?10:24)*dpr;path();c.strokeStyle=`rgba(80,166,240,${.34*k})`;c.lineWidth=mini?3:5;c.stroke();c.restore();
- c.save();c.shadowColor='rgba(130,200,255,.9)';c.shadowBlur=(mini?4:8)*dpr;path();c.strokeStyle=`rgba(120,196,250,${.5*k})`;c.lineWidth=mini?1.6:2.6;c.stroke();c.restore();
- if(!mini){c.lineWidth=1.1;path(-.9,0);c.strokeStyle='rgba(80,226,255,.26)';c.stroke();path(.9,0);c.strokeStyle='rgba(76,104,255,.3)';c.stroke();path(0,2.4);c.strokeStyle='rgba(120,176,226,.16)';c.lineWidth=1;c.stroke();}
- c.save();c.shadowColor='rgba(210,238,255,.9)';c.shadowBlur=3*dpr;path();c.strokeStyle='rgba(238,250,255,.98)';c.lineWidth=g.hot?2.2:mini?1.2:1.6;c.stroke();c.restore();
+ const path=(ctx:CanvasRenderingContext2D,dx=0,dy=0)=>{ctx.beginPath();for(let i=0;i<=n;i++){const x=g.x(i);if(x>xEnd+.01){ctx.lineTo(xEnd+dx,yAt(xEnd)+dy);break;}const y=g.y(g.series[i]);i?ctx.lineTo(x+dx,y+dy):ctx.moveTo(x+dx,y+dy);}};
+ const k=g.hot?1.25:1;
+ // The glow strokes go on an offscreen layer once, then the layer is blurred twice (wide halo, tight halo) and laid on
+ // sharp: one blur per pass for the whole line. A shadow on each stroke cost a blur over the line's whole box each
+ // (three a frame); with the sweep repainting every frame on open, the page stuttered.
+ c.lineJoin='round';c.lineCap='round';
+ if(mini){
+  // Sparklines are small enough that a shadow per stroke is cheaper than a layer.
+  c.save();c.shadowColor='rgba(64,156,240,.95)';c.shadowBlur=10*dpr;path(c);c.strokeStyle=`rgba(80,166,240,${.34*k})`;c.lineWidth=3;c.stroke();c.restore();
+  c.save();c.shadowColor='rgba(130,200,255,.9)';c.shadowBlur=4*dpr;path(c);c.strokeStyle=`rgba(120,196,250,${.5*k})`;c.lineWidth=1.6;c.stroke();c.restore();
+ }else{
+  const layer=layerFor(canvas),l2=layer.getContext('2d')!;l2.setTransform(dpr,0,0,dpr,0,0);l2.clearRect(0,0,W,H);l2.lineJoin='round';l2.lineCap='round';
+  path(l2);l2.strokeStyle=`rgba(80,166,240,${.34*k})`;l2.lineWidth=5;l2.stroke();
+  path(l2);l2.strokeStyle=`rgba(120,196,250,${.5*k})`;l2.lineWidth=2.6;l2.stroke();
+  c.save();c.filter=`blur(${12*dpr}px)`;c.drawImage(layer,0,0,W,H);c.filter=`blur(${4*dpr}px)`;c.drawImage(layer,0,0,W,H);c.restore();
+  c.drawImage(layer,0,0,W,H);
+ }
+ if(!mini){c.lineWidth=1.1;path(c,-.9,0);c.strokeStyle='rgba(80,226,255,.26)';c.stroke();path(c,.9,0);c.strokeStyle='rgba(76,104,255,.3)';c.stroke();path(c,0,2.4);c.strokeStyle='rgba(120,176,226,.16)';c.lineWidth=1;c.stroke();}
+ path(c);c.strokeStyle='rgba(238,250,255,.98)';c.lineWidth=g.hot?2.2:mini?1.2:1.6;c.stroke();
  const tip=Math.min(xEnd,x1);halo(c,tip,yAt(tip),mini?11:progress<1?30:20,progress<1?.95:.55);
  (g.halos||[]).forEach(h=>{const hx=g.x(h.i);if(hx<=xEnd)halo(c,hx,g.y(g.series[h.i]),18,.6);});
  c.restore();scan(c,W,H,mini?.28:.34);
@@ -66,23 +80,30 @@ export function paintBars(canvas:HTMLCanvasElement,g:BarsGeometry,progress=1){
  scan(c,W,H,.22);
 }
 
+/** A reusable offscreen layer per chart canvas (sized like it), for drawing a set of marks once and glowing them once. */
+const layers=new WeakMap<HTMLCanvasElement,HTMLCanvasElement>();
+function layerFor(canvas:HTMLCanvasElement){let l=layers.get(canvas);if(!l){l=document.createElement('canvas');layers.set(canvas,l);}if(l.width!==canvas.width||l.height!==canvas.height){l.width=canvas.width;l.height=canvas.height;}return l;}
+/** The plot's dot grid as a repeating 3 px tile: one fill instead of tens of thousands of rects per frame. */
+const dotTiles=new Map<string,HTMLCanvasElement>();
+function dotPattern(c:CanvasRenderingContext2D,dpr:number,color='rgba(70,125,170,.07)',dot=1.2){const id=`${dpr}|${color}|${dot}`;let t=dotTiles.get(id);if(!t){t=document.createElement('canvas');t.width=t.height=Math.round(3*dpr);const x=t.getContext('2d')!;x.fillStyle=color;x.fillRect(0,0,dot*dpr,dot*dpr);dotTiles.set(id,t);}const p=c.createPattern(t,'repeat')!;p.setTransform(new DOMMatrix([1/dpr,0,0,1/dpr,0,0]));return p;}
 /** Candles: g = {W,H,L,R,T,B,x(i),y(v),candles:[{o,h,l,c}],slot} */
 export function paintCandles(canvas:HTMLCanvasElement,g:CandlesGeometry,progress=1){
  const {W,H}=g,{c,dpr}=setup(canvas,W,H),n=g.candles.length;c.save();clipTo(c,g);
- c.fillStyle='rgba(70,125,170,.07)';c.beginPath();for(let x=g.L;x<=g.W-g.R;x+=3)for(let y=g.T;y<=g.B;y+=3)c.rect(x,y,1.2,1.2);c.fill();
- c.globalCompositeOperation='lighter';
- // Zoomed far out (thin candles, hundreds on screen) the glow is dropped and a down body is filled solid: blur per
- // candle is the costly part, and an outlined body under 3 px reads as noise.
- const bw=Math.max(1,candleWidth(g.slot)),thin=bw<3,glow=g.slot>=4;
+ c.save();c.translate(g.L,g.T);c.fillStyle=dotPattern(c,dpr);c.fillRect(0,0,g.W-g.R-g.L,g.B-g.T);c.restore();
+ // Every candle is drawn once on an offscreen layer, then the layer is glowed with a single blur and laid on sharp.
+ // A shadow per candle cost one blur pass each: ~180 ms a frame with 1-second candles at 2x, the chart lagged on hover.
+ const layer=layerFor(canvas),k2=layer.getContext('2d')!;k2.setTransform(dpr,0,0,dpr,0,0);k2.clearRect(0,0,W,H);
+ const bw=Math.max(1,candleWidth(g.slot)),thin=bw<3;
  for(let i=0;i<n;i++){
   if(i/n>progress)break;const k=g.candles[i],x=g.x(i),up=k.c>=k.o,top=g.y(Math.max(k.o,k.c)),bot=g.y(Math.min(k.o,k.c)),h=Math.max(1,bot-top);
-  c.save();if(glow){c.shadowColor=up?'rgba(100,190,250,.7)':'rgba(60,110,150,.4)';c.shadowBlur=(up?4:2)*dpr;}
-  c.strokeStyle=up?'rgba(200,232,252,.85)':'rgba(96,130,156,.8)';c.lineWidth=1;c.beginPath();c.moveTo(x,g.y(k.h));c.lineTo(x,g.y(k.l));c.stroke();
-  if(up){c.fillStyle='rgba(190,228,251,.92)';c.fillRect(x-bw/2,top,bw,h);}
-  else if(thin){c.fillStyle='rgba(96,130,156,.9)';c.fillRect(x-bw/2,top,bw,h);}
-  else{c.fillStyle='rgba(20,34,46,.95)';c.fillRect(x-bw/2,top,bw,h);c.strokeStyle='rgba(96,130,156,.9)';c.strokeRect(x-bw/2+.5,top+.5,bw-1,Math.max(0,h-1));}
-  c.restore();
+  k2.strokeStyle=up?'rgba(200,232,252,.85)':'rgba(96,130,156,.8)';k2.lineWidth=1;k2.beginPath();k2.moveTo(x,g.y(k.h));k2.lineTo(x,g.y(k.l));k2.stroke();
+  if(up){k2.fillStyle='rgba(190,228,251,.92)';k2.fillRect(x-bw/2,top,bw,h);}
+  else if(thin){k2.fillStyle='rgba(96,130,156,.9)';k2.fillRect(x-bw/2,top,bw,h);}
+  else{k2.fillStyle='rgba(20,34,46,.95)';k2.fillRect(x-bw/2,top,bw,h);k2.strokeStyle='rgba(96,130,156,.9)';k2.strokeRect(x-bw/2+.5,top+.5,bw-1,Math.max(0,h-1));}
  }
+ c.globalCompositeOperation='lighter';
+ if(g.slot>=4){c.save();c.filter=`blur(${3*dpr}px)`;c.globalAlpha=.6;c.drawImage(layer,0,0,W,H);c.restore();}
+ c.drawImage(layer,0,0,W,H);
  const last=g.candles[Math.min(n-1,Math.floor(progress*n))];if(last&&!g.noHalo)halo(c,g.x(Math.min(n-1,Math.floor(progress*n))),g.y(last.c),22,.55);
  c.restore();scan(c,W,H,.3);
 }
