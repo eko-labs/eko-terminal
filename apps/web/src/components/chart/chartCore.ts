@@ -59,7 +59,9 @@ export class ChartCore {
   paneWidth() { return Math.max(1, this.width - this.L - this.R); }
   mainPaneHeight() { return this.height - 30; }
   /** The newest bars at a readable width (~8 px a slot, 9 on phones), or all of them when fewer. */
-  fit(): View { const n = this.data.length, span = Math.min(n, Math.max(18, Math.floor(this.paneWidth() / (this.width < 560 ? 9 : 8)))); return { s: n - span, e: n || 1 }; }
+  /** The newest bars at a readable width (~8 px a slot, 9 on phones). A young coin with only a few bars keeps that width,
+   *  against the right edge, rather than one candle stretched across the whole plot. */
+  fit(): View { const n = this.data.length, span = Math.max(18, Math.min(n, Math.floor(this.paneWidth() / (this.width < 560 ? 9 : 8)))); return { s: n - span, e: n || 1 }; }
   reset() { this.view = this.fit(); this.scale = 1; this.shift = 0; this.scheduleRedraw(); }
   autoScale() { this.scale = 1; this.shift = 0; this.scheduleRedraw(); }
   zoom(factor: number, x = this.L + this.paneWidth() / 2) { this.view = clampView(zoomView(this.view, factor, (x - this.L) / this.paneWidth()), this.data.length); this.scheduleRedraw(); }

@@ -11,6 +11,9 @@ export const TRADE_COPY = {
   quoteOnly: "Trading for this coin isn't open here yet.",
   signingUnavailable: 'Wallet signing is not available here yet.',
   unavailable: 'Quote unavailable. Nothing was sent. Retry when checks are available.',
+  /** not_traded: EKO checks the coin but does not trade its pool (a hook it has not reviewed). Retrying won't help. */
+  notTraded: 'EKO checks this coin but does not trade it: its pool runs a hook EKO has not reviewed. Nothing was sent.',
+  notTradedButton: 'Checked, not traded here',
   wallet_mismatch: 'Wallet changed — sign in again or switch back.',
   wrongNetwork: pick({ elysium: 'Switch your wallet to Elysium (chain 99901) before trading.', robinhood: 'Switch your wallet to Robinhood Chain (chain 4663) before trading.' }),
   sanctioned: 'Trading is unavailable for this wallet.',

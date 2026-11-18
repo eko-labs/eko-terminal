@@ -122,8 +122,10 @@ export function judge(coin: CoinState, p: Probed, ctx: JudgeContext): Assessment
     ...(backing && hypeUsd ? { marketCap: { mcapUsd: backing.mcap * hypeUsd, backingUsd: backing.paidIn * hypeUsd, volume24hUsd: backing.volume24h * hypeUsd,
       holders: stats.holderCount, evidence: backing.evidence } } : {}),
     ...(p.taxPct ? { taxes: { buyPct: p.taxPct.buy, sellPct: p.taxPct.sell, mutable: null, changes: [] } } : {}),
-    ...(locked ? { liquidity: { positions: [{ owner: locked.owner, controlledBy: 'other' as const, share: 1, status: locked.status,
-      evidence: [{ kind: 'address' as const, ref: locked.owner, label: locked.label }] }], priorRemovals: [] } } : {}),
+    ...(locked ? { liquidity: { positions: [{ owner: locked.owner, controlledBy: locked.controlledBy ?? 'other' as const, share: 1, status: locked.status,
+      evidence: [{ kind: 'address' as const, ref: locked.owner, label: locked.label }] }], priorRemovals: [],
+      // The wallet that was given the launch position took (part of) it out: removable_liquidity's pull.
+      ...(locked.pulled ? { pulled: { share: locked.pulled.share, by: 'provider' as const, wallet: locked.owner, evidence: locked.pulled.evidence } } : {}) } } : {}),
     ...(key ? { pools: [{ id: coin.poolId, feeBps, liquidityShare: 1, deepest: true, defaultRoute: true, evidence: [] }] } : {}),
     ...(key && hasHook ? { hook: {
       address: key.hooks, ...hookBits(key.hooks), reviewed: hook.reviewed, sourceVerified: hook.sourceVerified, quoteSimGapPct: null,

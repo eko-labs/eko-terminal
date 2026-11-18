@@ -79,14 +79,14 @@ export function TradePanelView({ gate, tier, phase, priceUsd, priceUnavailable, 
     {priceUsd !== undefined && <dl className="tp-quote"><dt>{L.price}</dt><dd>{priceUnavailable ? NOT_CHECKED : priceFormat(priceUsd)}</dd></dl>}
     {q && <><FeeLines quote={q} tier={tier} phase={phase} /><QuoteGuard quote={q} mode={input.riskMode ?? 'safe'} />{!q.binding && <p className="note">{C.indicative}</p>}</>}
     {guard && <GuardCompact verdict={{ version: 2, assessment: guard }} />}
-    <p className={`tp-status${!busy && !result && block && block !== C.refused ? ' sr-only' : ''}`} role={block === C.refused ? 'alert' : 'status'} aria-live={block === C.refused ? 'assertive' : 'polite'}>{busy ? C.busy : result ?? block ?? (needsAck ? C.review : null)}</p>
+    <p className={`tp-status${!busy && !result && block && block !== C.refused && block !== C.notTraded ? ' sr-only' : ''}`} role={block === C.refused ? 'alert' : 'status'} aria-live={block === C.refused ? 'assertive' : 'polite'}>{busy ? C.busy : result ?? block ?? (needsAck ? C.review : null)}</p>
     {showVerify && <TradeWalletVerification verification={verification} fromTradeConnect={connectOpened} />}
     {!(showVerify && authBlocked) && (block === C.connect && !gate.wallet
       ? connectOpened ? <WalletButton trade /> : <button className="btn tp-submit" onClick={connect}>{C.connect}</button>
-      : block ? <button className="btn tp-submit" disabled>{block}</button>
+      : block ? <button className="btn tp-submit" disabled>{block === C.notTraded ? C.notTradedButton : block}</button>
       : needsAck ? <button className="btn tp-submit" disabled={busy} onClick={acknowledge}>{C.acknowledge}</button>
       : <button className={`btn tp-submit${input.side === 'buy' ? ' btn-primary' : ''}`} disabled={busy} onClick={submit}>{confirm ? C.confirm : input.side === 'buy' ? L.buy : L.sell} {dollars(input.amountUsd)}</button>)}
-    {snapshot.error && <button className="btn tp-retry" disabled={busy} onClick={retry}>{C.retry}</button>}
+    {snapshot.error && snapshot.error !== 'not_traded' && <button className="btn tp-retry" disabled={busy} onClick={retry}>{C.retry}</button>}
     <p className="note">{REAL_FUNDS}</p><AnalysisPolicyNotice />
   </>;
 }

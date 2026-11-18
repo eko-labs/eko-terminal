@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FLAG_NAMES } from '@eko/shared';
-import { enabledRoutes, isCurrent, resolveRoute, ROUTES } from './routes';
+import { BASE_ROUTES, enabledRoutes, isCurrent, resolveRoute, ROUTES } from './routes';
+import { FEATURES } from './features';
 import { match } from './lib/router';
 const allFlags = Object.fromEntries(FLAG_NAMES.map((flag) => [flag, true]));
 const T = ['/', '/radar', '/feed', '/pairs', '/coin/:address', '/deployer/:address', '/scan', '/scan/:id', '/bags', '/bags/r/:id', '/watch', '/orders', '/official', '/transparency', '/security', '/scoreboard', '/receipt/:id', '/census', '/drops', '/mission', '/mission/agents/:id', '/mission/connect', '/oauth/consent', '/settings', '/settings/plan', '/legal/:doc'];
@@ -10,7 +11,9 @@ describe('§2.2 route table', () => {
     expect(ROUTES.filter((r) => r.stage === 'T').map((r) => r.path)).toEqual(T);
   });
   it('registers D0 and Drop routes only under their exact shared flag', () => {
-    expect(new Set(ROUTES.map((r) => r.path)).size).toBe(45);
+    // The §2.2 table has 45 paths; feature folders (features.ts) add theirs on top, each behind its own flag.
+    expect(new Set(BASE_ROUTES.map((r) => r.path)).size).toBe(45);
+    expect(new Set(ROUTES.map((r) => r.path))).toEqual(new Set([...BASE_ROUTES, ...FEATURES.flatMap((f) => f.routes ?? [])].map((r) => r.path)));
     for (const r of ROUTES.filter((r) => r.stage !== 'T')) {
       expect(r.flag).toBeDefined(); expect(FLAG_NAMES).toContain(r.flag);
       expect(enabledRoutes()).not.toContain(r);

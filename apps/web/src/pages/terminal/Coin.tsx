@@ -30,8 +30,11 @@ import { TradePanel } from '../../components/trade/TradePanel';
 import { CoinFlowTab, CoinTrades } from './CoinFlow';
 import { Decode, Roll } from './radarMotion';
 import { age, pct, coinVerdictActivity, noMatchLabel, PLAYBOOK_NAMES, usd } from './radarModel';
-import { launchpadLabel } from '../../copy/chain';
+import { launchpadLabel, quotedIn } from '../../copy/chain';
+/** Robinhood Chain launchpads whose coins trade in a Uniswap pool from launch (no curve to show progress on). */
+const POOL_LAUNCHPADS: ReadonlySet<string> = new Set(['pangea', 'longxyz', 'unbranded']);
 import { coinElsewhere } from '../../lib/coinLinks';
+import { CoinSlotScope } from '../../components/coinSlots';
 import './radar.css';
 import './coin.css';
 const short=(s:string)=>`${s.slice(0,6)}…${s.slice(-4)}`;
@@ -77,7 +80,7 @@ function CoinPage({address}:{address:string}){
  const changeText=(v:number)=>row?.unavailable?.includes('change') ? NOT_CHECKED : pct(v);
  const labelsOff=data.labelsUnavailable || card?.meta?.flow?.unavailable;
  const nowSec=Math.floor(Date.now()/1000);
- return <AnalysisPolicyScope><div onClickCapture={e=>{const target=(e.target as HTMLElement).closest('summary')?.parentElement;if(target?.classList.contains('ev'))useOnboarding.getState().markStep('open_evidence');}} className="shell-page coin-page" style={{'--trade-sheet-clearance':`${sheetHeight}px`} as CSSProperties}>{data.error&&<div role="status" className="coin-error">{data.error} <button className="btn" onClick={data.retry}>Retry</button></div>}
+ return <CoinSlotScope coin={address}><AnalysisPolicyScope><div onClickCapture={e=>{const target=(e.target as HTMLElement).closest('summary')?.parentElement;if(target?.classList.contains('ev'))useOnboarding.getState().markStep('open_evidence');}} className="shell-page coin-page" style={{'--trade-sheet-clearance':`${sheetHeight}px`} as CSSProperties}>{data.error&&<div role="status" className="coin-error">{data.error} <button className="btn" onClick={data.retry}>Retry</button></div>}
  <header className="coin-head">
   <div className="coin-title-row">
    <div className="coin-id">
@@ -87,13 +90,13 @@ function CoinPage({address}:{address:string}){
    <div className="coin-actions"><WatchButton kind="coin" target={address}/>{config?.flags.deep_research&&<button className="btn" onClick={()=>void api('/research',{body:{target:address}}).then(()=>toast({kind:'info',title:'Deep Research started'})).catch(()=>toast({kind:'error',title:'Could not start Deep Research.'}))}><IconLab/>Deep Research</button>}<button className="btn" onClick={()=>void navigator.clipboard?.writeText(location.href).then(()=>toast({kind:'ok',title:'Share link copied'})).catch(()=>toast({kind:'error',title:'Could not copy the share link.'}))}><IconOut/>Share</button></div>
   </div>
   <div className="coin-id-meta">
-   <div className="sub coin-tags">{row&&<HeatTag heat={displayHeat({...row,verdict:verdict?.level??row.verdict})}/>}<BlueChipBadge value={card?.blueChip} /><span className="coin-ca"><span className="addr coin-addr" title={address}>{short(address)}</span><button className="iconbtn coin-copy" aria-label="Copy address" title="Copy address" onClick={()=>void navigator.clipboard?.writeText(address).then(()=>toast({kind:'ok',title:'Address copied'})).catch(()=>undefined)}>⧉</button>{elsewhere&&<a className="coin-elsewhere" href={elsewhere.href} target="_blank" rel="noopener noreferrer" title={`Open on ${elsewhere.label}`}>{elsewhere.label}<IconOut/></a>}</span>{(identity||row)&&<span className="coin-facts">{identity&&<><span className="coin-fact">{launchpadLabel(identity.launchpad, identity.stage === 'graduated')}</span><span className="coin-fact">{identity.stage==='graduated'?'Migrated':identity.stage==='unknown'?'Stage not checked':`Curve ${card?.identity.curvePct??'—'}%`}</span></>}{row&&<span className="coin-fact coin-age">{formatAge(row.ageSec)} old</span>}</span>}</div>
+   <div className="sub coin-tags">{row&&<HeatTag heat={displayHeat({...row,verdict:verdict?.level??row.verdict})}/>}<BlueChipBadge value={card?.blueChip} /><span className="coin-ca"><span className="addr coin-addr" title={address}>{short(address)}</span><button className="iconbtn coin-copy" aria-label="Copy address" title="Copy address" onClick={()=>void navigator.clipboard?.writeText(address).then(()=>toast({kind:'ok',title:'Address copied'})).catch(()=>undefined)}>⧉</button>{elsewhere&&<a className="coin-elsewhere" href={elsewhere.href} target="_blank" rel="noopener noreferrer" title={`Open on ${elsewhere.label}`}>{elsewhere.label}<IconOut/></a>}</span>{(identity||row)&&<span className="coin-facts">{identity&&<><span className="coin-fact">{launchpadLabel(identity.launchpad, identity.stage === 'graduated')}</span>{quotedIn(card?.identity.quoteSymbol??row?.quoteSymbol)&&<span className="coin-fact" title={`Quoted in ${card?.identity.quoteSymbol??row?.quoteSymbol}`}>{quotedIn(card?.identity.quoteSymbol??row?.quoteSymbol)}</span>}<span className="coin-fact">{identity.stage==='graduated'?'Migrated':identity.stage==='unknown'?'Stage not checked':POOL_LAUNCHPADS.has(identity.launchpad)?'Uniswap pool':`Curve ${card?.identity.curvePct??'—'}%`}</span></>}{row&&<span className="coin-fact coin-age">{formatAge(row.ageSec)} old</span>}</span>}</div>
    <dl className="coin-price">
     <div className="coin-stat coin-stat-price"><dt className="sr-only">Price</dt><dd><b>{px===undefined || row?.priceUnavailable ? NOT_CHECKED : <Roll value={formatCoinPrice(px)}/>}</b></dd></div>
     {row&&<div className="coin-stat"><dt>1h</dt><dd className={`num${row.change1hPct>0?' up':row.change1hPct<0?' down':''}`}>{changeText(row.change1hPct)}</dd></div>}
     {row?.change24hPct!==undefined&&<div className="coin-stat"><dt>24h</dt><dd className={`num${row.change24hPct>0?' up':row.change24hPct<0?' down':''}`}>{changeText(row.change24hPct)}</dd></div>}
     {row&&<div className="coin-stat" title="Fully diluted value: price × total supply, the same figure as Radar"><dt>FDV</dt><dd className="num">{row.marketCapUsd===undefined||row.unavailable?.includes('marketCap') ? NOT_CHECKED : usd(row.marketCapUsd)}</dd></div>}
-    {row&&!row.unavailable?.includes('liquidity')&&<div className="coin-stat"><dt>{identity?.stage==='curve'?'In curve':'Liquidity'}</dt><dd className="num">{usd(row.liquidityUsd)}</dd></div>}
+    {row&&!row.unavailable?.includes('liquidity')&&<div className="coin-stat"><dt>{identity&&identity.launchpad!=='pons'?'In pool':identity?.stage==='curve'?'In curve':'Liquidity'}</dt><dd className="num">{usd(row.liquidityUsd)}</dd></div>}
    </dl>
   </div>
  </header>
@@ -114,5 +117,5 @@ function CoinPage({address}:{address:string}){
  <aside ref={sheetRef} className={`coin-aside${phone?' coin-sheet':''}${sheet?' expanded':''}`} aria-label="Trade this coin">
   <section className="panel coin-trade"><div className="panel-head coin-section-head coin-trade-head"><h2>{phone?'Trade':'Trade this coin'}</h2>{phone?<button className="btn btn-sm" aria-expanded={sheet} onClick={()=>setSheet(!sheet)}>{sheet?'Collapse':'Expand'}</button>:<span className="coin-trade-meta">Guarded · non-custodial</span>}</div>{stale&&phone&&!sheet&&<p role="status" className="coin-stale">Data is stale — trading paused.</p>}<div className="panel-body" hidden={phone&&!sheet} inert={phone&&!sheet}><TradePanel key={address} coin={address} priceUsd={px} priceUnavailable={row?.priceUnavailable} priceFormat={formatCoinPrice} guard={guardData.assessment ?? verdict?.guardV2} stale={stale} visible={!phone||sheet} antiSnipeEndsAt={antiSnipeEndsAt} /></div></section>
   <section className="panel coin-your-agents"><div className="panel-head coin-section-head"><h3>Your agents</h3><Link to="/mission">Mission Control</Link></div><div className="panel-body"><ul className="mine">{agents.map(a=><li key={a.id}><Link to={`/mission/agents/${a.id}`}>{a.name}</Link><span>{a.status.replaceAll('_',' ')}</span></li>)}</ul>{!agents.length&&<p className="muted">No connected on-chain agents.</p>}<p className="note">Connected agents get this same verdict when they call <span className="addr">preflight</span> before an order.</p></div></section>
- </aside></div></div></AnalysisPolicyScope>;
+ </aside></div></div></AnalysisPolicyScope></CoinSlotScope>;
 }

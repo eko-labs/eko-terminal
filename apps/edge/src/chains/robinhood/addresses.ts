@@ -1,10 +1,10 @@
 import type { Address } from 'viem';
 import type { AddressRegistry } from '@eko/chain';
-import { PANGEA, ROBINHOOD_PROFILE } from './profile.js';
+import { LONGXYZ, PANGEA, ROBINHOOD_PROFILE, UNBRANDED_LAUNCHER } from './profile.js';
 
 /**
  * The Robinhood Chain (4663) contracts the read modules use, from the registry (packages/chain/addresses.4663.yaml)
- * plus the ETH/USD reference pool and Pangea's contracts pinned in profile.ts. Plain addresses, so tests and the
+ * plus the ETH/USD reference pool and the Pangea, long.xyz and unbranded-launcher contracts pinned in profile.ts. Plain addresses, so tests and the
  * integrator can pass their own.
  */
 export interface RobinhoodAddresses {
@@ -25,6 +25,11 @@ export interface RobinhoodAddresses {
   pangeaHook: Address;
   /** Holds each Pangea pool's single-sided launch position (not a holder). */
   pangeaLiquidityManager: Address;
+  /** long.xyz's (Doppler) Airlock: logs Create for each launch; its hook is on every long.xyz pool. */
+  longAirlock: Address;
+  longHook: Address;
+  /** The unbranded hookless launcher: logs each launch with its pool key and launch position. */
+  unbrandedLauncher: Address;
 }
 
 export function robinhoodAddresses(registry: AddressRegistry): RobinhoodAddresses {
@@ -35,5 +40,6 @@ export function robinhoodAddresses(registry: AddressRegistry): RobinhoodAddresse
     multicall3: registry.requireAddress('multicall3'), weth: registry.requireAddress('tokens.WETH'), usdg: registry.requireAddress('tokens.USDG'),
     ethUsdPool: ROBINHOOD_PROFILE.ethUsdPool.address,
     pangeaLauncher: PANGEA.launcher, pangeaHook: PANGEA.hook, pangeaLiquidityManager: PANGEA.liquidityManager,
+    longAirlock: LONGXYZ.airlock, longHook: LONGXYZ.hook, unbrandedLauncher: UNBRANDED_LAUNCHER,
   };
 }

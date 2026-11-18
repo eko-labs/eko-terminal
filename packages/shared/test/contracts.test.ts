@@ -126,6 +126,8 @@ describe('flags, bus and versions', () => {
     'Drop 2': ['rug_ring_radar', 'leaderboards'], 'Drop 3': ['arena'], 'Drop 4': ['desk_live', 'ask_the_swarm'],
     'Drop 5': ['agent_launcher'], 'Drop 6': ['loop_lab_pro', 'stocks_lane'], 'Drop 7': ['eko_score', 'eko_inside'],
     'Drop 8': ['chain_base'], 'Drop 9': ['institutional_pack', 'marketplace', 'eko_agent'],
+    // Post-launch updates beyond §21.4 (docs/FLAGS.md).
+    Updates: ['wallet_tags', 'dev_profile', 'more_launchpads', 'wallet_tracker'],
   };
   it('has exactly the §21.4 flags, excludes ops, and requires a complete record', () => {
     expect(flags.FLAG_STAGES).toEqual(stages);

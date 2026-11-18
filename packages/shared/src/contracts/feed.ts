@@ -14,6 +14,8 @@ export const CoinSummarySchema = z.object({
   name: UntrustedSchema,
   symbol: UntrustedSchema,
   launchpad: CoinCardSchema.shape.identity.shape.launchpad,
+  // TODO(spec): additive. The quote token's ticker for a coin quoted in a token (CoinCard identity.quoteSymbol).
+  quoteSymbol: CoinCardSchema.shape.identity.shape.quoteSymbol,
   stage: z.enum(['curve', 'graduated']),
   curvePct: z.number().optional(),
   /** Elysium: percent of the way to the graduation line (Montra's, or the same line in market cap elsewhere). */

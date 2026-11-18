@@ -37,7 +37,7 @@ export interface CardSources {
   asOfSec: number;
   createdAtSec: number;
   createdAtBlock: number;
-  launchpad: 'pons' | 'pangea' | 'occupy' | 'flap' | 'klik' | 'montra' | 'flaunch' | 'hyperforge' | 'taxlaunch' | 'unbranded' | 'other';
+  launchpad: 'pons' | 'pangea' | 'longxyz' | 'occupy' | 'flap' | 'klik' | 'montra' | 'flaunch' | 'hyperforge' | 'taxlaunch' | 'unbranded' | 'other';
   name: string;
   symbol: string;
   antiSnipeActive?: boolean;

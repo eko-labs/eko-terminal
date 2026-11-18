@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { featuresFrom, type Feature } from './features';
+import { featureLink, featuresFrom, type Feature } from './features';
 import { ROUTES, withFeatures, enabledRoutes } from './routes';
 
 const Page = async () => ({ default: () => null });
@@ -19,5 +19,11 @@ describe('feature folders', () => {
     expect(routes.find(r => r.path === '/leaderboards/:id')?.flag).toBe('leaderboards');
     expect(routes.filter(r => r.path === '/leaderboards')).toHaveLength(1);
     expect(enabledRoutes({}).some(r => r.path === '/leaderboards')).toBe(false);
+  });
+  it("gives a feature's link only while its flag is on", () => {
+    const found = featuresFrom({ './features/leaderboards/index.ts': { default: { ...leaderboards, links: { deployer: (a: string) => `/board/${a}` } } } });
+    expect(featureLink('deployer', '0xabc', { leaderboards: true }, found)).toBe('/board/0xabc');
+    expect(featureLink('deployer', '0xabc', { leaderboards: false }, found)).toBeNull();
+    expect(featureLink('deployer', '0xabc', {}, [])).toBeNull();
   });
 });

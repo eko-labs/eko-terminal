@@ -55,7 +55,7 @@ export class TelegramDeliveryWorker {
       const settings = await this.alerts.settings(row.account_id, tx);
       const watch = (await tx.sql.query('SELECT 1 FROM watches WHERE account_id=$1 AND kind=$2 AND target=$3', [row.account_id, row.watch_kind, row.watch_target])).rows.length;
       const enabled = alert.kind === 'agent_trade' ? settings.agentTradeAboveUsd !== undefined &&
-        Number.isFinite(alert.sizeUsd) && alert.sizeUsd! > settings.agentTradeAboveUsd : settings.kinds.includes(alert.kind);
+        Number.isFinite(alert.sizeUsd) && alert.sizeUsd! > settings.agentTradeAboveUsd : (settings.kinds as readonly string[]).includes(alert.kind);
       // TODO(spec): no linked identity means no backlog replay. Quiet hours defer;
       // absent identity, unsupported kinds and withdrawn preferences cancel the notice.
       if (!identity || !/^[1-9][0-9]*$/.test(identity.external_id) || !Number.isSafeInteger(Number(identity.external_id)) ||

@@ -15,6 +15,7 @@ import { AccountStore } from './accounts.js';
 import { budgetedRpc, Trading, tradeRpc } from './trade.js';
 import { parseFlags } from './flags.js';
 import { loadFeatures } from './features/index.js';
+import { AlertInbox } from './alerts.js';
 import { ColumnSnapshot } from './snapshot.js';
 import { freeSpaceCheck, setStorageGuard } from './storage-guard.js';
 import { dirname, join } from 'node:path';
@@ -52,7 +53,8 @@ import { dirname, join } from 'node:path';
 const env = process.env;
 const log = (event: string, fields: Record<string, unknown> = {}) => console.log(JSON.stringify({ t: new Date().toISOString(), event, ...fields }));
 
-const chain = loadChain(chainKeyFrom(env.EKO_CHAIN)), profile = chain.profile;
+const flags = parseFlags(env.EKO_FLAGS);
+const chain = loadChain(chainKeyFrom(env.EKO_CHAIN), flags.on), profile = chain.profile;
 log('chain', { key: profile.key, id: profile.id });
 const clients = createMeteredClients({ ...env, RPC_PUBLIC_HTTP_URL: env.RPC_PUBLIC_HTTP_URL ?? profile.publicRpc,
   RPC_PUBLIC_MAX_RPM: env.RPC_PUBLIC_MAX_RPM ?? String(profile.publicRpm), RPC_USAGE_DIR: env.RPC_USAGE_DIR ?? '/tmp/eko-rpc-usage' }, {
@@ -88,16 +90,17 @@ const maxTradeUsd = Number(env.MAX_TRADE_USD ?? 250);
 let pushTo: ((accountId: string, ch: string, kind: string, data: unknown) => void) | null = null;
 const trading = accounts && env.TRADING !== 'off' ? new Trading({ db: store!.db, rpc: tradeRpc(rpc), receiptRpc: budgetedRpc(rpc, { perMin: 60, inFlight: 4 }), chain, coin: (a) => tracker.coin(a), assess: (c) => edge.fresh(c), hypeUsd: () => hype.latest, maxTradeUsd,
   onOrder: (accountId, order) => pushTo?.(accountId, 'orders', 'order', { order }) }) : null;
-const flags = parseFlags(env.EKO_FLAGS);
 if (flags.unknown.length) log('flags_unknown', { names: flags.unknown });
 const features = await loadFeatures(flags.on);
+const alerts = new AlertInbox();
 if (features.length) log('features_on', { flags: features.map(f => f.flag) });
-const app = buildServer(edge, { rpc, relay: relayClient(env.RPC_RELAY_URL ?? env.RPC_PUBLIC_HTTP_URL ?? profile.publicRpc), trustProxyHops: Number(env.TRUST_PROXY_HOPS ?? 1), build: loadBuild(), flags: flags.on, features, ...(accounts ? { accounts } : {}), ...(trading ? { trading } : {}), maxTradeUsd, onApproval: (accountId, a) => pushTo?.(accountId, 'approvals', 'approval', a), ...(store ? { store } : {}), ...(historian ? { historian } : {}), ...(funders ? { funders } : {}), webDist: env.WEB_DIST ?? new URL('../../web/dist', import.meta.url).pathname,
+const app = buildServer(edge, { rpc, relay: relayClient(env.RPC_RELAY_URL ?? env.RPC_PUBLIC_HTTP_URL ?? profile.publicRpc), trustProxyHops: Number(env.TRUST_PROXY_HOPS ?? 1), build: loadBuild(), flags: flags.on, features, alerts, ...(accounts ? { accounts } : {}), ...(trading ? { trading } : {}), maxTradeUsd, onApproval: (accountId, a) => pushTo?.(accountId, 'approvals', 'approval', a), ...(store ? { store } : {}), ...(historian ? { historian } : {}), ...(funders ? { funders } : {}), webDist: env.WEB_DIST ?? new URL('../../web/dist', import.meta.url).pathname,
   landingDist: env.LANDING_DIST ?? new URL('../../landing/dist', import.meta.url).pathname });
 
 const realtime = await registerRealtime(app, edge, { ...(accounts ? { accounts } : {}) });
 const publish = realtime.publish;
 pushTo = realtime.pushTo;
+alerts.deliver = (accountId, alert) => pushTo?.(accountId, 'alerts', 'alert', alert);
 
 let stopping = false, savedAt = Date.now();
 async function loop() {

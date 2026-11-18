@@ -1,4 +1,4 @@
-import type { ChainKey, RadarRow } from '@eko/shared';
+import type { ChainKey, CoinCard, RadarRow } from '@eko/shared';
 import { pick } from '../lib/chain';
 
 /**
@@ -67,8 +67,19 @@ export const CHAIN_TITLE = CHAIN_COPY.title;
 type Launchpad = RadarRow['launchpad'];
 // Pairs, the coin view and the stage filter treat every non-launchpad pool as Uniswap. These label data values, so
 // both builds carry every launchpad: a label shows only when the server reports that launchpad.
-const LAUNCHPAD_LABELS: Record<Launchpad, string> = { pons: 'Pons', pangea: 'Pangea', occupy: 'Occupy', flap: 'Flap', klik: 'Klik', montra: 'Montra', flaunch: 'Flaunch fork', hyperforge: 'HyperForge', taxlaunch: 'Tax launchpad', unbranded: 'Unbranded launcher', other: 'Uniswap' };
+const LAUNCHPAD_LABELS: Record<Launchpad, string> = { pons: 'Pons', pangea: 'Pangea', longxyz: 'long.xyz', occupy: 'Occupy', flap: 'Flap', klik: 'Klik', montra: 'Montra', flaunch: 'Flaunch fork', hyperforge: 'HyperForge', taxlaunch: 'Tax launchpad', unbranded: 'Unbranded launcher', other: 'Uniswap' };
 /** "Pons", "Pons → pool" once a Pons coin has migrated, or the pool venue for everything else. */
 export function launchpadLabel(launchpad: Launchpad, migrated = false) {
   return launchpad === 'pons' && migrated ? 'Pons → pool' : LAUNCHPAD_LABELS[launchpad] ?? 'Uniswap';
 }
+
+type QuoteAsset = CoinCard['identity']['quoteAsset'];
+const QUOTE_LABELS: Record<QuoteAsset, string> = { ETH: 'ETH', USDG: 'USDG', stock_token: 'Stock token', HYPE: 'HYPE', USDC: 'USDC', other: 'Other token' };
+/** What a coin's pool is quoted in: "Stock token · TTWO", "WETH", "USDG", or the native coin ("ETH"). The server sends the
+ *  ticker (quoteSymbol) only for a token it prices; the asset kind alone never names the stock and reads ETH for WETH. */
+export function quoteLabel(asset: QuoteAsset, symbol?: string) {
+  if (asset === 'stock_token') return symbol ? `Stock token · ${symbol}` : QUOTE_LABELS.stock_token;
+  return symbol ?? QUOTE_LABELS[asset] ?? QUOTE_LABELS.other;
+}
+/** The short form beside a launchpad name ("in TTWO"), for a coin quoted in a token; nothing for a native pool. */
+export const quotedIn = (symbol?: string) => symbol ? `in ${symbol}` : null;

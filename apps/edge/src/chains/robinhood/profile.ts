@@ -111,3 +111,35 @@ export const PANGEA = {
   /** Initializes each pool and holds its single-sided launch position. */
   liquidityManager: '0xbebe68fBfB62E18FBFEbf4365970D192C5f34DC1' as Address,
 } as const;
+/**
+ * long.xyz on Robinhood Chain, read 2026-11-18 (docs/robinhood/CHAIN-FACTS.md §8). Its launches go through a Doppler-style
+ * Airlock that logs Create(asset, numeraire indexed, initializer, poolOrHook) and opens a v4 pool keyed numeraire / coin
+ * with a dynamic fee and the hook below (tick spacing 8 or 200: not constant, so the key is read from the pool's
+ * Initialize), the whole supply in one-sided positions. 881 launches in 24 hours, 2 with native ETH as the numeraire; the
+ * rest are quoted in stock tokens, WETH, USDG or other coins, and EKO follows native-ETH pools only. The Airlock is
+ * Doppler's design: another front end on this same Airlock would show under the long.xyz label.
+ */
+export const LONGXYZ = {
+  airlock: '0xeb7C034704eF8Dcd2D32324c1545f62fB4aD0862' as Address,
+  /** Doppler's initializer hook on every long.xyz pool (permission flags 0x2544, an after-swap return delta). */
+  hook: '0x4e3468951D49f2EEa976eD0D6e75fFCb44a9a544' as Address,
+} as const;
+/**
+ * A hookless launcher with no public brand (DexScreener lists its pools as plain Uniswap v4), read 2026-11-18 (§8): 62
+ * launches in 24 hours and 210 ETH traded on their pools. Each launch opens a native-ETH / coin v4 pool with no hook
+ * (fee 0.05% to 0.2%, tick spacing 200), adds one full-range position seeded with 0.05 to 0.4 ETH, and mints that
+ * position's Uniswap PositionManager NFT to the creator (62 of 62): the creator can take the liquidity out, and did on 61
+ * of the 62 pools within the day.
+ */
+export const UNBRANDED_LAUNCHER = '0x3194e32622C5D860a0572C74EdDa99dcfD8FC827' as Address;
+/**
+ * Robinhood's tokenized stocks on Robinhood Chain ("<Company> • Robinhood Token"), read 2026-11-18 (docs/robinhood/
+ * CHAIN-FACTS.md §9): every one checked (TTWO, SPCX, NVDA, AMC, SPY, MSFT, QQQ and 30 more) is the same 283-byte beacon
+ * proxy pointing at this beacon. A token named like one with other code (a look-alike "ANTHROPIC • Robinhood Token" has
+ * 16,825 bytes) is not one. EKO prices a quote token as a stock only when both match (price.ts QuotePrices).
+ */
+export const ROBINHOOD_STOCK_TOKEN = {
+  beacon: '0xe10b6f6B275de231345c20D14Ab812db62151b00' as Address,
+  /** keccak256 of the proxy's runtime code. */
+  proxyCodeHash: '0x6c1fdd40002dcb440c7fff6a84171404d279ccb057803b65826f7546acd65630' as Hex,
+} as const;

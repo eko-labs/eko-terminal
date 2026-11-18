@@ -1,4 +1,4 @@
-import { getAddress, toFunctionSelector, type Address, type Hex } from 'viem';
+import { getAddress, toFunctionSelector, zeroAddress, type Address, type Hex } from 'viem';
 import { loadRegistry, v4PoolId, type AddressRegistry } from '@eko/chain';
 import type { CoinState, RawLog, Rpc } from '../../tracker.js';
 import { SWAP_TOPIC, TRANSFER_TOPIC } from '../logs.js';
@@ -6,8 +6,9 @@ import { ROBINHOOD_PROFILE } from '../profiles.js';
 import { robinhoodVenue } from '../robinhood-venue.js';
 import type { ChainAdapter, JudgeFacts } from '../types.js';
 import { robinhoodAddresses, type RobinhoodAddresses } from './addresses.js';
-import { applyRobinhoodEvent, CURVE_BUY_TOPIC, CURVE_SELL_TOPIC, decodeRobinhoodLog, INITIALIZE_TOPIC, NATIVE_TOPIC, PANGEA_POOL_TOPIC, robinhoodLogQueries, TOKEN_LAUNCHED_TOPIC, type RobinhoodCoinState } from './events.js';
-import { EthUsd } from './price.js';
+import { applyRobinhoodEvent, CURVE_BUY_TOPIC, CURVE_SELL_TOPIC, decodeRobinhoodLog, INITIALIZE_TOPIC, isRobinhoodLaunch, LONG_CREATE_TOPIC, NATIVE_TOPIC, quotedSwapTrade, robinhoodLogQueries, TOKEN_LAUNCHED_TOPIC, type DecodeOptions, type RobinhoodCoinState } from './events.js';
+import { EthUsd, QuotePrices } from './price.js';
+import type { NativeUsd } from '../../hype.js';
 import { probeRobinhoodCoin, robinhoodExcluded, type RobinhoodProbed } from './probe.js';
 import { PONS_LOCK, PONS_TERMS } from './profile.js';
 import { loadRobinhoodTradeAddresses, ponsPoolKey } from './trade.js';
@@ -44,16 +45,19 @@ export function curveRunUp(coin: CoinState & { curve: NonNullable<CoinState['cur
     evidence: [{ kind: 'address' as const, ref: coin.curve.address, label: 'Launch curve' }] };
 }
 /**
- * What backs a Pangea coin's price (playbook fake_mcap). Its pool opened with only the coin in it (profile.ts
- * PANGEA_TERMS) and EKO follows it from its launch transaction, so the ETH buyers paid in on net is all the ETH the
- * pool holds: price × supply can be set at any level with nothing behind it. Native-currency amounts.
+ * What backs a pool-launched coin's price (playbook fake_mcap), in native currency. EKO follows the pool from its launch
+ * transaction, so the ETH in it is what the launch put in (the unbranded launcher's seed; none for Pangea and long.xyz,
+ * whose pools open with only the coin in them) plus what buyers paid in on net, less the share of the launch position
+ * taken out since. Price × supply can be set at any level with nothing behind it.
  */
-export function pangeaBacking(coin: CoinState, nowSec: number) {
+export function poolBacking(coin: CoinState, nowSec: number) {
   const price = coin.trades.at(-1)?.priceHype ?? coin.openPrice ?? 0;
   let volume24h = 0;
   for (let i = coin.trades.length - 1; i >= 0 && coin.trades[i]!.ts > nowSec - 86_400; i--) volume24h += coin.trades[i]!.hype;
-  return { mcap: price * Number(coin.supply) / 1e18, paidIn: Math.max(0, coin.netHype), volume24h,
-    evidence: [{ kind: 'address' as const, ref: coin.poolId, label: 'Pangea pool (opened with only the coin in it)' }] };
+  const p = coin.launchPosition, left = p && p.liquidity > 0n ? 1 - Math.min(1, Number(p.removed) / Number(p.liquidity)) : 1;
+  const paidIn = (Number(p?.seed ?? 0n) / 1e18 + Math.max(0, coin.netHype)) * left;
+  const label = p ? 'Pool (seeded with ETH at launch; launch position held by the creator)' : 'Pool (opened with only the coin in it)';
+  return { mcap: price * Number(coin.supply) / 1e18, paidIn, volume24h, evidence: [{ kind: 'address' as const, ref: coin.poolId, label }] };
 }
 /** EKO's memory on Robinhood Chain in blocks: 25 hours (the tracker's keepSec) at ~0.102 s blocks. */
 export const ROBINHOOD_KEEP_BLOCKS = 882_000n;
@@ -114,16 +118,38 @@ export const PONS_SNIPE_BPS = [9_900, 618, 19] as const;
 export const PONS_SNIPE_SEC = PONS_SNIPE_BPS.length;
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+/** Uniswap v4's LPFeeLibrary.DYNAMIC_FEE_FLAG: the pool's fee is set by its hook, not its key. */
+const DYNAMIC_FEE_FLAG = 0x800000;
 const rh = (coin: CoinState) => coin as unknown as RobinhoodCoinState;
+
+export interface RobinhoodChainOptions {
+  /**
+   * Flag more_launchpads: also follow long.xyz launches quoted in a token EKO can price on chain (WETH, USDG, Robinhood
+   * stock tokens: price.ts QuotePrices), their swaps counted in ETH at that price. Off, the adapter is exactly as before.
+   */
+  moreLaunchpads?: boolean;
+  /** The quote prices to use (tests); by default built with the ETH price in `price(rpc)`. */
+  quotes?: QuotePrices;
+}
 
 /**
  * Robinhood Chain: native ETH, Pons coins on their own bonding curve (native-ETH curves only; USDG- and token-quoted
  * launches are skipped) and, after graduation, in a Uniswap v4 pool with the Pons hook, where the tracker's v4 Swap path
- * takes over. Pangea coins (native-ETH pools only) trade in their v4 pool from launch, on the same Swap path. Checks run
- * at the head (the public RPC keeps about ten minutes of state).
+ * takes over. Pangea, long.xyz and unbranded-launcher coins (native-ETH pools; with more_launchpads, long.xyz's priced
+ * token-quoted pools too) trade in their v4 pool from launch, on the same Swap path. Checks run at the head (the public
+ * RPC keeps about ten minutes of state).
  */
-export function robinhoodChain(registry: AddressRegistry = loadRegistry()): ChainAdapter {
+export function robinhoodChain(registry: AddressRegistry = loadRegistry(), options: RobinhoodChainOptions = {}): ChainAdapter {
   const addrs: RobinhoodAddresses = robinhoodAddresses(registry), trade = loadRobinhoodTradeAddresses();
+  const decodeOpts: DecodeOptions = options.moreLaunchpads ? { quotedPools: true } : {};
+  // Set by `price(rpc)` (the edge builds it before the tracker starts) or by the caller.
+  let quotes: QuotePrices | null = options.moreLaunchpads ? options.quotes ?? null : null;
+  const quoteOf = (token: Address) => {
+    const q = quotes?.asset(token) ?? null;
+    // A numeraire not checked yet is queued: the next price refresh checks it (a launch in it is not followed until then).
+    if (!q && quotes && !quotes.isRejected(token)) quotes.want(token);
+    return q;
+  };
   // Graduations seen live for coins not followed, drained by `missing` on the next tick.
   const pendingGraduates: { init: RawLog & { seenAt?: number }; token: Address; poolId: Hex }[] = [];
   const topic = (a: Address) => `0x${a.slice(2).toLowerCase().padStart(64, '0')}` as Hex;
@@ -172,18 +198,35 @@ export function robinhoodChain(registry: AddressRegistry = loadRegistry()): Chai
     profile: ROBINHOOD_PROFILE, multicall3: addrs.multicall3,
     // Launches and curve trades in one topic-OR call from any address (a curve per coin), and graduations: a v4
     // Initialize of a native-ETH pool on the PoolManager, kept only with the Pons hook.
-    queries: robinhoodLogQueries(addrs),
+    queries: robinhoodLogQueries(addrs, decodeOpts),
     swapManagers: [addrs.poolManager],
-    isLaunch: (l) => l.topics[0] === TOKEN_LAUNCHED_TOPIC || l.topics[0] === PANGEA_POOL_TOPIC,
-    // A Pons coin's pool swaps count from graduation; a Pangea coin trades only in its pool, from launch.
-    countsSwap: (coin, log) => (coin.graduated || coin.launchpad === 'pangea') && same(log.address, coin.manager),
+    isLaunch: isRobinhoodLaunch,
+    // A Pons coin's pool swaps count from graduation; a pool-launched coin trades only in its pool, from launch.
+    countsSwap: (coin, log) => (coin.graduated || coin.launchpad !== 'pons') && same(log.address, coin.manager),
     graduatesOnTrade: () => false,
+    // A long.xyz coin quoted in WETH, USDG or a stock token (more_launchpads): each swap in ETH at the quote's price now.
+    ...(options.moreLaunchpads ? { quotedTrade: (coin: CoinState, swap: Parameters<NonNullable<ChainAdapter['quotedTrade']>>[1]) => {
+      const ethPer = quotes?.ethPer(coin.quote) ?? null;
+      return coin.quoteConverted && ethPer !== null ? quotedSwapTrade(coin.flipped, swap, { decimals: coin.quoteConverted.decimals, ethPer }) : null;
+    } } : {}),
     apply(log, ts, t) {
-      const e = decodeRobinhoodLog(log, addrs, (curve) => t.coinByPool(curve)?.token ?? null);
+      const e = decodeRobinhoodLog(log, addrs, (curve) => t.coinByPool(curve)?.token ?? null, decodeOpts);
       if (!e) return;
-      if (e.kind === 'launch' || e.kind === 'pangea_launch') {
-        const coin = applyRobinhoodEvent(undefined, e, { addrs, ts });
+      if (e.kind === 'launch' || e.kind === 'pool_launch') {
+        const coin = applyRobinhoodEvent(undefined, e, { addrs, ts, quote: quoteOf });
         if (coin) t.launch(coin as unknown as CoinState, log);
+        return;
+      }
+      if (e.kind === 'pool_init' || e.kind === 'liquidity') {
+        // A pool-launched coin's own pool: its key (long.xyz), opening price, or launch position. Nothing else.
+        // A token-quoted pool's coin may be either currency (address order).
+        const coin = e.kind === 'pool_init' ? t.coin(e.token) ?? (e.key.currency0 !== zeroAddress ? t.coin(e.key.currency0) : undefined) : t.coinByPool(e.poolId);
+        if (!coin || coin.launchpad === 'pons') return;
+        const next = applyRobinhoodEvent(rh(coin), e, { addrs, ts, quote: quoteOf });
+        if (!next || next === rh(coin)) return;
+        const linked = !coin.key && next.key;
+        Object.assign(coin, next);
+        if (linked) t.link(next.poolId, coin);
         return;
       }
       const coin = e.token ? t.coin(e.token) : undefined;
@@ -203,6 +246,14 @@ export function robinhoodChain(registry: AddressRegistry = loadRegistry()): Chai
     },
     excluded: (coin) => robinhoodExcluded(coin as Pick<RobinhoodCoinState, 'curve'> | undefined, addrs),
     async probe(coin, block, deps, priorTips) {
+      // Pons coins have 18 decimals; other launchpads' may not (Pangea's have 9): read once, for displays (views.ts).
+      if (coin.decimals === undefined && coin.launchpad !== 'pons') {
+        try {
+          const d = Number(BigInt(await deps.rpc.request({ method: 'eth_call', params: [{ to: coin.token, data: '0x313ce567' }, 'latest'] }) as Hex));
+          if (Number.isInteger(d) && d >= 0 && d <= 36) coin.decimals = d;
+        }
+        catch { /* displays keep 18 until the next check reads it */ }
+      }
       const p = await probeRobinhoodCoin(rh(coin), block, { rpc: deps.rpc, addrs, ethUsd: deps.hypeUsd, ...(deps.now ? { now: deps.now } : {}) }, priorTips);
       // A probe inside the snipe window paid up to 99% going in: it is redone once the window ends (service.ts).
       return coin.curve && !coin.graduated ? { ...p, earlyUntil: coin.ts + PONS_SNIPE_SEC } : p;
@@ -210,15 +261,22 @@ export function robinhoodChain(registry: AddressRegistry = loadRegistry()): Chai
     facts(coin, p, nowSec): JudgeFacts {
       const { pons, lock } = p as RobinhoodProbed, key = p.key;
       const elapsed = nowSec - coin.ts, antiSnipeActive = !!coin.curve && !coin.graduated && elapsed < PONS_SNIPE_SEC;
-      const ponsHook = !!key && same(key.hooks, addrs.hook), pangeaHook = !!key && same(key.hooks, addrs.pangeaHook);
+      const ponsHook = !!key && same(key.hooks, addrs.hook), pangeaHook = !!key && same(key.hooks, addrs.pangeaHook), longHook = !!key && same(key.hooks, addrs.longHook);
+      const position = coin.launchPosition;
       return {
         antiSnipeActive,
         antiSnipe: antiSnipeActive ? { taxPct: PONS_SNIPE_BPS[Math.max(0, elapsed)]! / 100, endsInSec: coin.ts + PONS_SNIPE_SEC - nowSec } : null,
         // The pool's own fee is 0 on every Pons pool; the hook's cut comes after the swap (in the quoter's quotes).
-        feeBps: key ? key.fee / 100 : pons ? pons.feePct * 100 : 0,
+        // A dynamic-fee pool (v4's 0x800000 flag: long.xyz's hook sets the fee per swap) has no fixed fee to report.
+        feeBps: key ? (key.fee & DYNAMIC_FEE_FLAG ? 0 : key.fee / 100) : pons ? pons.feePct * 100 : 0,
         // Graduation parks the full-range position in the Pons launch locker; the proof (probe.ts) pins both contracts' code.
         liquidity: lock ? lock.locked ? { owner: PONS_LOCK.locker, status: 'locked', label: 'Pons launch locker holds the graduation liquidity (locker and PositionManager code pinned)' }
-          : { owner: PONS_LOCK.locker, status: 'removable', label: 'The graduation liquidity is not proven locked in the Pons launch locker' } : null,
+          : { owner: PONS_LOCK.locker, status: 'removable', label: 'The graduation liquidity is not proven locked in the Pons launch locker' }
+          // The unbranded launcher mints the launch position's PositionManager NFT to the creator: removable at will.
+          : position ? { owner: position.owner, status: 'removable', controlledBy: 'deployer',
+            label: 'The creator was given the pool\'s launch position (a Uniswap position NFT) and can take the liquidity out',
+            ...(position.removed > 0n && position.liquidity > 0n ? { pulled: { share: Math.min(1, Number(position.removed) / Number(position.liquidity)),
+              evidence: [{ kind: 'tx' as const, ref: position.removedTx ?? coin.tx, label: 'Launch liquidity taken out' }] } } : {}) } : null,
         hook: {
           // TODO(review): the registry's Pons hook takes its documented cut through an after-swap return delta (flags 0x2044).
           // Treated as reviewed so its permission bits alone do not flag every graduated coin, as Montra's hook is on Elysium.
@@ -226,12 +284,13 @@ export function robinhoodChain(registry: AddressRegistry = loadRegistry()): Chai
           // can change what a swap pays or returns. Measured 2026-11-18: EKO's 0.005 ETH sell probe lost 1.99% on five
           // Pangea pools.
           label: ponsHook ? 'Pons hook (registry-listed; takes its fee after the swap)'
-            : pangeaHook ? 'Pangea hook (not reviewed; can change swap amounts before and after each swap)' : 'v4 hook',
+            : pangeaHook ? 'Pangea hook (not reviewed; can change swap amounts before and after each swap)'
+            : longHook ? 'long.xyz (Doppler) hook (not reviewed; sets the fee and can change what a swap returns)' : 'v4 hook',
           reviewed: ponsHook, sourceVerified: false,
           buyFeePct: null, sellFeePct: null,
         },
         ...(coin.curve && !coin.graduated && coin.supply > 0n ? { runUp: curveRunUp(coin as CoinState & { curve: NonNullable<CoinState['curve']> }, nowSec) } : {}),
-        ...(coin.launchpad === 'pangea' && coin.supply > 0n ? { backing: pangeaBacking(coin, nowSec) } : {}),
+        ...(coin.launchpad !== 'pons' && coin.key && coin.supply > 0n ? { backing: poolBacking(coin, nowSec) } : {}),
       };
     },
     trade: robinhoodVenue(trade),
@@ -252,8 +311,31 @@ export function robinhoodChain(registry: AddressRegistry = loadRegistry()): Chai
         return logs as RawLog[];
       },
     },
-    // ETH from Hyperliquid, accepted only within 2% of Robinhood Chain's WETH/USDG pool.
-    price: (rpc) => new EthUsd({ rpc }),
+    // ETH from Hyperliquid, accepted only within 2% of Robinhood Chain's WETH/USDG pool. With more_launchpads, each refresh
+    // also refreshes the quote tokens' prices; the first one queues every numeraire long.xyz launched in over EKO's memory
+    // (about 25 hours), so they are priced before the start-up replay applies those launches.
+    price: (rpc) => {
+      const eth = new EthUsd({ rpc });
+      if (!options.moreLaunchpads) return eth;
+      const q = quotes ??= new QuotePrices({ ethUsd: eth, addrs: { weth: addrs.weth, usdg: addrs.usdg, v3Factory: registry.requireAddress('uniswapV3.factory'), multicall3: addrs.multicall3 } });
+      let seeded = false;
+      const seed = async () => {
+        const head = BigInt(await rpc.request({ method: 'eth_blockNumber', params: [] }) as Hex);
+        const from = head > ROBINHOOD_KEEP_BLOCKS ? head - ROBINHOOD_KEEP_BLOCKS : 0n;
+        for (const l of await logsVia(rpc)({ address: addrs.longAirlock, topics: [LONG_CREATE_TOPIC] }, from, head))
+          if (l.topics[1] && l.topics[1] !== NATIVE_TOPIC) q.want(getAddress(`0x${l.topics[1].slice(26)}`));
+      };
+      const usd: NativeUsd = {
+        get latest() { return eth.latest; },
+        async get() {
+          const value = await eth.get();
+          if (!seeded) { try { await seed(); seeded = true; } catch { /* tried again on the next refresh */ } }
+          await q.refresh(rpc);
+          return value;
+        },
+      };
+      return usd;
+    },
     // Start-up warm-up, so a restart loses nothing the columns show (needs an RPC that serves old logs and state; dRPC
     // does):
     // - every Pons graduation between `from` and `to` (v4 Initialize of a native pool with the Pons hook) of a coin not

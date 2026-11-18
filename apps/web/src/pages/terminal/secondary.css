@@ -2,7 +2,9 @@
 
 /* ---- New pairs ------------------------------------------------------------ */
 .pairs-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
-.pcol{display:flex;flex-direction:column;min-width:0;height:max(480px,calc(100vh - var(--header) - var(--subnav) - var(--status) - 226px))}
+/* Each column is as tall as the screen below the top bar: scrolled to, it shows 4-5 cards (it held about 3 when it also
+   left room for the page heading). */
+.pcol{display:flex;flex-direction:column;min-width:0;height:max(480px,calc(100vh - var(--header) - var(--status) - 24px))}
 .pcol-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:12px 14px 11px;border-bottom:1px solid var(--rule2)}
 .pcol-head h2{margin:0;display:flex;align-items:center;gap:8px}
 .pcol-head p{margin:3px 0 0;font-size:12px;color:var(--muted)}

@@ -40,7 +40,8 @@ function route(path: string, stage: Stage, workspace: RouteDef['workspace'], aut
     return { default: (props) => createElement(Page, { ...props, title }) };
   } };
 }
-const BASE_ROUTES: readonly RouteDef[] = [
+/** The app's own routes, before feature folders add theirs (withFeatures). */
+export const BASE_ROUTES: readonly RouteDef[] = [
   route('/', 'T', 'static'),
   route('/radar', 'T', 'terminal'), route('/feed', 'T', 'terminal'), route('/pairs', 'T', 'terminal'),
   route('/coin/:address', 'T', 'terminal'), route('/deployer/:address', 'T', 'terminal'), route('/scan', 'T', 'static'), route('/scan/:id', 'T', 'terminal'),

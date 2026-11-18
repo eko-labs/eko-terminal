@@ -1,6 +1,7 @@
 import { CoinCardSchema, RadarRowSchema, type CoinCard, type RadarRow, type Untrusted } from '@eko/shared';
 import profiles from './radar-profiles.json';
 import { createCoinCard } from '../fixtures';
+import { quotedCard, quotedRows } from './launchpads';
 
 // Frozen output of the prototype's seeded (4663) generator: all 30 profiles, in server order.
 const untrusted = (text: string, flags: Untrusted['flags'] = []): Untrusted => ({ text, flags, truncated: false });
@@ -37,8 +38,9 @@ const demo = profiles.map((c) => {
     verdict: c.verdict, topPlaybook: top?.id, ageSec: c.ageMin * 60, rank: c.rank, flow, exitCost1kPct: c.exit['1000'], signal, spark8h: c.series });
   return { row, card };
 });
-export const createRadarRows = (): RadarRow[] => structuredClone(demo.map((c) => c.row));
+// With flag more_launchpads (VITE_FLAGS), the long.xyz coins quoted in a token follow the 30 profiles (launchpads.ts).
+export const createRadarRows = (): RadarRow[] => [...structuredClone(demo.map((c) => c.row)), ...quotedRows()];
 export const createRadarCard = (address: string): CoinCard | undefined => {
   const card = demo.find((c) => c.row.address.toLowerCase() === address.toLowerCase())?.card;
-  return card && structuredClone(card);
+  return card ? structuredClone(card) : quotedCard(address);
 };

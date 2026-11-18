@@ -9,7 +9,7 @@ its code to the public repository as one commit.
 | Folder | What goes there |
 |---|---|
 | `apps/edge/src/features/<flag>/index.ts` | The server side. Default-export `{ register({ app, edge, store, accounts, auth }) }` and add routes under `/v1` or `/v2`. Loaded only while the flag is on. |
-| `apps/web/src/features/<flag>/index.ts` | The pages. Default-export a `Feature` (`apps/web/src/features.ts`): its `routes` and its menu entries (`nav`). Shown only while the flag is on. |
+| `apps/web/src/features/<flag>/index.ts` | The pages. Default-export a `Feature` (`apps/web/src/features.ts`): its `routes`, its menu entries (`nav`) and any places it fills on the coin page (`coin`: over the chart, under it, next to a wallet; `components/coinSlots.tsx`). Shown only while the flag is on. |
 | `apps/edge/test/features/<flag>/`, `apps/web/src/features/<flag>/*.test.ts` | Its tests. |
 
 `<flag>` is the flag's exact name, for example `leaderboards`. Both apps find these folders by themselves, so a feature
@@ -46,3 +46,6 @@ then `node scripts/public/publish.mjs --push --message "Update: Leaderboards"`.
 | Research | `deep_research` | a research service on the edge |
 | Perps | `perps_panel` | a perps market to connect to |
 | Arena | `arena` | design |
+| Wallet tags on the chart | `wallet_tags` | nothing: built (dev, snipers, bundles, top 10, fresh; `/v2/coins/:address/tags`) |
+| Dev profile | `dev_profile` | review: `/dev/<address>` and `/v2/devs/:address` from the history store (HISTORY_DB) |
+| Every launchpad (Robinhood Chain) | `more_launchpads` | nothing: built. Unlike the others it has no feature folder: the Robinhood adapter reads it (`apps/edge/src/chains/robinhood/`), so its code is public before it is on. Set it on `eko-edge-robinhood` (the pop-up writes to `eko-edge`). Demo data: `VITE_MOCKS=1 VITE_FLAGS=more_launchpads pnpm --filter @eko/web dev` adds three example long.xyz coins (quoted in TTWO, WETH and USDG; apps/web/src/mocks/demo/launchpads.ts). docs/robinhood/CHAIN-FACTS.md §9 |

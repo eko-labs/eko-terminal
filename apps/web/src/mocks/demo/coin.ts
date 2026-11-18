@@ -3,6 +3,8 @@ import { aggregateTick, bucketStart, seconds, type CoinTimeframe } from '../../c
 import profiles from './coin-profiles.json';
 import { createRadarCard, createRadarRows } from './radar';
 import { MOCK_HEAD_BLOCK } from '../head';
+import { hashedAddress } from './addresses';
+import { quotedCandles } from './launchpads';
 export const UNKNOWN_COIN='0x1111111111111111111111111111111111111111';
 export const COIN_EPOCH=Math.floor(Date.now()/1000);
 const liveTicks=new Map<string,Tick[]>();
@@ -10,16 +12,18 @@ export function recordCoinTick(address:string,tick:Tick){const key=address.toLow
 const labels:WalletLabel[]=['declared_agent','likely_agent','crew','human'];
 const labelMap={agent:'declared_agent',likely:'likely_agent',crew:'crew',human:'human'} as const;
 export function coinCandles(address:string,tf:CoinTimeframe,now=COIN_EPOCH):Bar[]{
- const p=profiles.find(c=>c.address.toLowerCase()===address.toLowerCase());if(!p)return [];
+ const p=profiles.find(c=>c.address.toLowerCase()===address.toLowerCase());if(!p)return quotedCandles(address,seconds(tf),bucketStart(now,tf));
  const end=bucketStart(now,tf), step=seconds(tf);
  return p.candles.map((c,i)=>({o:c.o,h:c.h,l:c.l,c:c.c,ts:end-(p.candles.length-1-i)*step,vUsd:c.v*10000}));
 }
+/** The wallets of the twelve adjacent fixture markers (generated addresses). */
+export const fixtureWallet=(i:number)=>hashedAddress(`coin-fixture:${i}`);
 export function coinMarkers(address:string,from=COIN_EPOCH-72*300,to=COIN_EPOCH):ChartMarker[]{
  const p=profiles.find(c=>c.address.toLowerCase()===address.toLowerCase());if(!p)return [];
  const slot=(to-from)/72;
- const markers:ChartMarker[]=p.markers.map(m=>({ts:Math.floor(from+(m.i+.5)*slot),side:m.side as 'buy'|'sell',sizeUsd:m.usd,label:labelMap[m.label as keyof typeof labelMap],confidence:m.label==='agent'?1:.86,wallet:m.wallet as Address,...(m.label==='crew'?{crewId:'demo-crew'}:{})}));
+ const markers:ChartMarker[]=p.markers.map(m=>({ts:Math.floor(from+(m.i+.5)*slot),side:m.side as 'buy'|'sell',sizeUsd:m.usd,label:labelMap[m.label as keyof typeof labelMap],confidence:m.label==='agent'?1:.86,wallet:m.wallet as Address,...(m.label==='crew'?{crewId:'night-shift'}:{})}));
  // Explicit adjacent fixtures exercise each label, all sizes, and clustering at every timeframe.
- for(let i=0;i<12;i++)markers.push({ts:Math.floor(from+(56+Math.floor(i/4)) *slot),side:'buy',sizeUsd:[40,240,1240][i%3],label:labels[i%4],confidence:.86,wallet:`0x${(i+1).toString(16).padStart(40,'0')}`});
+ for(let i=0;i<12;i++)markers.push({ts:Math.floor(from+(56+Math.floor(i/4)) *slot),side:'buy',sizeUsd:[40,240,1240][i%3],label:labels[i%4],confidence:.86,wallet:fixtureWallet(i) as Address});
  return markers.filter(m=>m.ts>=from&&m.ts<=to);
 }
 export function coinTick(address:string,step:number,ts=COIN_EPOCH+step*2):Tick|undefined {

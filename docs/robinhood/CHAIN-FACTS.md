@@ -109,6 +109,162 @@ ERC-20 mint in the last 800,000 blocks (4,113 tokens) for these symbols.
   start-up warm-up does not rebuild older Pangea launches the way it rebuilds Pons launches.
 - The fake_mcap thresholds against outcomes (what buyers of these coins got back a day later).
 
+## 8. Which launchpads launch on Robinhood Chain (added Nov 18, 2026)
+
+Measured with the paid archive RPC over the 850,000 blocks (about 24 hours) to block 117,533,644. Nothing was signed or
+sent. Method: every ERC-20 mint (`Transfer` from the zero address) in the window, kept when the token had no code the
+block before (3,374 new tokens); each one's launch transaction gives the contract it called and any pool it opened; then
+every v4 `Swap` on those pools in the window. Names come from Mobula's public launchpad guides and DexScreener, used
+only as hints; every address below was checked on chain. Volumes are for coins launched in the window, in their quote
+asset.
+
+| Launches (24 h) | Who | Pool | Quote | Volume (24 h) | EKO |
+| --- | --- | --- | --- | --- | --- |
+| 765 | Pons (factory `0x7eD5…EC7e`, router `0xe33E…2948`) | own curve, then v4 with the Pons hook | mostly native ETH | about 44,700 curve trades | followed (§3) |
+| 881 | **long.xyz**: Doppler-style Airlock `0xeb7C034704eF8Dcd2D32324c1545f62fB4aD0862`, reached through ERC-4337 EntryPoints, the Airlock itself and three routers | v4, dynamic fee, hook `0x4e3468951D49f2EEa976eD0D6e75fFCb44a9a544`, tick spacing 8 or 200 | **2 native ETH**; the rest stock tokens (TTWO 322, SPCX 149, NVDA 65, AMC 36, …), WETH 134, USDG 23, other coins | native ETH: about 1.1 ETH; the rest in their own quote (e.g. 478 TTWO, 12,626 AI, 1,410 ANTHROPICx1L) | **added**: native-ETH pools; with flag `more_launchpads`, also pools quoted in WETH, USDG and Robinhood stock tokens (§9) |
+| 62 | **unbranded hookless launcher** `0x3194e32622C5D860a0572C74EdDa99dcfD8FC827` (no public brand: DexScreener lists the pools as plain Uniswap v4) | v4, **no hook**, fee 0.05–0.2%, tick spacing 200, one full-range position | native ETH | **209.8 ETH** (4,547 swaps on 61 pools) | **added** |
+| 21 | Pangea (§7) | v4, Pangea hook | native ETH 17, GME 3, AI 1 | 3.4 ETH | followed (§7) |
+| 114 | launcher `0xc739…89c6` (vanity `…0087` tokens) | v4, hook `0x2c66…2acc` | WETH | 0.72 WETH | not added (WETH, little volume) |
+| 15 | Klik (factory `0x16cF…0dd7`) | v4, hook `0x745d…e0cc` | native ETH | none (0 swaps) | not added |
+| 8 + 4 crowd | Uniswap's Liquidity Launcher `0x0000FffF…19C0`, which LaunchProof fronts | v4, no hook, one-sided position | native ETH | 45.7 ETH | **not added**: 1 of the 8 instant pools (0.34 ETH) is LaunchProof's by its own marker; the other 45.4 ETH went through the shared launcher from elsewhere (§9) |
+| 391 | `0x1cba…a149` | none | | | not a launchpad: it emits no events (batch mints) |
+| 0 | Bow.fun, Bottom.fun, Hood.fun, RealFun, NoxaFun, DYOR.fun, ApeStore, Printr, RobinFun | | | | no launches in the window (Mobula lists them) |
+
+### long.xyz
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Launch record | `Create(address asset, address indexed numeraire, address initializer, address poolOrHook)` from the Airlock, topic `0x68ff1cfc…79ab` | 881 in the window, the last log of each launch transaction. It names no creator, and launches come through bundlers and routers, so EKO identifies no deployer (the coin's own address stands in, as the API contract says) |
+| Pool | v4 keyed numeraire / coin, fee `0x800000` (dynamic, set by the hook), the hook above | 873 of the hook's pools in the window: tick spacing 8 on 799, 200 on 73, 30 on 1. Not constant, so EKO takes the key from the pool's `Initialize` in the same transaction (its id is checked by hash) |
+| Liquidity | one-sided: the whole supply in three positions below the opening tick | launch `0xf4c780c2eb2e174dc485102ab90ce6ce0eaba7d91c23a2093d03501a09895091`: positions to tick 202,000 at the opening tick 202,000. Any ETH in a native pool was paid in by buyers |
+| Hook permissions | flags `0x2544`, including an after-swap return delta | not reviewed: EKO shows the coins and their verdict, and refuses to trade them |
+| Native-ETH launches | 2 in the window | `0x87261a20ecf71cb6de75c3e9a39e34e9814418a8f80aed600a305d581914ea70`, `0x796a712d7621a6d0764ed6388ff8ddd0b8d21ca105928b8da3db41554698bc0a` (the test fixture) |
+
+### The unbranded hookless launcher
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Launch record | topic `0x03f29fb2…e84f` (name not published) | topics: creator, coin, pool id; data: the launch position's PositionManager token id, fee, tick spacing, ETH put in, supply. All 62 rebuild to their logged pool id as native ETH / coin with no hook; the creator topic is the transaction's sender on all 62 |
+| Liquidity | **one full-range position seeded with 0.05–0.4 ETH, its PositionManager NFT minted to the creator** | 62 of 62. The creator can remove it at any time |
+| Pulls | **61 of the 62 pools had liquidity removed within the window** | `ModifyLiquidity` with a negative delta on 61 pool ids. The fixture's creator pulled 101 blocks (about 10 seconds) after launch, after 12 swaps |
+
+### What EKO does with them
+
+- Both launch records ride in the existing topic-OR launch query, kept only from their own contract. One more query per
+  span, `ModifyLiquidity` on the PoolManager, follows launch positions a wallet holds. The tracker's own Swap and
+  Transfer calls bring each coin's pool swaps and holders.
+- The unbranded launcher's coins: the launch position is followed. `removable_liquidity` is Monitor while the creator
+  holds it, and Danger once at least half of it has been taken out (its pull rule), with the pulling transaction as
+  evidence. Their pools have no hook, so EKO's trade route (the reviewed Universal Router) is offered, behind the guard's
+  checks; a pulled pool is a hard Danger the guard refuses in every risk mode.
+- long.xyz coins (native ETH only): labelled long.xyz; the hook shows as unreviewed (a `malicious_hook` Monitor); trading
+  refused.
+- For every pool-launched coin: the sell check runs on its pool (v4 route, empty `hookData`), holders, snipers and the
+  dev checks read its transfers, and `fake_mcap` compares price × supply with the ETH the pool holds (the seed plus what
+  buyers paid in, less what was pulled).
+- Trading is refused for any pool whose hook is not the reviewed Pons hook (Pangea, long.xyz).
+
+### Unknown
+
+- long.xyz's volume outside native ETH: priced and followed behind `more_launchpads` (§9), except quote tokens EKO cannot
+  price on chain (other coins, the "1x Long" tokens, look-alikes).
+- Whether the Airlock serves front ends other than long.xyz (it is Doppler's design); they would show as long.xyz.
+- Who launched the Liquidity Launcher's unmarked instant pools (§9), and Klik and the WETH launcher once they trade.
+- What the unbranded launcher is called, and who runs it.
+
+## 9. Quote assets and LaunchProof (added Nov 18, 2026; flag `more_launchpads`)
+
+Measured with the paid archive RPC over the 850,000 blocks (about 24 hours) to block 117,565,292. Nothing was signed or
+sent. Volumes are at the prices of the head block, not of each trade.
+
+### What long.xyz launches are quoted in
+
+937 Airlock `Create` records in the window, every one with a pool on the long.xyz hook. Numeraires: TTWO 381, SPCX 154,
+WETH 131, NVDA 67, AMC 40, USDG 25, ANTHROPICx1L 21, SPY 8, MSFT 8, GTA6 8, QQQ 6, OPENAIx1L 6, COIN 6, native ETH 2, and
+47 more with 1 to 4 each.
+
+| Quote | Swaps (24 h) | Coins that traded | Volume in the quote | Volume (USD) | EKO with the flag |
+| --- | --- | --- | --- | --- | --- |
+| TTWO | 4,619 | 43 | 994.4 TTWO | 217,452 | priced (stock) |
+| USDG | 657 | 3 | 58,592 USDG | 58,592 | priced ($1) |
+| native ETH | 73 | 2 | 1.09 ETH | 1,916 | already followed |
+| NVDA | 34 | 6 | 4.64 NVDA | 704 | priced (stock) |
+| AI (a coin) | 20 | 3 | 12,626 AI | 279 | not priced: not a stock |
+| AMC, SPCX, MSFT, SPY, DJT, RDDT | 63 | 13 | | 101 | priced (stock) |
+| WETH | 15 | 5 | 0.00087 WETH | 2 | priced (1:1) |
+| ANT (look-alike), ANTHROPICx1L, GTA6 | 177 | 5 | | unknown | not priced |
+
+**Newly covered: about $276,900 of 24-hour volume (about 158 ETH at $1,752), against $1,916 followed before.** TTWO carries
+79% of it, almost all on one coin (`0xb9f5d46eac29657e96e39bde525ff86927b81e18`: 3,105 swaps).
+
+### How each quote asset is priced
+
+| Asset | Rule | Evidence |
+| --- | --- | --- |
+| WETH `0x0Bd7…AD73` | 1:1 with ETH | the registry's WETH |
+| USDG `0x5fc5…d168` | $1, used only while EKO's ETH price is accepted | EKO accepts Hyperliquid's ETH only within 2% of the WETH/USDG pool (§6), so USDG is within about 2% of a dollar whenever it is used. At block 117,575,168: Hyperliquid 1,777.05, pool 1,776.62 USDG per WETH, so USDG = $1.0002 |
+| Robinhood stock tokens | the deepest Uniswap v3 pool of the registry's factory (`uniswapV3.factory`) against USDG or WETH, fee tiers 100 / 500 / 3,000 / 10,000, refreshed every 60 s | see below |
+
+A stock token is one only when its runtime code is Robinhood's 283-byte beacon proxy (keccak `0x6c1fdd40…65630`) and its
+beacon slot (EIP-1967) holds `0xe10b6f6B275de231345c20D14Ab812db62151b00` (implementation `0xb35490d6…5ae2` at the time).
+All 37 numeraires named "<Company> • Robinhood Token" matched (TTWO, SPCX, NVDA, AMC, SPY, MSFT, QQQ, COIN, DJT, CRCL,
+TSLA, MSTR, GOOGL, AMD, MCD, USO, AAPL, AMZN, MU, COST, DELL, RDDT, RBLX, AVGO, HIMS, GLD, META, BE, MRNA, SLV, LULU, CRWV,
+INTC, CLSK, UBER, NFLX, FIG). Two kinds did not: `0x9d891a34f2ba6f925ce038b09f558c29908be6a7`, named "ANTHROPIC •
+Robinhood Token", is 16,825 bytes of other code (a look-alike: 138 swaps on its long.xyz coin), and the "1x Long" tokens
+(ANTHROPICx1L, OPENAIx1L) are another beacon's proxies with no USDG or WETH market.
+
+Sanity bounds on a stock's price (`pickStockPrice`, `QuotePrices` in `apps/edge/src/chains/robinhood/price.ts`):
+- the pool must hold at least $10,000 of its quote (USDG, or WETH at the ETH price) and have in-range liquidity;
+- every other pool that deep must agree within 3% of the deepest, or the reading is refused;
+- the price must be between $0.000001 and $10,000,000;
+- a move of more than 25% from the last accepted price needs a second reading within 3% of it;
+- a price not refreshed for six hours is no longer used.
+
+Readings at the head (deepest pool by quote held): TTWO $218.69 (USDG 0.3%, $187,816 held), SPCX $144.10 (USDG 0.05%,
+$760,800), NVDA $151.92 (WETH 0.05%, $602,784), AMC $3.20 (USDG 0.3%, $87,575), SPY $731.36 (WETH 0.05%, $553,822), MSFT
+$502.97 (USDG 0.3%, $69,557). Where two deep pools exist they agreed within 0.5% (NVDA: 151.92, 152.18, 151.96). Many
+stocks also trade in pools reporting fees such as 456, 765 or 1,250: those are not the registry factory's tiers and are not
+read. A stock with no factory pool holding $10,000 (FIG, UBER and SLV at the time) stays unpriced until one does.
+
+### What EKO does with it (flag `more_launchpads`)
+
+- The adapter reads the flag (`EKO_FLAGS`, docs/FLAGS.md). Off, it decodes and queries exactly as before.
+- On: long.xyz `Create` records with any numeraire are decoded; the Initialize query drops its native-ETH filter (about
+  2,600 Initialize logs a day), and a token-quoted pool is read only with the long.xyz hook. A launch is followed only when
+  its numeraire is priced at that moment; an unknown numeraire is queued and checked within seconds, and at start-up every
+  numeraire of the last 25 hours of `Create` records is checked before the replay.
+- Each swap is converted into ETH at the quote's price when it is applied: volume, price, net flow and the opening price
+  read like a native pool's (`quotedSwapTrade`). A start-up replay converts the last hour's swaps at the current price. A
+  coin that sorts before its quote (NVDA's, 62 of 67) is read the other way round. The coin card names the quote
+  (`quoteAsset` `stock_token`, `USDG`, or `ETH` for WETH, plus `quoteSymbol`, the ticker, on the card and on rows) and
+  the pool's quote address; the web reads "Stock token · TTWO", "WETH" or "USDG", and "long.xyz in TTWO" beside the
+  launchpad on Radar, New pairs and the coin header.
+- Holders, snipers, dev dump and `fake_mcap` (backing in ETH-equivalent) run as for native long.xyz coins. The sell check
+  is not run (it spends ETH) and is named missing. Trading stays refused: the long.xyz hook is not reviewed (the quote
+  answers 409 `not_traded`, and the trade panel says the coin is checked but not traded here).
+- Coin amounts stay in 18-decimal units and `CoinState.decimals` scales displays only, as for Pangea's 9-decimal coins.
+
+### LaunchProof
+
+LaunchProof is a front end over Uniswap's Liquidity Launcher `0x0000FffFBE8efE702c8703aE3477FF5dE3d319C0`, which anyone can
+call. Its published integration guide (Mobula) says a launch is LaunchProof's only when the coin's immutable UERC20
+`metadata()` holds the description suffix "Launched through Uniswap via launchproof.fun" or an `xVerificationToken` in its
+JSON extra data, and to refuse to guess otherwise. Every launch in the window, read that way:
+
+| Coin | Strategy | Pool | 24 h volume | Marker |
+| --- | --- | --- | --- | --- |
+| ARCH `0xd5354df86bb8d00bb6a189347afaec523069c74e` | current instant (fees) `0x23f8…27f1` | native ETH, fee 0.25%, spacing 25, no hook | 38.75 ETH | none |
+| IDRENT `0x98948fb9f2be78666e00adc31789c765537b9ef7` | current instant (fees) | same | 5.53 ETH | none |
+| ZOBO `0x6fe9765116fcef895e3316c2f8c4e8b632fc58ed` | older instant `0x7c48…35c2` | same | 0.34 ETH | `xVerificationToken` |
+| JUMJOS, GTA6C, JUMJOE, ROCCO, SAV | older instant `0x7c48…35c2` | same | 1.12 ETH in all | none |
+| BROH, TEST7129, TST058879, TST3B788A | crowd auction (CCA) `0xbf1a…e000` | none yet (not migrated) | 0 | BROH: `xVerificationToken`; the rest are test tokens |
+
+So the strategy address does not identify LaunchProof (the guide says so too), and by its own marker LaunchProof launched
+one traded coin in the window, for 0.34 ETH. The 45.4 ETH on the other seven instant pools came through the same shared
+launcher from somewhere else (possibly Uniswap's own front end; not checked). **Not added**: attributing those pools to
+LaunchProof would be wrong, and following its one marked coin needs a `metadata()` read per launch for 0.34 ETH a day. A
+later update could follow every Liquidity Launcher instant pool under a neutral label: native ETH, no hook, 45.7 ETH a day.
+
 ## Blocks trading / safe to ship / unknown
 
 ### Blocks trading until handled

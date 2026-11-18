@@ -12,6 +12,7 @@ export const ERROR_STATUS = {
   quote_changed: 422, quote_expired: 422, anti_snipe_active: 422, no_route: 422,
   sim_unavailable: 503, approval_required: 422, wallet_mismatch: 422,
   payment_required: 402, internal_error: 500, conflict: 409, forbidden: 403, not_allowlisted: 403,
+  not_traded: 409, route_unavailable: 409, amount_out_of_range: 400, price_unavailable: 503, quote_failed: 502,
 } satisfies Record<ErrorCode, number>;
 
 export function sendError(reply: FastifyReply, code: ErrorCode, message: string, extra: Omit<ApiError, 'error' | 'message'> = {}) {

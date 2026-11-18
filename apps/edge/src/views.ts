@@ -26,8 +26,17 @@ export interface ViewContext { nowSec: number; head: number; hypeUsd: number | n
 const NOT_YET = ['flow', 'signal'] as const;
 const usd = (hype: number, ctx: ViewContext) => ctx.hypeUsd ? hype * ctx.hypeUsd : 0;
 /** The pool's price after its last trade; before the first, a Montra pool's opening price (as Montra's own API shows it). */
-const priceHype = (c: CoinState) => c.trades.at(-1)?.priceHype ?? (c.quote === zeroAddress ? c.openPrice : undefined) ?? 0;
+const priceHype = (c: CoinState) => c.trades.at(-1)?.priceHype ?? (inNative(c) ? c.openPrice : undefined) ?? 0;
+/** Its trades are in native currency: quoted in it, or in a token the chain converts (CoinState.quoteConverted). */
+const inNative = (c: CoinState) => c.quote === zeroAddress || !!c.quoteConverted;
+/** The quote token's ticker for a coin quoted in a token, only when it is plain letters, digits and dots. */
+const quoteSymbol = (c: CoinState) => {
+  const symbol = c.quote !== zeroAddress ? c.quoteConverted?.symbol : undefined;
+  return symbol && /^[A-Za-z0-9.]{1,16}$/.test(symbol) ? { quoteSymbol: symbol } : {};
+};
 const supplyTokens = (c: CoinState) => Number(c.supply) / 1e18;
+/** Price per whole token from the 18-decimal-unit price: a coin with 9 decimals has 10^9 more tokens per 1e18 base units. */
+export const unitScale = (c: Pick<CoinState, 'decimals'>) => 10 ** ((c.decimals ?? 18) - 18);
 const exitCost = (a: Assessment | undefined) => a?.probe?.exitCostPct ?? null;
 /** A bonding-curve coin's way to graduation in % (the New pairs card's Curve bar, the radar's run-up hint). */
 const curvePct = (c: CoinState, ctx: ViewContext) => { if (!c.curve || c.graduated) return {}; const bps = progressBps(c, ctx); return bps === null ? {} : { curvePct: bps / 100 }; };
@@ -45,13 +54,13 @@ export function pendingVerdict(coin: CoinState, head: number): Verdict {
 export function coinSummary(c: CoinState, a: Assessment | undefined, ctx: ViewContext): CoinSummary {
   const top = a ? findingsFirst(a.verdict.playbooks)[0]?.id : undefined;
   const unavailable: NonNullable<CoinSummary['unavailable']> = [...NOT_YET];
-  // No HYPE price, or a coin quoted in another token (its trades are not counted: tracker.ts).
-  if (!ctx.hypeUsd || c.quote !== zeroAddress) unavailable.push('marketCap', 'volume');
+  // No HYPE price, or a coin quoted in a token the chain does not convert (its trades are not counted: tracker.ts).
+  if (!ctx.hypeUsd || !inNative(c)) unavailable.push('marketCap', 'volume');
   if (exitCost(a) === null) unavailable.push('exitCost');
   return {
     address: c.token, name: toUntrusted(a?.name ?? c.name ?? '', UNTRUSTED_LIMITS.name), symbol: toUntrusted(a?.symbol ?? c.symbol ?? '', UNTRUSTED_LIMITS.symbol),
-    launchpad: c.launchpad, stage: c.graduated ? 'graduated' : 'curve', ...graduationPct(c, ctx), ...curvePct(c, ctx),
-    priceUsd: usd(priceHype(c), ctx), ...(ctx.hypeUsd && priceHype(c) ? {} : { priceUnavailable: true }),
+    launchpad: c.launchpad, ...quoteSymbol(c), stage: c.graduated ? 'graduated' : 'curve', ...graduationPct(c, ctx), ...curvePct(c, ctx),
+    priceUsd: usd(priceHype(c) * unitScale(c), ctx), ...(ctx.hypeUsd && priceHype(c) ? {} : { priceUnavailable: true }),
     change1hPct: changePct(c.trades, ctx.nowSec - 3600), liquidityUsd: usd(Math.max(0, c.netHype), ctx),
     verdict: levelOf(a), ...(a ? { lastChecked: a.verdict.lastChecked, ratingAgeSec: Math.max(0, ctx.nowSec - Math.floor(Date.parse(a.at) / 1000)) } : {}),
     ...(top ? { topPlaybook: top } : {}), ageSec: Math.max(0, ctx.nowSec - c.ts), unavailable,
@@ -85,7 +94,7 @@ const LABEL_FIELDS = ['agentPct', 'crewPct', 'humanPct', 'washEstPct'];
  * missing. With `detail` (the flow endpoint), the largest buyers and sellers and the latest trades come too.
  */
 function flowOf(c: CoinState, ctx: ViewContext, window: FlowWindow = '1h', opts: { detail?: boolean; excluded?: readonly string[] } = {}) {
-  const activity = c.quote === zeroAddress ? flowActivity(c, window, ctx, opts) : null;
+  const activity = inNative(c) ? flowActivity(c, window, ctx, opts) : null;
   return { ...emptyFlow, window, ...(activity ? { activity } : {}) };
 }
 
@@ -125,6 +134,8 @@ export function pairColumn(c: CoinState, ctx: ViewContext): PairRow['column'] {
   return (progressBps(c, ctx) ?? 0) >= (ctx.nearGradBps ?? HALF_WAY_BPS) ? 'near_grad' : 'new';
 }
 
+/** Robinhood Chain coins launched straight into their own v4 pool (Pangea, long.xyz, the unbranded launcher). */
+const robinhoodPoolLaunch = (c: CoinState) => c.launchpad === 'pangea' || c.launchpad === 'longxyz' || !!c.launchPosition;
 /** A Pons coin's curve holds its reserves until graduation; after it, the lock is claimed only once the probe proved it. */
 const unprovenPonsLock = (c: CoinState, a: Assessment | undefined) => c.launchpad === 'pons' && c.graduated && a?.lp !== 'locked';
 
@@ -139,7 +150,7 @@ export function coinCard(c: CoinState, a: Assessment | undefined, ctx: ViewConte
       deployer: c.creator, createdAt: new Date(c.ts * 1000).toISOString(), launchpad: c.launchpad, stage: c.graduated ? 'graduated' : 'curve',
       // A bonding-curve coin's way to graduation, in %, as the coin page's Venue row shows it ("curve 42.1%").
       ...(c.curve && !c.graduated ? (bps => bps === null ? {} : { curvePct: bps / 100 })(progressBps(c, ctx)) : {}),
-      quoteAsset: c.quote === zeroAddress ? ctx.native ?? 'HYPE' : 'other',
+      quoteAsset: c.quote === zeroAddress ? ctx.native ?? 'HYPE' : c.quoteConverted?.kind ?? 'other', ...quoteSymbol(c),
       // Before graduation a bonding-curve coin trades on its curve (no v4 pool yet).
       pools: [c.curve && !c.graduated ? { id: c.curve.address, venue: 'pons_curve', address: c.curve.address, quote: c.quote, feeBps, liquidityUsd: usd(Math.max(0, c.netHype), ctx), executable: false }
         : { id: c.poolId, venue: 'uniswap_v4', poolId: c.poolId, ...(a?.key ? { hooks: a.key.hooks } : {}), quote: c.quote, feeBps,
@@ -150,10 +161,11 @@ export function coinCard(c: CoinState, a: Assessment | undefined, ctx: ViewConte
       ...(a?.config ? { hookFeePct: a.config.totalFeePips / 1e4 } : {}), ...(a?.antiSnipe ? { antiSnipe: a.antiSnipe } : {}) },
     // Montra, HyperForge and tax-launchpad liquidity cannot be removed (docs and verified source); the Flaunch fork's hook
     // is unverified, so its status is named missing below rather than claimed.
-    // Pangea's launch position sits with its liquidity manager, unreviewed: its status is named missing, never claimed.
-    liquidity: { depthUsd: { pct2: 0, pct5: 0, pct10: 0 }, lpStatus: c.launchpad === 'flaunch' || c.launchpad === 'pangea' ? 'removable' : c.launchpad === 'pons' ? 'pons_locked' : 'locked', feeTiers: a?.config ? [feeBps] : [] },
+    // Pangea's and long.xyz's launch positions sit with their own unreviewed contracts: named missing, never claimed. The
+    // unbranded launcher hands its position to the creator: removable, claimed once a check has said so.
+    liquidity: { depthUsd: { pct2: 0, pct5: 0, pct10: 0 }, lpStatus: c.launchpad === 'flaunch' || robinhoodPoolLaunch(c) ? 'removable' : c.launchpad === 'pons' ? 'pons_locked' : 'locked', feeTiers: a?.config ? [feeBps] : [] },
     supply: { top10Pct: a ? pct(a.stats.holders.top10Share) : 0, devPct: a ? pct(a.stats.dev.heldShare) : 0, bundlesHeldPct: a ? pct(earlyHeld(a)) : 0,
-      exemptWalletsHeldPct: 0, freshWalletsPct: 0, burnedPct: 0, circulating: (c.supply / 10n ** 18n).toString() }, // whole tokens (every tracked coin has 18 decimals), not wei
+      exemptWalletsHeldPct: 0, freshWalletsPct: 0, burnedPct: 0, circulating: (c.supply / 10n ** BigInt(c.decimals ?? 18)).toString() }, // whole tokens at the coin's own decimals, not base units
     // Montra launches are clones of the factory's token master: no owner, tax, blacklist, pause, mint or upgrade. Other
     // launchpads' tokens are not reviewed: their owner powers are named unavailable in meta.control.
     control: { canChangeTax: false, canBlacklist: false, canPause: false, canMint: false, upgradeable: false },
@@ -162,12 +174,12 @@ export function coinCard(c: CoinState, a: Assessment | undefined, ctx: ViewConte
     meta: {
       tradeability: { confidence: cost === null ? 0 : 1, asOfBlock: block, ...(cost === null ? { unavailable: true, missing: ['exitCostPct'] } : { missing: ['exitCostPct.usd100', 'exitCostPct.usd10k'] }),
         flags: [`probe_usd_${Math.round(a?.probeUsd ?? 1000)}`] },
-      liquidity: { confidence: a?.config ? 1 : 0, asOfBlock: block, missing: c.launchpad === 'flaunch' || c.launchpad === 'pangea' || unprovenPonsLock(c, a) ? ['depthUsd', 'lpStatus'] : ['depthUsd'] },
+      liquidity: { confidence: a?.config ? 1 : 0, asOfBlock: block, missing: c.launchpad === 'flaunch' || (robinhoodPoolLaunch(c) && a?.lp !== 'removable') || unprovenPonsLock(c, a) ? ['depthUsd', 'lpStatus'] : ['depthUsd'] },
       // bundlesHeldPct here is what the first minute's buyers still hold (funding is not traced, so no same-funder bundles).
       supply: a ? { confidence: 1, asOfBlock: block, missing: ['freshWalletsPct', 'exemptWalletsHeldPct'], flags: ['early_cohort_not_funder_bundles'] } : meta(['top10Pct', 'devPct', 'bundlesHeldPct', 'freshWalletsPct']),
       control: c.launchpad === 'montra' ? { confidence: 1, asOfBlock: block, flags: ['montra_factory_clone'] } : meta(['canChangeTax', 'canBlacklist', 'canPause', 'canMint', 'upgradeable']),
       // The label split is not measured (unavailable); flow.activity, when present, is (flags).
-      flow: meta(LABEL_FIELDS, { flags: c.quote === zeroAddress && ctx.hypeUsd ? ['activity_measured', 'wallet_labels_unavailable'] : ['wallet_labels_unavailable'] }),
+      flow: meta(LABEL_FIELDS, { flags: inNative(c) && ctx.hypeUsd ? ['activity_measured', 'wallet_labels_unavailable'] : ['wallet_labels_unavailable'] }),
     },
     freshness: { block, ageSec: Math.max(0, ctx.nowSec - Math.floor(Date.parse(a?.at ?? new Date(ctx.nowSec * 1000).toISOString()) / 1000)) },
   };

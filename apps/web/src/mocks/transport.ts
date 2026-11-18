@@ -1,19 +1,25 @@
-import { endpoints, createSession, createQuote } from './responses';
+import { endpoints, createSession, createQuote, createConfig } from './responses';
+import { demoWalletTags } from './demo/walletTags';
 import { createAlertSettings, createAddress } from './fixtures';
 import { MOCK_HEAD_BLOCK } from './head';
 import { coinResponse } from './demo/coin';
 import { createRadarCard } from './demo/radar';
 import { createPairCard } from './demo/pairs';
+import { isQuotedDemoCoin } from './demo/launchpads';
 import { feedSnapshot, pairSnapshot } from './demo/market';
 import { match } from '../lib/router';
 import { DEFAULT_PREFERENCES, PreferencesSchema, TelemetrySchema, SIWE_STATEMENT, AgentDetailSchema, AgentSchema, PolicySchema, ApiKeyInfoSchema, AlertSettingsSchema, TradeQuoteRequestSchema, TradeQuoteSchema, JournalConsentSchema, type AlertSettings, type Preferences } from '@eko/shared';
 import { createMissionDemo, emitMission } from './demo/mission';
 import { demoPacks, demoPresets } from './demo/mission-packs';
 import { policyErrors } from '../lib/mission';
+import { featureMock } from '../features';
+import type { Flags } from '@eko/shared';
+import { featureDemos } from './features';
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 /** No fetch, wallet prompt, RPC, or real signature verification happens in this transport. */
-export function createMockTransport() {
+export function createMockTransport(opts: { flags?: Partial<Flags> } = {}) {
+  let demos: ReturnType<typeof featureDemos> | null = null;
   let wallet: string | null = null;
   const preferenceStore = new Map<string, Preferences>();
   const journalOptIn = new Set<string>();
@@ -39,6 +45,12 @@ export function createMockTransport() {
       return json({ error: 'not_found', message: 'No offline fixture for this endpoint.' }, 404);
     }
     const route = path.replace(/^\/v1/, '');
+    // Feature folders' example data, for features whose flag is on (features.ts `demo`).
+    for (const demo of await (demos ??= featureDemos(opts.flags))) {
+      let body: unknown; try { body = init.body === undefined ? undefined : JSON.parse(String(init.body)); } catch { body = undefined; }
+      const answer = demo.fetch?.({ method, route, query: new URL(input, 'http://localhost').searchParams, body });
+      if (answer) return json(answer.body, answer.status ?? 200);
+    }
     if (route === '/telemetry' && method === 'POST') {
       let body: unknown;
       try { body = JSON.parse(String(init.body)); } catch { return json({ error: 'bad_request', message: 'Invalid telemetry' }, 422); }
@@ -99,6 +111,8 @@ export function createMockTransport() {
     if (route === '/trade/quote' && method === 'POST') {
       const parsed = TradeQuoteRequestSchema.extend({ amountUsd: TradeQuoteRequestSchema.shape.amountUsd.positive(), slippageBps: TradeQuoteRequestSchema.shape.slippageBps.int().min(0).max(9999) }).strict().safeParse(body());
       if (!parsed.success) return json({ error: 'bad_request', message: 'Invalid trade quote request.' }, 400);
+      // A pool with an unreviewed hook (long.xyz): checked, never traded, as the edge answers (robinhood-venue.ts precheck).
+      if (isQuotedDemoCoin(parsed.data.coin)) return json({ error: 'not_traded', message: 'EKO checks this coin but does not trade it: its pool\'s hook has not been reviewed.' }, 409);
       // Synthetic, request-scoped display only. No executable route or accepted checks.
       return json(TradeQuoteSchema.parse({ ...createQuote(), coin: parsed.data.coin, side: parsed.data.side, amountUsd: parsed.data.amountUsd, account: parsed.data.account,
         expiresAt: new Date(Date.now() + 15000).toISOString(), guard: { decision: 'refuse', checks: [{ code: 'sim_unavailable', status: 'refuse', label: 'Execution checks unavailable in this fixture.' }] } }));
@@ -201,6 +215,12 @@ export function createMockTransport() {
       const data = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='), (c) => c.charCodeAt(0));
       return new Response(data, { headers: { 'content-type': 'image/png' } });
     }
+    // Wallet tags on the chart (flag wallet_tags): served only while the flag is on, as on the edge.
+    const tagRoute = path.match(/^\/v2\/coins\/(0x[0-9a-fA-F]{40})\/tags$/);
+    if (method === 'GET' && tagRoute) {
+      const tags = createConfig().flags.wallet_tags ? demoWalletTags(tagRoute[1]!) : undefined;
+      return tags ? json(tags) : json({ error: 'not_found', message: 'No offline fixture for this endpoint.' }, 404);
+    }
     const coinRoute = route.match(/^\/coins\/(0x[0-9a-fA-F]{40})(?:\/(verdict|candles|markers|flow))?$/);
     if (method === 'GET' && coinRoute) {
       const result = coinResponse(coinRoute[1], coinRoute[2], new URL(input, 'http://localhost').searchParams);
@@ -210,6 +230,9 @@ export function createMockTransport() {
       const card = !coinRoute[2] ? createRadarCard(address) ?? (pair && createPairCard(pair)) : undefined;
       return card ? json(card) : json({ error: 'not_found', message: 'Coin not found.' }, 404);
     }
+    // Post-launch features answer their own routes while their flag is on (VITE_FLAGS), the same as on the server.
+    const featured = await featureMock(route, method, createConfig().flags);
+    if (featured !== undefined) return json(featured);
     const endpoint = endpoints.find((e) => e.method === method && match(e.path, route));
     if (!endpoint) return json({ error: 'not_found', message: 'No offline fixture for this endpoint.' }, 404);
     if (endpoint.input) {

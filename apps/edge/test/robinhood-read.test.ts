@@ -24,6 +24,7 @@ function replay(logs: RawRobinhoodLog[], ts = 1_790_000_000) {
     const e = decodeRobinhoodLog(log, addrs, c => curves.get(c.toLowerCase()) ?? null);
     if (!e) continue;
     events.push(e);
+    if (e.kind === 'liquidity') continue;
     const token = e.kind === 'curve_trade' ? e.token! : e.token;
     const next = applyRobinhoodEvent(coins.get(token.toLowerCase()), e, { addrs, ts });
     if (!next) continue;
@@ -104,7 +105,9 @@ describe('Robinhood events', () => {
   });
 
   it('rejects an Initialize that is not a Pons graduation: other hooks, other managers, a key that does not hash to its id', () => {
-    for (const l of initFx.logs.Initialize) expect(decodeRobinhoodLog(raw(l), addrs)).toBeNull();
+    // Another hook's native-ETH pool is at most a pool launch's Initialize (pool_init, applied only to a coin a launch
+    // record announced), never a graduation.
+    for (const l of initFx.logs.Initialize) expect(decodeRobinhoodLog(raw(l), addrs)?.kind ?? null).not.toBe('graduated');
     expect(decodeRobinhoodLog(raw({ ...gradFx.initialize, address: '0x00000000000000000000000000000000000000f1' }), addrs)).toBeNull();
     const wrongId = { ...gradFx.initialize, topics: [gradFx.initialize.topics[0], `0x${'11'.repeat(32)}`, ...gradFx.initialize.topics.slice(2)] };
     expect(decodeRobinhoodLog(raw(wrongId), addrs)).toBeNull();

@@ -132,6 +132,8 @@ export const FlowActivitySchema = z.object({
   recent: z.array(FlowTradeSchema).optional(),
 });
 export type FlowActivity = z.infer<typeof FlowActivitySchema>;
+/** A quote token's ticker as EKO shows it: letters, digits and dots only (token text is never shown raw). */
+const QuoteSymbolSchema = z.string().regex(/^[A-Za-z0-9.]{1,16}$/);
 export const CoinCardSchema = z.object({
   blueChip: BlueChipSchema.optional(),
   blueChipCriteria: BlueChipCriteriaSchema.optional(),
@@ -146,10 +148,13 @@ export const CoinCardSchema = z.object({
      */
     deployer: AddressSchema,
     createdAt: z.string(),
-    launchpad: z.enum(['pons', 'pangea', 'occupy', 'flap', 'klik', 'montra', 'flaunch', 'hyperforge', 'taxlaunch', 'unbranded', 'other']),
+    launchpad: z.enum(['pons', 'pangea', 'longxyz', 'occupy', 'flap', 'klik', 'montra', 'flaunch', 'hyperforge', 'taxlaunch', 'unbranded', 'other']),
     stage: z.enum(['curve', 'graduated']),
     curvePct: z.number().optional(),
     quoteAsset: z.enum(['ETH', 'USDG', 'stock_token', 'HYPE', 'USDC', 'other']),
+    // TODO(spec): additive. The quote token's ticker when the pool is quoted in a token rather than the chain's native
+    // coin (TTWO for a stock token, WETH, USDG): `quoteAsset` alone never names the stock, and reads ETH for WETH.
+    quoteSymbol: QuoteSymbolSchema.optional(),
     pools: z.array(PoolRefSchema),
   }),
   clone: z.object({

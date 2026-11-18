@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import type { registerAccountRoutes } from '../accounts.js';
 import { FlagNameSchema, type FlagName } from '@eko/shared';
 import type { AccountStore } from '../accounts.js';
+import type { AlertInbox } from '../alerts.js';
 import type { HistoryStore } from '../history.js';
 import type { Edge } from '../service.js';
 
@@ -18,6 +19,8 @@ export interface FeatureContext {
   app: FastifyInstance; edge: Edge; store?: HistoryStore; accounts?: AccountStore;
   /** Wallet sign-in, when accounts are open: `need(req, reply)` is the signed-in account, or sends the 401. */
   auth?: ReturnType<typeof registerAccountRoutes>;
+  /** In-site alerts for an account (alerts.ts), shown in the alerts drawer. */
+  alerts?: AlertInbox;
 }
 export interface Feature { register(ctx: FeatureContext): void }
 export interface LoadedFeature extends Feature { flag: FlagName }

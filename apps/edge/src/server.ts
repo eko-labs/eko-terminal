@@ -9,9 +9,10 @@ import type { ErrorCode, PairRow } from '@eko/shared';
 import { barsFromTrades, MAX_BARS, TIMEFRAMES, type Timeframe } from './market.js';
 import type { Edge } from './service.js';
 import type { CoinState, Rpc } from './tracker.js';
-import { coinCard, feedItem, flowView, pairColumn, pairRow, pendingVerdict, progressBps, publicConfig, radarRow } from './views.js';
+import { coinCard, feedItem, flowView, pairColumn, pairRow, pendingVerdict, progressBps, publicConfig, radarRow, unitScale } from './views.js';
 import type { HistoryStore } from './history.js';
 import type { LoadedFeature } from './features/index.js';
+import type { AlertInbox } from './alerts.js';
 import type { Historian } from './historian.js';
 import type { FunderTracer } from './funders.js';
 import { registerMemoryRoutes } from './memory-routes.js';
@@ -48,7 +49,7 @@ export function pickEncoding(accept: string | undefined): 'br' | 'gzip' | null {
 /** Read methods the web app's wallet layer may relay (network badge, balances, token reads). Nothing that sends. */
 export const RELAY_METHODS = new Set(['eth_chainId', 'eth_blockNumber', 'eth_getBalance', 'eth_getTransactionCount', 'eth_getCode', 'eth_call', 'eth_gasPrice', 'eth_maxPriorityFeePerGas', 'eth_getBlockByNumber', 'eth_getTransactionReceipt', 'eth_estimateGas']);
 
-export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: string; logger?: boolean; rpc?: Rpc; store?: HistoryStore; historian?: Historian; funders?: FunderTracer; accounts?: AccountStore; trading?: Trading; maxTradeUsd?: number; flags?: ReadonlySet<string>; features?: readonly LoadedFeature[]; onApproval?: (accountId: string, a: Approval) => void; trustProxyHops?: number; build?: BuildInfo; relay?: RelayClient } = {}): FastifyInstance {
+export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: string; logger?: boolean; rpc?: Rpc; store?: HistoryStore; historian?: Historian; funders?: FunderTracer; accounts?: AccountStore; trading?: Trading; maxTradeUsd?: number; flags?: ReadonlySet<string>; features?: readonly LoadedFeature[]; alerts?: AlertInbox; onApproval?: (accountId: string, a: Approval) => void; trustProxyHops?: number; build?: BuildInfo; relay?: RelayClient } = {}): FastifyInstance {
   // Trust exactly the proxies in front of us (Railway: one hop), so a client cannot pick its own req.ip with X-Forwarded-For.
   // JSON bodies are small everywhere; the routes that need more (SIWE contract-wallet signatures, MCP batches) say so.
   const hops = opts.trustProxyHops ?? 1;
@@ -96,7 +97,7 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
   let auth: ReturnType<typeof registerAccountRoutes> | undefined;
   if (opts.accounts && agents) {
     // Sign-in's contract-wallet check gets its own small slice of the RPC, never the tracker's whole lane.
-    auth = registerAccountRoutes(app, { store: opts.accounts, chain, ...(opts.rpc ? { rpc: budgetedRpc(opts.rpc, { perMin: 60, inFlight: 4 }) } : {}), onErase: (id) => { agents.erase(id); opts.trading?.erase(id); } });
+    auth = registerAccountRoutes(app, { store: opts.accounts, chain, ...(opts.alerts ? { alerts: opts.alerts } : {}), ...(opts.rpc ? { rpc: budgetedRpc(opts.rpc, { perMin: 60, inFlight: 4 }) } : {}), onErase: (id) => { agents.erase(id); opts.trading?.erase(id); } });
     if (opts.trading) registerTradeRoutes(app, opts.trading, auth);
     registerAgentRoutes(app, agents, auth, { mcpUrl: (req) => `${req.protocol}://${req.headers['x-forwarded-host'] ?? req.headers.host}/mcp`, ...(opts.onApproval ? { onApproval: opts.onApproval } : {}) });
   } else app.get('/v1/me', async (_req, reply) => fail(reply, 401, 'wallet_auth_required', `Accounts are not open on EKO for ${chain.name} yet.`));
@@ -123,7 +124,9 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
     const rows = [...edge.tracker.coins.values()].filter(c => pairColumn(c, ctx) === stage).sort(order).slice(0, LIMIT)
       .map(c => pairRow(c, edge.assessment(c.token), ctx));
     const today = [...edge.tracker.coins.values()].filter(c => ctx.nowSec - c.ts < 86_400);
-    const firstScan = today.map(c => { const at = edge.probedAtSec(c.token); return at === null ? null : at - c.ts; }).filter((v): v is number => v !== null && v >= 0).sort((a, b) => a - b);
+    // From each coin's first check (kept across restarts), not its latest: a restart re-checks every coin, and a
+    // restored day-old coin read as 'first scanned' hours after launch (the median jumped to ~6.5 h after a deploy).
+    const firstScan = today.map(c => c.firstScanSec !== undefined && c.firstScanSec >= 0 ? c.firstScanSec - c.ts : null).filter((v): v is number => v !== null && v >= 0).sort((a, b) => a - b);
     return { rows, cursor: null, delayedSec: 0, today: { launches: today.length, medianFirstScanSec: firstScan.length ? Math.round(firstScan[Math.floor(firstScan.length / 2)]!) : null,
       refused: edge.counters.honeypotsRefused } };
   });
@@ -153,7 +156,7 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
     const tf = (req.query.tf && req.query.tf in TIMEFRAMES ? req.query.tf : '1m') as Timeframe;
     const ctx = edge.ctx(), from = Number(req.query.from ?? 0), to = Number(req.query.to ?? ctx.nowSec);
     const hypeUsd = ctx.hypeUsd;
-    return { tf, bars: hypeUsd ? barsFromTrades(coin.trades, tf, hypeUsd, from, to).slice(-MAX_BARS) : [], asOfBlock: ctx.head,
+    return { tf, bars: hypeUsd ? barsFromTrades(coin.trades, tf, hypeUsd, from, to, unitScale(coin)).slice(-MAX_BARS) : [], asOfBlock: ctx.head,
       firstTradeTs: coin.trades[0]?.ts ?? null, lastTradeTs: coin.trades.at(-1)?.ts ?? null, ...(hypeUsd ? {} : { unavailable: ['price'] }) };
   });
   // Wallet labels (agent / crew / human) are not computed by the edge yet: no markers rather than unlabelled ones.
@@ -209,7 +212,7 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
   });
 
   // Post-launch features that are on (features/index.ts): their routes come before the catch-all below.
-  for (const feature of opts.features ?? []) feature.register({ app, edge, ...(opts.store ? { store: opts.store } : {}), ...(opts.accounts ? { accounts: opts.accounts } : {}), ...(auth ? { auth } : {}) });
+  for (const feature of opts.features ?? []) feature.register({ app, edge, ...(opts.store ? { store: opts.store } : {}), ...(opts.accounts ? { accounts: opts.accounts } : {}), ...(auth ? { auth } : {}), ...(opts.alerts ? { alerts: opts.alerts } : {}) });
 
   // Everything else under the API is not served yet.
   app.all('/v1/*', async (_req, reply) => fail(reply, 404, 'not_found', `Not available on EKO for ${chain.name} yet.`));

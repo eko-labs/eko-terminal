@@ -40,9 +40,9 @@ export function graduationBps(c: CoinState, openMcapHype = DEFAULT_OPEN_MCAP_HYP
   if (c.graduated) return 10_000;
   // A bonding curve (Pons on Robinhood Chain) graduates when its real quote reserve reaches the threshold.
   if (c.curve) return c.curve.graduationThreshold > 0n ? Math.min(10_000, Number((c.curve.realQuoteReserve * 10_000n) / c.curve.graduationThreshold)) : null;
-  // Pangea has no graduation, and its creator sets the opening market cap (up to ~$100,000 seen): Elysium's market-cap
-  // line would read a made-up price as progress.
-  if (c.launchpad === 'pangea') return null;
+  // Robinhood Chain's pool launchpads have no graduation (Pangea's creator even sets the opening market cap, up to about
+  // $100,000 seen): Elysium's market-cap line would read a made-up price as progress.
+  if (c.launchpad === 'pangea' || c.launchpad === 'longxyz' || c.launchPosition) return null;
   const price = c.trades.at(-1)?.priceHype ?? 0;
   if (c.launchpad === 'montra') {
     if (c.quote !== zeroAddress || !c.openPrice) return null;

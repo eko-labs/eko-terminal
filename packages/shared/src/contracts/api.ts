@@ -9,7 +9,10 @@ import { FeedItemSchema, RadarRowSchema } from './feed.js';
 import { VerdictSchema } from './coin.js';
 import { ReceiptSchema } from './receipts.js';
 // FACTS §7 and BACKEND §23 (v1.2).
-export const ErrorCodeSchema = z.enum(['bad_request', 'unauthorized', 'wallet_auth_required', 'tier_required', 'quota_exceeded', 'rate_limited', 'not_found', 'guard_refused', 'stale_data', 'trade_cap_exceeded', 'trading_paused', 'sanctioned', 'quote_changed', 'quote_expired', 'anti_snipe_active', 'no_route', 'sim_unavailable', 'approval_required', 'wallet_mismatch', 'payment_required', 'internal_error', 'conflict', 'forbidden', 'not_allowlisted']);
+export const ErrorCodeSchema = z.enum(['bad_request', 'unauthorized', 'wallet_auth_required', 'tier_required', 'quota_exceeded', 'rate_limited', 'not_found', 'guard_refused', 'stale_data', 'trade_cap_exceeded', 'trading_paused', 'sanctioned', 'quote_changed', 'quote_expired', 'anti_snipe_active', 'no_route', 'sim_unavailable', 'approval_required', 'wallet_mismatch', 'payment_required', 'internal_error', 'conflict', 'forbidden', 'not_allowlisted',
+  // Trade errors the edge sends that the client read as a bare HTTP status before (additive; TODO(spec): FACTS §7).
+  // not_traded is final (a pool EKO checks but does not trade); route_unavailable is a pool read that may work later.
+  'not_traded', 'route_unavailable', 'amount_out_of_range', 'price_unavailable', 'quote_failed']);
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
 export const ApiErrorSchema = z.object({
   error: ErrorCodeSchema,
@@ -184,7 +187,8 @@ export const AlertSchema = z.object({
   guardV2: GuardAssessmentV2Schema.nullable().optional(),
   id: z.string(),
   ts: z.string(),
-  kind: z.union([AlertSettingsSchema.shape.kinds.element, z.literal('agent_trade')]),
+  // TODO(spec): 'wallet_trade' (a wallet the account follows traded) is a post-launch addition, not in FACTS §7.
+  kind: z.union([AlertSettingsSchema.shape.kinds.element, z.literal('agent_trade'), z.literal('wallet_trade')]),
   level: LevelSchema.optional(),
   coin: AddressSchema.optional(),
   symbol: UntrustedSchema.optional(),

@@ -36,12 +36,12 @@ export interface Bar { ts: number; o: number; h: number; l: number; c: number; v
  * bar's close (the last trade before it, even before `from`), as trading charts do: a bucket with a single trade (most
  * 1-second bars) then shows the move from the last price as a body, not a flat sliver where open = high = low = close.
  */
-export function barsFromTrades(trades: readonly Trade[], tf: Timeframe, hypeUsd: number, from: number, to: number): Bar[] {
+export function barsFromTrades(trades: readonly Trade[], tf: Timeframe, hypeUsd: number, from: number, to: number, unitScale = 1): Bar[] {
   const step = TIMEFRAMES[tf], out: Bar[] = [];
   let bar: Bar | null = null, last: number | null = null;
   for (const t of trades) {
     if (t.ts > to) break;
-    const price = t.priceHype * hypeUsd;
+    const price = t.priceHype * hypeUsd * unitScale;
     if (t.ts < from) { last = price; continue; }
     const bucket = Math.floor(t.ts / step) * step, vol = t.hype * hypeUsd;
     if (!bar || bar.ts !== bucket) { const o = last ?? price; bar = { ts: bucket, o, h: o, l: o, c: price, vUsd: 0 }; out.push(bar); }

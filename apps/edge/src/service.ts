@@ -145,6 +145,7 @@ export class Edge {
         const probed = await this.chain.probe(coin, this.tracker.head, { rpc: this.rpc, hypeUsd: () => this.hype.latest, now: this.opts.now },
           this.probes.get(key)?.tips);
         this.probes.set(key, probed); this.counters.assessed++;
+        if (coin.firstScanSec === undefined) { const at = Date.parse(probed.at) / 1000; coin.firstScanSec = at - coin.ts <= 3600 ? at : -1; }
         this.probedTrades.set(key, coin.trades.length);
         // A check whose sell test could not run is due again at once (stale), so it waits out the failure backoff
         // instead: retrying it every tick spent the paid RPC budget on the same unanswerable coins.

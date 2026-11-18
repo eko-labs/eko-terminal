@@ -86,7 +86,11 @@ export interface JudgeFacts {
   /** The pool's fee, for its pools[] entry. */
   feeBps: number;
   /** Who holds the launch liquidity, where that is known (documented or verified source); null makes no claim. */
-  liquidity: { owner: Address; status: 'locked' | 'removable'; label: string } | null;
+  liquidity: { owner: Address; status: 'locked' | 'removable'; label: string;
+    /** Who controls `owner` (default 'other'): the deployer when the launch handed it the position. */
+    controlledBy?: 'deployer' | 'crew' | 'other';
+    /** The share of the launch liquidity already taken out, and the transaction that last did. */
+    pulled?: { share: number; evidence: { kind: 'tx'; ref: string; label: string }[] } } | null;
   /** How EKO knows the pool's hook, and the fee it takes. Used only when the pool has one. */
   hook: { label: string; reviewed: boolean; sourceVerified: boolean; buyFeePct: number | null; sellFeePct: number | null };
   /** A bonding-curve coin's run-up (playbook run_up): supply bought out of the curve, in all and in the last hour. */
@@ -149,6 +153,9 @@ export interface ChainAdapter {
   apply(log: RawLog, ts: number, t: TrackerCore): void;
   /** Whether a PoolManager Swap counts for this coin (its own manager; not a leg counted elsewhere). */
   countsSwap(coin: CoinState, log: RawLog): boolean;
+  /** A swap of a coin quoted in a token the chain prices (CoinState.quoteConverted), as a trade in native currency; null
+   *  when it cannot be read or priced now. Without it, token-quoted coins' swaps are not counted. */
+  quotedTrade?(coin: CoinState, swap: { amount0: bigint; amount1: bigint; sqrtPriceX96: bigint; sender: Address; tx: Hex; block: number; ts: number }): Trade | null;
   /** A coin with no graduation event of its own graduates on this trade. */
   graduatesOnTrade(coin: CoinState, openMcapHype: number): boolean;
   // Checks.

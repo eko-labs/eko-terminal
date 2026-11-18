@@ -50,6 +50,7 @@ export function tradeErrorText(code: string) {
     case 'stale_data': return C.stale;
     case 'quote_expired': return C.expired;
     case 'no_route': return C.quoteOnly;
+    case 'not_traded': return C.notTraded;
     default: return C.unavailable;
   }
 }
@@ -62,6 +63,8 @@ export interface PanelGate {
 export function panelBlock(g: PanelGate): string | null {
   const { input, snapshot: s } = g, q = s.quote;
   if (!validTradeInput(input)) return C.invalid;
+  // A coin EKO never trades says so first: unlike a pause, it will not change on its own.
+  if (s.error === 'not_traded') return C.notTraded;
   if (g.liveEnabled === false) return C.paused;
   if (g.cap !== undefined && input.amountUsd > g.cap) return C.cap(g.cap);
   if (g.stale) return C.stale;
@@ -159,7 +162,8 @@ export class TradeQuoteSession {
       this.nextRequest = Math.max(this.now() + Math.min(60000, 5000 * 2 ** Math.min(this.failures++, 4)), (error as { retryAt?: number }).retryAt ?? 0);
       this.publish({ loading: false, error: code === 'rate_limited' ? null : code, acknowledged: [] });
       // The API already retries a 429 once. A second refusal waits for a new visible session or user action.
-      if (code !== 'rate_limited') this.poll = setTimeout(() => void this.refresh(), this.nextRequest - this.now());
+      // A pool EKO does not trade stays that way: no retry loop (a new visible session asks once more).
+      if (code !== 'rate_limited' && code !== 'not_traded') this.poll = setTimeout(() => void this.refresh(), this.nextRequest - this.now());
     }
   }
   acknowledge() {

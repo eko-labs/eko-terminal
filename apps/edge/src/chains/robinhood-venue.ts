@@ -1,4 +1,4 @@
-import { zeroAddress } from 'viem';
+import { zeroAddress, type Address } from 'viem';
 import { buildRobinhoodSwap, robinhoodApprovals, robinhoodFill, robinhoodQuote, type RobinhoodTradeAddresses } from './robinhood/trade.js';
 import type { TradeVenue } from './types.js';
 
@@ -6,19 +6,23 @@ const fail = (message: string, code: string, status: number) => Object.assign(ne
 
 /**
  * Trading on Robinhood Chain through the Robinhood trade module (chains/robinhood/trade.ts): a coin's Pons bonding curve
- * before it graduates, its Pons-hooked Uniswap v4 pool after. Pangea coins are checked, never traded (precheck). A v4
+ * before it graduates, its Pons-hooked Uniswap v4 pool after; a hookless native-ETH pool (the unbranded launcher's).
+ * A pool whose hook is not reviewed (Pangea's, long.xyz's) is checked but never traded (precheck). A v4
  * trade calls the Universal Router and a sell approves Permit2 (the public config's routers and spenders). Every Pons
  * coin has its own curve, so no curve is listed there: the quote names the coin's curve (route venue pons_curve, poolId
  * = the curve), and the web accepts it as the call's target and as the spender of that coin's approval, for that quote
  * only (apps/web/src/lib/tradeFlow.ts).
  */
-export function robinhoodVenue(a: RobinhoodTradeAddresses): TradeVenue {
+export function robinhoodVenue(a: RobinhoodTradeAddresses & { ponsHook?: Address }): TradeVenue {
   return {
     routers: [a.universalRouter], spenders: [a.permit2], permit2: a.permit2,
     precheck(coin) {
-      // Pangea pools run an unreviewed hook that can change what a swap pays or returns: EKO checks those coins but does
-      // not build trades into them.
-      if (coin.launchpad === 'pangea') throw fail('EKO checks Pangea coins but does not trade them: their pool\'s hook has not been reviewed.', 'route_unavailable', 409);
+      // A hook can change what a swap pays or returns. Only the Pons hook is reviewed (the registry's); EKO checks coins in
+      // other hooked pools (Pangea, long.xyz) but does not build trades into them. Hookless pools go through the reviewed
+      // Universal Router.
+      const hook = coin.key?.hooks;
+      if (hook && hook !== zeroAddress && !(a.ponsHook && hook.toLowerCase() === a.ponsHook.toLowerCase()))
+        throw fail('EKO checks this coin but does not trade it: its pool\'s hook has not been reviewed.', 'not_traded', 409);
     },
     route(coin, check) {
       if (coin.curve && !coin.graduated) return { kind: 'curve', curve: coin.curve.address, token: coin.token };

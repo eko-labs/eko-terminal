@@ -59,6 +59,8 @@ for (const log of orderRobinhoodLogs(raw)) {
   const e: RobinhoodEvent | null = decodeRobinhoodLog(log, addrs, c => curves.get(c.toLowerCase()) ?? null);
   if (!e) { if (log.topics[0] === tradesQ!.topics[0]![0] && log.address.toLowerCase() === addrs.factory.toLowerCase()) tokenQuoted++; else if (log.topics[0] !== tradesQ!.topics[0]![0] && log.topics[0] !== initQ!.topics[0]) orphanTrades++; continue; }
   counts[e.kind] = (counts[e.kind] ?? 0) + 1;
+  // A liquidity change names a pool, not a coin; this smoke check follows coins by token.
+  if (e.kind === 'liquidity') continue;
   const token = e.kind === 'curve_trade' ? e.token! : e.token;
   const next = applyRobinhoodEvent(coins.get(token.toLowerCase()), e, { addrs });
   if (!next) { if (e.kind === 'graduated') orphanGrads++; continue; }

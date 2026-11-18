@@ -96,6 +96,7 @@ describe('shared guarded panel contract states', () => {
     ['indicative', () => gate(quote({ binding: false })), C.indicative],
     ['stale', () => gate(quote(), { stale: true }), C.stale],
     ['expired', () => gate(quote(), { now: now + 15000 }), C.expired],
+    ['not traded (unreviewed hook)', () => { const g = gate(); g.snapshot = { ...g.snapshot, quote: null, error: 'not_traded' }; return g; }, C.notTraded],
     ['paused', () => gate(quote(), { liveEnabled: false }), C.paused],
     ['configuration missing', () => gate(quote(), { liveEnabled: undefined }), C.config],
     ['cap', () => gate(quote(), { cap: 1 }), C.cap(1)],
@@ -219,6 +220,21 @@ describe('visible quote lifecycle with fixture backend', () => {
     for(let i=0;i<100;i++)session.setAntiSnipeEndsAt(now+4000+i);
     await vi.advanceTimersByTimeAsync(4098); expect(backend).toHaveBeenCalledOnce();
     await vi.advanceTimersByTimeAsync(1); expect(backend).toHaveBeenCalledTimes(2); session.dispose();
+  });
+  it('does not keep asking for a pool EKO does not trade', async () => {
+    const backend = vi.fn(async () => { throw { code: 'not_traded' }; });
+    const { session } = setup(undefined, backend as never); session.setVisible(true); await vi.advanceTimersByTimeAsync(0);
+    expect(session.snapshot.error).toBe('not_traded');
+    await vi.advanceTimersByTimeAsync(120_000); expect(backend).toHaveBeenCalledTimes(1); session.dispose();
+  });
+  it('says a coin is not traded even while live trading is paused (it will not change on its own)', () => {
+    const g = gate(quote(), { liveEnabled: false }); g.snapshot = { ...g.snapshot, quote: null, error: 'not_traded' };
+    expect(panelBlock(g)).toBe(C.notTraded);
+  });
+  it('shows why a coin is not traded, with a short button and no retry', () => {
+    const g = gate(); g.snapshot = { ...g.snapshot, quote: null, error: 'not_traded' };
+    const text = render(<TradePanelView gate={g} {...actions} />);
+    expect(text).toContain(C.notTraded); expect(text).toContain(C.notTradedButton); expect(text).not.toContain(C.retry);
   });
   it('does not spin on expired responses and cannot acknowledge them', async () => {
     const { session, backend } = setup(undefined, vi.fn(async () => warning()));

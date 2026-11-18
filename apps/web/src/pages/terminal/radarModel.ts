@@ -93,7 +93,7 @@ export const refused = (c: Pick<RadarRow, 'verdict' | 'sellCheck' | 'hardDanger'
   c.sellCheck?.status === 'refused' || (c.verdict === 'danger' && (mode !== 'degen' || c.hardDanger === true));
 export const filterRows = (rows: readonly RadarRow[], show: string, stage: string, hideRefused = false, mode: RiskMode = 'balanced') => rows.filter((c) =>
   !(hideRefused && refused(c, mode)) &&
-  (show === 'All' || (show === 'Hot' ? displayHeat(c) === 'hot' : c.verdict === (show === NO_FLAGS ? 'clear' : show.toLowerCase()))) &&
+  (show === 'All' || (show === 'Hot' ? displayHeat(c) === 'hot' : show === NO_FLAGS ? c.verdict === 'clear' && !isLifeless(noMatchLabel(c)) : c.verdict === show.toLowerCase())) &&
   // Curve and Migrated are a Pons coin's two stages; a coin that launched in a Uniswap pool has neither.
   (stage === 'All' || (stage === 'Uniswap' ? c.launchpad !== 'pons' : c.launchpad === 'pons' && c.stage === (stage === 'Curve' ? 'curve' : 'graduated'))));
 export function applyRadarEvents(rows: readonly RadarRow[], events: readonly ChannelEvent<'radar'>[]): RadarRow[] {
@@ -148,6 +148,10 @@ export function noMatchLabel(c: VerdictActivity & VerdictStatus): string | undef
   const pct = `${progress < 10 ? progress.toFixed(1) : Math.round(progress)}%`;
   return progress < EARLY_GRADUATION_PCT ? `Early · ${pct} to graduation` : `${pct} to graduation · no flags`;
 }
+
+/** A no-flags coin that is over (Dead, Inactive): not a "No flags" pick, no run-up suffix, no bright Trade. A Quiet coin
+ *  (under an hour old, no trades yet) is not: its run-up can still mean something. */
+export const isLifeless = (label?: string) => !!label && /^(Dead|Inactive)\b/.test(label);
 
 export function coinVerdictActivity(card: CoinCard, nowMs: number): VerdictActivity {
   const { identity, flow } = card;

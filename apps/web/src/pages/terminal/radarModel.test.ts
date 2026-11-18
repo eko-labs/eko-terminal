@@ -28,6 +28,12 @@ describe('Radar server order and user sorting', () => {
     const rows = createRadarRows().slice(0,2); rows[0].signal = undefined; expect(sortRows(rows,'Rank')).toEqual(rows);
     const before=sortRows(rows,'Hottest').map(c=>c.address); rows[1].signal!.composite=0; expect(sortRows(rows,'Hottest').map(c=>c.address)).toEqual(before);
   });
+  it('leaves Dead and Inactive coins out of the No flags filter (their chips do not say No flags)', () => {
+    const live = { ...createRadarRows()[0], verdict: 'clear' as const, verdictPending: false, guardV2: undefined, stage: 'curve' as const, launchpad: 'pons' as const, curvePct: 40, trades1h: 5, volume1hUsd: 900, ageSec: 900, unavailable: [] };
+    const dead = { ...live, address: '0x00000000000000000000000000000000000000d1', curvePct: 0, trades1h: 0, volume1hUsd: 0, liquidityUsd: 0, ageSec: 7200, flow: undefined } as unknown as typeof live;
+    expect(noMatchLabel(dead)).toMatch(/^Dead/);
+    expect(filterRows([live, dead], 'No flags', 'All').map(c => c.address)).toEqual([live.address]);
+  });
   it('hides refused coins on request: Danger grades and failed sell checks, on top of any other filter', () => {
     const rows = createRadarRows(), danger = rows.filter(c => c.verdict === 'danger').length;
     expect(danger).toBeGreaterThan(0);

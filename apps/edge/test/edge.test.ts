@@ -67,6 +67,13 @@ describe('market maths', () => {
     expect(tradeFromSwap({ ...base, amount0: 10n ** 18n, amount1: -5n * 10n ** 18n })?.side).toBe('sell');
     expect(tradeFromSwap({ ...base, amount0: 1n, amount1: 1n })).toBeNull();
   });
+  it('shows price per whole token and circulating supply at the coin\'s own decimals (Pangea: 9)', async () => {
+    const { unitScale } = await import('../src/views.js');
+    expect(unitScale({})).toBe(1); expect(unitScale({ decimals: 9 })).toBeCloseTo(1e-9);
+    const t = (ts: number, priceHype: number): Trade => ({ ts, block: ts, tx: '0x01', sender: '0x00000000000000000000000000000000000000a1', side: 'buy', hype: 1, tokens: 1, priceHype });
+    // One ETH per 1e18 base units at $1,800 is $0.0000018 a token when a token is 1e9 base units.
+    expect(barsFromTrades([t(60, 1)], '1m', 1800, 0, 100, unitScale({ decimals: 9 }))[0]!.c).toBeCloseTo(1.8e-6);
+  });
   it('builds USD bars, change and a sparkline from trades', () => {
     const t = (ts: number, priceHype: number, hype: number): Trade => ({ ts, block: ts, tx: '0x01', sender: '0x00000000000000000000000000000000000000a1', side: 'buy', hype, tokens: 1, priceHype });
     const trades = [t(60, 1, 1), t(90, 2, 1), t(130, 1.5, 2)];

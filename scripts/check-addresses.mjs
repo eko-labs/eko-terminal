@@ -18,6 +18,12 @@ export function addressViolations(files, registryText) {
   // Pangea's launcher, pool hook and liquidity manager (measured on chain 2026-11-18, chains/robinhood/profile.ts PANGEA;
   // docs/robinhood/CHAIN-FACTS.md §7). TODO(spec): move them into addresses.4663.yaml with the others above.
   for (const a of ['0xaA61764BD44df5468CaaE856232Ce9B711512449', '0x8e1Bf182a2a1FEdF9850379127D4535F18EA68cc', '0xbebe68fBfB62E18FBFEbf4365970D192C5f34DC1']) allowed.add(a.toLowerCase());
+  // long.xyz's (Doppler) Airlock and pool hook, and the unbranded hookless launcher (measured on chain 2026-11-18,
+  // chains/robinhood/profile.ts LONGXYZ and UNBRANDED_LAUNCHER; docs/robinhood/CHAIN-FACTS.md §8).
+  for (const a of ['0xeb7C034704eF8Dcd2D32324c1545f62fB4aD0862', '0x4e3468951D49f2EEa976eD0D6e75fFCb44a9a544', '0x3194e32622C5D860a0572C74EdDa99dcfD8FC827']) allowed.add(a.toLowerCase());
+  // The beacon behind every Robinhood stock token (measured on chain 2026-11-18, chains/robinhood/profile.ts
+  // ROBINHOOD_STOCK_TOKEN; docs/robinhood/CHAIN-FACTS.md §9): a quote token is priced as a stock only with it.
+  allowed.add('0xe10b6f6B275de231345c20D14Ab812db62151b00'.toLowerCase());
   return files.flatMap(({ path, text }) => [...text.matchAll(/(?<![0-9a-fA-F])0x[0-9a-fA-F]{40}(?![0-9a-fA-F])/g)].flatMap(match => {
     const address = match[0].toLowerCase();
     if (allowed.has(address) || heritageTestnet.get(path)?.has(address)) return [];
@@ -41,7 +47,9 @@ export function sourceFiles(dir, base = root) {
     if (/^(tests?|__tests__|fixtures?|__fixtures__|mocks?|__mocks__|docs)$/.test(entry.name)) return [];
     const path = resolve(dir, entry.name);
     if (entry.isDirectory()) return sourceFiles(path, base);
-    if (!/\.(?:[cm]?[jt]sx?|json|ya?ml|svelte|vue|html|css|sql)$/.test(entry.name) || /\.(?:test|spec|mock|fixture)\./.test(entry.name)) return [];
+    if (!/\.(?:[cm]?[jt]sx?|json|ya?ml|svelte|vue|html|css|sql)$/.test(entry.name) || /\.(?:test|spec|mock|fixture)\./.test(entry.name)
+      // A feature folder's demo.ts: example data loaded only in mock mode (features.ts `demo`), never served.
+      || /^demo\.[cm]?[jt]sx?$/.test(entry.name)) return [];
     return [{ path: relative(base, path).replaceAll('\\', '/'), text: readFileSync(path, 'utf8') }];
   });
 }

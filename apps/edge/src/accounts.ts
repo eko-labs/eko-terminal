@@ -4,6 +4,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { encodeFunctionData, getAddress, hashMessage, isAddress, parseAbi, recoverMessageAddress, type Address, type Hex } from 'viem';
 import { parseSiweMessage, validateSiweMessage } from 'viem/siwe';
+import type { AlertInbox } from './alerts.js';
 import { AlertSettingsSchema, DEFAULT_PREFERENCES, PreferencesSchema, SiweVerifySchema, WatchBodySchema, type AlertSettings, type Me } from '@eko/shared';
 import type { Rpc } from './tracker.js';
 import type { ChainProfile } from './chains/types.js';
@@ -101,6 +102,8 @@ const erc1271 = parseAbi(['function isValidSignature(bytes32 hash, bytes signatu
 
 export interface AuthContext {
   store: AccountStore; rpc?: Rpc; onErase?: (accountId: string) => void;
+  /** In-site alerts (alerts.ts): `GET /v1/alerts` reads them. Without it the list is empty. */
+  alerts?: AlertInbox;
   /** The deployment's chain: a sign-in message must name its id, and no other. */
   chain: Pick<ChainProfile, 'id' | 'name'>;
 }
@@ -145,6 +148,7 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AuthContext) {
     if (!sameOrigin(req)) return fail(reply, 403, 'forbidden', 'Cross-site requests are refused.');
   });
   const account = (req: FastifyRequest) => store.bySession(readCookie(req));
+  const erasers: ((accountId: string) => void)[] = [];
   const need = (req: FastifyRequest, reply: FastifyReply) => {
     const a = account(req);
     if (!a) void fail(reply, 401, 'wallet_auth_required', 'Sign in with your wallet to continue.');
@@ -219,7 +223,8 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AuthContext) {
   });
   app.delete('/v1/me/data', async (req, reply) => {
     const a = need(req, reply); if (!a) return reply;
-    ctx.onErase?.(a.id);
+    ctx.onErase?.(a.id); ctx.alerts?.erase(a.id);
+    for (const erase of erasers) erase(a.id);
     store.erase(a.id);
     reply.header('set-cookie', sessionCookie(req, '', 0));
     return { deletedAt: new Date().toISOString() };
@@ -269,7 +274,12 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AuthContext) {
     store.db.prepare('INSERT INTO alert_settings(account_id, data) VALUES(?, ?) ON CONFLICT(account_id) DO UPDATE SET data = excluded.data').run(a.id, JSON.stringify(p.data));
     return p.data;
   });
-  app.get('/v1/alerts', async (req, reply) => { const a = need(req, reply); if (!a) return reply; return { rows: [], cursor: null }; });
+  app.get<{ Querystring: { after?: string } }>('/v1/alerts', async (req, reply) => {
+    const a = need(req, reply); if (!a) return reply;
+    const after = Number(req.query.after ?? 0);
+    return ctx.alerts?.page(a.id, Number.isSafeInteger(after) && after > 0 ? after : 0) ?? { rows: [], cursor: null, seq: 0 };
+  });
 
-  return { account, need };
+  /** `onErase(fn)`: also forget an account's data kept elsewhere (other modules' tables) when it erases its data. */
+  return { account, need, onErase: (fn: (accountId: string) => void) => { erasers.push(fn); } };
 }

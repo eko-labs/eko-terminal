@@ -4,6 +4,7 @@ import { Glyph } from '../../components/chart/FlowLayer';
 import { CHAIN_KEY } from '../../lib/chain';
 import { NOT_CHECKED } from '../../copy/availability';
 import { FlowBar, WINDOW_WORD, buyShare, flowUsd } from './FlowBar';
+import { WalletSlots } from '../../components/coinSlots';
 
 /**
  * The coin page's Flow and Trades tabs. Buy and sell flow is measured from the coin's on-chain trades and token
@@ -21,7 +22,7 @@ const byWindow = (flows: Flow[]) => ORDER.map(w => flows.find(f => f.window === 
 const labelsMeasured = (f: Flow, unavailable?: boolean) => !unavailable && !f.meta?.unavailable;
 
 function Wallet({ address }: { address: string }) {
-  return <a className="addr" href={`${EXPLORER}/address/${address}`} target="_blank" rel="noopener noreferrer" title={address}>{short(address)}</a>;
+  return <><a className="addr" href={`${EXPLORER}/address/${address}`} target="_blank" rel="noopener noreferrer" title={address}>{short(address)}</a><WalletSlots wallet={address} /></>;
 }
 function Side({ side }: { side: 'buy' | 'sell' }) { return <span className={`coin-side ${side}`}>{side === 'buy' ? 'Buy' : 'Sell'}</span>; }
 

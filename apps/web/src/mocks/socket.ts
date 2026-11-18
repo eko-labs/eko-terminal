@@ -1,4 +1,5 @@
-import type { WsClient, WsServer } from '@eko/shared';
+import type { Flags, WsClient, WsServer } from '@eko/shared';
+import { featureDemos } from './features';
 import type { ChannelTransport } from '../lib/realtime';
 import type { WsState } from '../lib/ws';
 import { createWsEventMap } from './fixtures';
@@ -22,7 +23,29 @@ export class MockChannelSocket implements ChannelTransport {
   private seq = new Map<string, number>();
   private channels = new Set<string>();
   private off?: () => void;
+  /** Feature folders' demo pushes per channel (features.ts `demo`), for features whose flag is on. */
+  private featureStops = new Map<string, (() => void)[]>();
+  constructor(private readonly flags?: Partial<Flags>) {}
   private emit(m: WsServer) { this.listeners.forEach((l) => l(m)); }
+  private startFeatures(ch: string) {
+    if (this.featureStops.has(ch)) return;
+    const stops: (() => void)[] = [];
+    this.featureStops.set(ch, stops);
+    void featureDemos(this.flags).then((demos) => {
+      if (this.featureStops.get(ch) !== stops) return;
+      for (const demo of demos) {
+        const stop = demo.channel?.(ch, (kind, data) => {
+          if (!this.channels.has(ch)) return;
+          const next = (this.seq.get(ch) ?? 0) + 1; this.seq.set(ch, next);
+          this.emit({ t: 'ev', ch, seq: next, ts: Date.now(), kind, data } as WsServer);
+        });
+        if (stop) stops.push(stop);
+      }
+    });
+  }
+  private stopFeatures(ch?: string) {
+    for (const [key, stops] of this.featureStops) if (ch === undefined || key === ch) { stops.forEach((s) => s()); this.featureStops.delete(key); }
+  }
   connect() {
     this.off?.();
     this.off = onMissionEvent((e) => {
@@ -34,17 +57,18 @@ export class MockChannelSocket implements ChannelTransport {
     this.emit({ t: 'hello', serverTime: Date.now(), session: 'anon', delayedSec: 0 });
   }
   private stopRadar() { this.radarSubscribed = false; if (this.radarTimer) clearInterval(this.radarTimer); this.radarTimer = undefined; }
-  close() { this.off?.(); this.off = undefined; this.stopRadar(); if (this.coinTimer) clearInterval(this.coinTimer); this.coinTimer = undefined; this.marketTimers.forEach(clearInterval); this.marketTimers.clear(); this.channels.clear(); this.state = 'closed'; this.states.forEach((l) => l('closed')); }
+  close() { this.off?.(); this.off = undefined; this.stopRadar(); this.stopFeatures(); if (this.coinTimer) clearInterval(this.coinTimer); this.coinTimer = undefined; this.marketTimers.forEach(clearInterval); this.marketTimers.clear(); this.channels.clear(); this.state = 'closed'; this.states.forEach((l) => l('closed')); }
   reconnect() { this.close(); this.connect(); }
   send(m: WsClient) {
     if (m.op === 'ping') { this.emit({ t: 'pong', serverTime: Date.now() }); return; }
-    if (m.op === 'unsub') { m.ch.forEach((ch) => { this.channels.delete(ch); const timer = this.marketTimers.get(ch); if (timer) clearInterval(timer); this.marketTimers.delete(ch); }); if (m.ch.includes('radar')) this.stopRadar(); return; }
+    if (m.op === 'unsub') { m.ch.forEach((ch) => { this.channels.delete(ch); this.stopFeatures(ch); const timer = this.marketTimers.get(ch); if (timer) clearInterval(timer); this.marketTimers.delete(ch); }); if (m.ch.includes('radar')) this.stopRadar(); return; }
     const map = createWsEventMap();
     map.feed.item.block = MOCK_HEAD_BLOCK;
     for (const ch of m.ch) {
       this.channels.add(ch);
       const seq = this.seq.get(ch) ?? 0;
       this.emit({ t: 'ack', ch, seq });
+      this.startFeatures(ch);
       if (ch === 'pairs' || ch === 'feed') {
         if (!this.marketTimers.has(ch)) this.marketTimers.set(ch, setInterval(() => {
           if (!this.channels.has(ch)) return;

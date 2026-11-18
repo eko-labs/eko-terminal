@@ -20,7 +20,20 @@ export interface Flow { tx: Hex; block: number; ts: number; from: string; to: st
 
 export interface CoinState {
   /** Which launchpad launched it; Montra's own terms (config, fees) are read only for Montra coins. */
-  launchpad: LaunchpadId | 'pons' | 'pangea';
+  /** The coin's ERC-20 decimals when not 18 (Pangea coins have 9), read on its first check. Internal amounts stay in
+   *  18-decimal units throughout (price per 1e18 base units, supply in base units), so only displays scale by it. */
+  decimals?: number;
+  /** When EKO first checked the coin (unix seconds), kept across restarts by the snapshot; -1 when EKO first saw it
+   *  more than an hour after its launch (restored, recovered or found late), so it is left out of the scan-time median. */
+  firstScanSec?: number;
+  launchpad: LaunchpadId | 'pons' | 'pangea' | 'longxyz';
+  /**
+   * A coin quoted in a token (`quote`) whose swaps the chain converts into native currency at that token's price when
+   * each is applied (ChainAdapter.quotedTrade): its trades, volume, net flow and opening price are then in native units,
+   * and views read it like a native-quoted coin. `kind` is how the API names the quote. Absent: a token-quoted coin's
+   * trades are not counted.
+   */
+  quoteConverted?: { kind: 'ETH' | 'USDG' | 'stock_token'; symbol: string; decimals: number };
   /** The pool key when the launch gave it (other launchpads); Montra coins read theirs from the hook. A bonding-curve
    *  coin has none (and a zero poolId, NO_POOL) until it graduates into its v4 pool. */
   key: V4PoolKey | null;
@@ -47,6 +60,12 @@ export interface CoinState {
   /** A launchpad bonding curve's state before graduation (Pons): progress is realQuoteReserve over graduationThreshold.
    *  On graduation the coin gets its v4 key, poolId and manager, and the v4 Swap path takes over. */
   curve?: { address: Address; graduationThreshold: bigint; realQuoteReserve: bigint; realTokenReserve: bigint };
+  /**
+   * A launch position a wallet holds (Robinhood Chain's unbranded launcher mints its PositionManager NFT to the creator):
+   * the position's salt in the pool, the liquidity the launch added, how much of it has been removed since (and in which
+   * transaction last), and the native currency the launch put in.
+   */
+  launchPosition?: { owner: Address; salt: Hex; seed: bigint; liquidity: bigint; removed: bigint; removedTx: Hex | null };
 }
 export interface FeedEvent { id: string; kind: 'new_pair' | 'graduation' | 'trade'; coin: Address; ts: number; block: number; side?: 'buy' | 'sell'; hype?: number; wallet?: Address }
 
@@ -304,11 +323,15 @@ export class Tracker implements TrackerCore {
       if (!coin) return;
       // A trade's amounts and price are in the native coin. A coin quoted in another token would be read in the wrong unit
       // (and upside down when the coin sorts first in its pool), showing absurd prices and volume: its trades are left
-      // out until that token is priced. And a swap counts only where the chain says it does (its own PoolManager).
-      if (coin.quote !== zeroAddress || !this.chain.countsSwap(coin, log)) return;
+      // out unless the chain prices that token and converts them (quoteConverted, chain.quotedTrade). And a swap counts
+      // only where the chain says it does (its own PoolManager).
+      const quoted = coin.quote !== zeroAddress;
+      if ((quoted && !coin.quoteConverted) || !this.chain.countsSwap(coin, log)) return;
       const { args } = decodeEventLog({ abi: swapAbi, topics: log.topics as [Hex, ...Hex[]], data: log.data });
-      const trade = tradeFromSwap({ amount0: coin.flipped ? args.amount1 : args.amount0, amount1: coin.flipped ? args.amount0 : args.amount1, sqrtPriceX96: args.sqrtPriceX96, sender: args.sender, tx: log.transactionHash, block, ts });
-      if (!coin.flipped) coin.sqrtPriceX96 = args.sqrtPriceX96;
+      const swap = { amount0: args.amount0, amount1: args.amount1, sqrtPriceX96: args.sqrtPriceX96, sender: args.sender, tx: log.transactionHash, block, ts };
+      const trade = quoted ? this.chain.quotedTrade?.(coin, swap) ?? null
+        : tradeFromSwap({ ...swap, amount0: coin.flipped ? args.amount1 : args.amount0, amount1: coin.flipped ? args.amount0 : args.amount1 });
+      if (!quoted && !coin.flipped) coin.sqrtPriceX96 = args.sqrtPriceX96;
       // A swap's sender is the router, not the wallet: buyers come from transfers (holders.ts).
       if (trade) this.trade(coin, trade, log);
       return;

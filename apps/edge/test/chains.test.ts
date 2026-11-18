@@ -109,7 +109,8 @@ describe('publicConfig.chain', () => {
 describe('the Robinhood adapter', () => {
   it('follows a Pons coin from launch along its curve to graduation, then counts its pool\'s swaps', () => {
     const chain = loadChain('robinhood'), tracker = new Tracker(noRpc, chain);
-    expect(chain.queries).toHaveLength(2);
+    // Launch records and curve trades, native Initialize, and ModifyLiquidity (launch positions a wallet holds).
+    expect(chain.queries).toHaveLength(3);
     const fx = gradFx as unknown as { token: Address; curve: Address; launch: RawLog; curveLogs: RawLog[]; initialize: RawLog; mints: RawLog[] };
     tracker.applyAll([fx.launch, ...fx.mints, ...fx.curveLogs, fx.initialize], (l) => 1_763_000_000 + Number(BigInt(l.blockNumber)) % 100_000);
     const coin = tracker.coin(fx.token)!;

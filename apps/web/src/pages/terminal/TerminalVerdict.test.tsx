@@ -33,9 +33,9 @@ describe('Terminal verdict chips', () => {
     for (const html of views) {
       const chip = html.match(/<button[^>]*class="verdict neutral[^>]*>[\s\S]*?<\/button>/)?.[0];
       expect(chip).toContain('Dead · no buyers');
-      expect(chip).toContain('Run-up 0');
+      // A dead coin's chip drops "Run-up 0" but keeps its tap-to-explain description.
+      expect(chip).not.toContain('Run-up');
       expect(chip).toContain('aria-expanded="false"');
-      expect(chip).toContain('0–100 scale');
       expect(chip).not.toContain('<svg');
       const descriptionId = chip?.match(/aria-describedby="([^"]+)"/)?.[1];
       expect(html).toContain(`id="${descriptionId}" class="verdict-description" hidden=""`);

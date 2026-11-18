@@ -186,7 +186,7 @@ export class WatchAlertsService {
               const settings = await this.settings(watch.account_id, tx), alert = candidate.alert;
               if (alert.kind === 'agent_trade') {
                 if (settings.agentTradeAboveUsd === undefined || alert.sizeUsd! <= settings.agentTradeAboveUsd) continue;
-              } else if (!settings.kinds.includes(alert.kind)) continue;
+              } else if (!(settings.kinds as readonly string[]).includes(alert.kind)) continue;
               if (alert.level && severity[alert.level] < severity[settings.minLevel]) continue;
               // Quiet hours suppress toast creation; Telegram retries independently honor the current quiet period.
               if (quiet(settings, this.now())) continue;
@@ -235,7 +235,7 @@ export class WatchAlertsService {
       for (const row of rows) {
         const settings = await this.settings(row.account_id, tx);
         const watch = (await tx.sql.query('SELECT 1 FROM watches WHERE account_id=$1 AND kind=$2 AND target=$3', [row.account_id, row.watch_kind, row.watch_target])).rows.length;
-        const enabled = row.data.kind === 'agent_trade' ? settings.agentTradeAboveUsd !== undefined && row.data.sizeUsd! > settings.agentTradeAboveUsd : settings.kinds.includes(row.data.kind);
+        const enabled = row.data.kind === 'agent_trade' ? settings.agentTradeAboveUsd !== undefined && row.data.sizeUsd! > settings.agentTradeAboveUsd : (settings.kinds as readonly string[]).includes(row.data.kind);
         if (!watch || !settings.telegram || !enabled || row.data.level && severity[row.data.level] < severity[settings.minLevel]) {
           await tx.sql.query(`UPDATE alert_deliveries SET telegram_status='disabled' WHERE account_id=$1 AND seq=$2`, [row.account_id, row.seq]);
         } else if (!quiet(settings, this.now())) {

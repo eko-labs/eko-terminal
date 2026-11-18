@@ -20,7 +20,8 @@ export function chainKeyFrom(value: string | undefined): ChainKey {
   throw new Error(`EKO_CHAIN must be one of ${CHAIN_KEYS.join(', ')}; got "${v.slice(0, 40)}".`);
 }
 
-/** The adapter for a chain, with its registry loaded. */
-export function loadChain(key: ChainKey): ChainAdapter {
-  return key === 'elysium' ? elysiumChain(loadElysiumRegistry()) : robinhoodChain();
+/** The adapter for a chain, with its registry loaded. `flags` are the features on (EKO_FLAGS): a chain's adapter may read
+ *  the ones that change what it follows (more_launchpads on Robinhood Chain). */
+export function loadChain(key: ChainKey, flags: ReadonlySet<string> = new Set()): ChainAdapter {
+  return key === 'elysium' ? elysiumChain(loadElysiumRegistry()) : robinhoodChain(undefined, { moreLaunchpads: flags.has('more_launchpads') });
 }

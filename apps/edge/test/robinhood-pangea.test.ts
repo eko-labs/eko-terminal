@@ -41,8 +41,8 @@ function probed(coin: CoinState): RobinhoodProbed {
 describe('Pangea launches (Robinhood Chain)', () => {
   it('decodes the launcher\'s pool record: coin, creator, the native-ETH pool key that hashes to its id, and the opening tick', () => {
     const e = decodeRobinhoodLog(record as RawRobinhoodLog, addrs);
-    expect(e).toMatchObject({ kind: 'pangea_launch', token, creator: getAddress(fx.creator), openTick: -40_200, block: fx.launchBlock });
-    if (e?.kind !== 'pangea_launch') throw new Error('not a Pangea launch');
+    expect(e).toMatchObject({ kind: 'pool_launch', launchpad: 'pangea', token, creator: getAddress(fx.creator), openTick: -40_200, block: fx.launchBlock, launchPosition: null });
+    if (e?.kind !== 'pool_launch') throw new Error('not a Pangea launch');
     expect(e.key).toEqual({ currency0: zeroAddress, currency1: token, fee: 0, tickSpacing: 60, hooks: addrs.pangeaHook });
     // The same pool the PoolManager initialized in that transaction.
     expect(e.poolId).toBe(init.topics[1]!.toLowerCase());
@@ -60,7 +60,8 @@ describe('Pangea launches (Robinhood Chain)', () => {
 
   it('costs the tracker no extra log call: the record rides in the launch-and-curve topic-OR query', () => {
     const queries = robinhoodLogQueries(addrs);
-    expect(queries).toHaveLength(2);
+    // Launch records and curve trades (no address), native Initialize, and ModifyLiquidity (launch positions, 2026-11-18).
+    expect(queries).toHaveLength(3);
     expect(queries[0]!.address).toBeUndefined();
     expect(queries[0]!.topics[0]).toContain(PANGEA_POOL_TOPIC);
     // The record comes after the mint and the swaps in its transaction: launches are applied first.
@@ -153,7 +154,7 @@ describe('Pangea launches (Robinhood Chain)', () => {
     expect(p).toMatchObject({ name: 'Speedd', symbol: 'SPd', key: coin.key, pons: null, lock: null });
     expect(p.probe).toMatchObject({ venue: 'uniswap_v4', routeId: `uniswap_v4:${coin.poolId}`, status: 'sellable', exitCostPct: 1.99 });
     expect(routes).toHaveLength(1);
-    expect(() => robinhoodChain().trade.precheck!(coin)).toThrow(/does not trade them/);
+    expect(() => robinhoodChain().trade.precheck!(coin)).toThrow(/does not trade it: its pool's hook has not been reviewed/);
   });
 });
 

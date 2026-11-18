@@ -1132,6 +1132,7 @@
       "tiers_active": false,
       "trial": false,
       "referrals": false,
+      "more_launchpads": false,
       "afi": false,
       "x402_api": false,
       "agent_annotations": false,
@@ -1150,7 +1151,10 @@
       "chain_base": false,
       "institutional_pack": false,
       "marketplace": false,
-      "eko_agent": false
+      "eko_agent": false,
+      "wallet_tags": false,
+      "dev_profile": false,
+      "wallet_tracker": false
     },
     "tiers": [
       {
@@ -2241,6 +2245,7 @@
     "tiers_active": false,
     "trial": false,
     "referrals": false,
+    "more_launchpads": false,
     "afi": false,
     "x402_api": false,
     "agent_annotations": false,
@@ -2259,7 +2264,10 @@
     "chain_base": false,
     "institutional_pack": false,
     "marketplace": false,
-    "eko_agent": false
+    "eko_agent": false,
+    "wallet_tags": false,
+    "dev_profile": false,
+    "wallet_tracker": false
   },
   "OpsSwitch": "trading_live",
   "WsEventMap": {
