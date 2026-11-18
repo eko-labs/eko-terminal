@@ -1,6 +1,18 @@
 import { expect } from '@playwright/test';
 import { test } from './helpers';
 
+test('page titles use the shared face and keep their responsive sizes', async ({ page }) => {
+  const fontSize = page.viewportSize()!.width <= 700 ? '40px' : '56.56px';
+  for (const [path, name] of [
+    ['/bags', 'Scan my bags'], ['/census', 'Agent Census'], ['/scan', 'Every move has a cause.'],
+  ]) {
+    await page.goto(path);
+    const title = page.getByRole('heading', { name, level: 1 });
+    await expect(title).toHaveCSS('font-family', /Helvetica Neue/);
+    await expect(title).toHaveCSS('font-size', fontSize);
+  }
+});
+
 test('Desk controls, inert source text, focus, persistence and resizing', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));

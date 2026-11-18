@@ -7,7 +7,7 @@ import { useApp } from './store/app';
 if (import.meta.env.DEV) (window as unknown as { __eko: typeof useApp }).__eko = useApp;
 export default function TerminalApp() {
   const path = usePath(), requested = useWalletState(s => s.requested);
-  const needsWallet = requested || /^\/(coin\/|bags$|settings(?:\/|$)|oauth\/|mission(?:\/|$)|approve\/|watch$|internal\/review\/)/.test(path);
+  const needsWallet = requested || /^\/(coin\/|bags$|orders$|settings(?:\/|$)|oauth\/|mission(?:\/|$)|approve\/|watch$|internal\/review\/)/.test(path);
   useEffect(() => { if (needsWallet && !requested) useWalletState.setState({ requested: true }); }, [needsWallet, requested]);
   useEffect(() => {
     registerPwa();

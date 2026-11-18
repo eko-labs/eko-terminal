@@ -19,7 +19,7 @@ export const CHAIN_COPY_BY_CHAIN = {
     pairsIntro: 'Every launch on Elysium gets a Fast Scan before it gets a Trade button.',
     pairs: {
       new: { sub: 'Under half way to graduation, newest first', about: 'Every launch on Elysium, from its first block. Nothing on Elysium has a bonding curve: each coin trades in its own Uniswap pool from launch, with its launch liquidity locked.' },
-      near_grad: { about: "Montra marks graduation as a line in the coin's own pool, at 16.8× its opening price. Nothing migrates when a coin passes it. Launchpads without a line of their own are measured against the same market cap." },
+      near_grad: { sub: 'Half way or more, closest first', about: "Montra marks graduation as a line in the coin's own pool, at 16.8× its opening price. Nothing migrates when a coin passes it. Launchpads without a line of their own are measured against the same market cap." },
       migrated: { sub: 'Past the graduation line, latest first', about: "Coins past the graduation line: Montra's Graduated event, or the same market cap reached on another launchpad. They keep trading in the same pool." },
     },
     gradTitle: 'How far the coin is to the graduation line: 16.8× the opening price on Montra, or the same market cap on other launchpads.',
@@ -43,8 +43,8 @@ export const CHAIN_COPY_BY_CHAIN = {
     feedIntro: 'Trades, Fast Scans, playbook alerts and Ghost Reports across Robinhood Chain, as they happen.',
     pairsIntro: 'Every Pons launch and new Uniswap pool on Robinhood Chain gets a Fast Scan before it gets a Trade button.',
     pairs: {
-      new: { sub: 'Under half way to graduation, newest first', about: 'Pairs still on the Pons bonding curve, and coins that launched straight into a Uniswap pool. A Pons launch starts with a decaying anti-sniper tax.' },
-      near_grad: { about: 'A Pons coin trades on its bonding curve until the curve fills. At 100% it graduates: its liquidity moves to a Uniswap v4 pool with the Pons hook. The guard rescans at graduation.' },
+      new: { sub: 'Under 30% of the way to graduation, newest first', about: 'Pairs still on the Pons bonding curve, and coins that launched straight into a Uniswap pool. A Pons launch starts with a decaying anti-sniper tax.' },
+      near_grad: { sub: '30% of the way or more, closest first', about: 'A Pons coin trades on its bonding curve until the curve fills. At 100% it graduates: its liquidity moves to a Uniswap v4 pool with the Pons hook. The guard rescans at graduation.' },
       migrated: { sub: 'Graduated to a pool, latest first', about: 'Pons coins whose curve filled and that now trade in their Uniswap v4 pool. Trading routes and fees appear in the guarded panel.' },
     },
     gradTitle: 'How far the coin is to graduation: a Pons coin graduates when its bonding curve fills; other launchpads are measured against the same market cap.',

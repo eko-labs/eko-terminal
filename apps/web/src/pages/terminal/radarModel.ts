@@ -1,8 +1,9 @@
 import { z } from 'zod';
-import { RadarRowSchema, type RadarRow } from '@eko/shared';
+import { RadarRowSchema, type CoinCard, type RadarRow } from '@eko/shared';
 import type { ChannelEvent } from '../../lib/realtime';
 import { activityRatio, displayHeat, heatOf } from '../../lib/heat';
 import { NO_FLAGS, SCAN_DELAYED_AFTER_SEC } from '../../copy/availability';
+import { pick } from '../../lib/chain';
 export { RadarResponseSchema } from '@eko/shared';
 export const SORTS = ['Rank', 'Hottest', '1h move', 'Price', 'Market cap', 'Agent flow', 'Newest', 'Exit cost'] as const;
 export type Sort = typeof SORTS[number];
@@ -94,6 +95,51 @@ export const PLAYBOOK_NAMES: Record<string, string> = { honeypot: 'Honeypot', ta
 export const pct = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`;
 export const usd = (v: number) => v >= 1e6 ? `$${(v / 1e6).toFixed(2)}M` : v >= 1000 ? `$${Math.round(v / 1000)}K` : `$${Math.round(v).toLocaleString('en-US')}`;
 export const price = (v: number) => `$${v.toFixed(v < .01 ? 7 : 2)}`;
+// TODO(spec): These are display thresholds. Give launches five minutes to find buyers and require both
+// negligible progress (1%) and negligible reserves ($1) before calling a quiet curve dead.
+const NEW_CURVE_GRACE_SEC = 5 * 60;
+const TRADE_WINDOW_SEC = 60 * 60;
+const NEAR_EMPTY_CURVE_PCT = 1;
+const NEAR_EMPTY_CURVE_USD = 1;
+// The Pons run-up calibration starts watching at 15% progress.
+const EARLY_GRADUATION_PCT = 15;
+const GRADUATED_NO_MATCH = pick({ robinhood: 'On Uniswap · no flags', elysium: 'Graduated · no flags' });
+
+export type VerdictActivity = Partial<Pick<RadarRow, 'stage' | 'launchpad' | 'curvePct' | 'graduationPct' | 'ageSec' | 'trades1h' | 'volume1hUsd' | 'liquidityUsd' | 'flow' | 'unavailable'>> & { buyers?: number };
+type VerdictStatus = Pick<RadarRow, 'verdict' | 'verdictPending' | 'guardV2'>;
+
+/** Context for a completed no-match verdict, using measured activity and leaving risk grades intact. */
+export function noMatchLabel(c: VerdictActivity & VerdictStatus): string | undefined {
+  if (c.verdict !== 'clear' || c.verdictPending || c.guardV2?.mode === 'active') return undefined;
+
+  const hour = c.flow?.window === '1h' ? c.flow.activity : undefined;
+  // `unavailable: ['flow']` refers to wallet labels. The activity counts, when present, are measured separately.
+  const flowTrades = hour && hour.buys + hour.sells;
+  const trades = c.trades1h ?? flowTrades;
+  const volume = c.volume1hUsd ?? (hour && hour.buyUsd + hour.sellUsd);
+  const quiet = !c.unavailable?.includes('volume') && trades === 0 && !flowTrades && (volume === undefined || volume === 0);
+  const age = c.ageSec ?? 0;
+  if (quiet && c.stage === 'curve' && c.launchpad === 'pons' && age >= NEW_CURVE_GRACE_SEC
+    && c.curvePct !== undefined && c.curvePct >= 0 && c.curvePct <= NEAR_EMPTY_CURVE_PCT
+    && !c.unavailable?.includes('liquidity') && c.liquidityUsd !== undefined && c.liquidityUsd >= 0 && c.liquidityUsd <= NEAR_EMPTY_CURVE_USD) {
+    // A quiet first hour covers the coin's whole life. Check any buyer counts for contradictory evidence.
+    const buyers = c.unavailable?.includes('buyers') ? undefined : c.buyers;
+    if (age < TRADE_WINDOW_SEC && !buyers && !hour?.buyers) return 'Dead · no buyers';
+    return 'Dead · curve ≤$1';
+  }
+  if (quiet) return age >= TRADE_WINDOW_SEC ? 'Inactive · no trades in 1h' : 'Quiet · no trades';
+  if (c.stage === 'graduated') return GRADUATED_NO_MATCH;
+  const progress = c.graduationPct ?? c.curvePct;
+  if (progress === undefined) return undefined;
+  const pct = `${progress < 10 ? progress.toFixed(1) : Math.round(progress)}%`;
+  return progress < EARLY_GRADUATION_PCT ? `Early · ${pct} to graduation` : `${pct} to graduation · no flags`;
+}
+
+export function coinVerdictActivity(card: CoinCard, nowMs: number): VerdictActivity {
+  const { identity, flow } = card;
+  return { ...identity, flow, ageSec: (nowMs - Date.parse(identity.createdAt)) / 1000,
+    liquidityUsd: identity.pools.find(pool => pool.venue === 'pons_curve')?.liquidityUsd };
+}
 export const age = (sec: number) => sec < 3600 ? `${Math.round(sec / 60)}m` : sec < 86400 ? `${(sec / 3600).toFixed(1)}h` : `${(sec / 86400).toFixed(1)}d`;
 export const exitText = (v: number) => v >= 100 ? 'Blocked' : `${v.toFixed(1)}%`;
 

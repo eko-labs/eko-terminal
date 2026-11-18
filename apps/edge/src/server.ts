@@ -3,12 +3,13 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import Fastify, { type FastifyInstance, type FastifyReply } from 'fastify';
 import fastifyStatic from '@fastify/static';
+import { brotliCompressSync, constants as zlib, gzipSync } from 'node:zlib';
 import { isAddress } from 'viem';
 import type { ErrorCode, PairRow } from '@eko/shared';
-import { barsFromTrades, TIMEFRAMES, type Timeframe } from './market.js';
+import { barsFromTrades, MAX_BARS, TIMEFRAMES, type Timeframe } from './market.js';
 import type { Edge } from './service.js';
 import type { CoinState, Rpc } from './tracker.js';
-import { coinCard, feedItem, pairColumn, pairRow, pendingVerdict, progressBps, publicConfig, radarRow } from './views.js';
+import { coinCard, feedItem, flowView, pairColumn, pairRow, pendingVerdict, progressBps, publicConfig, radarRow } from './views.js';
 import type { HistoryStore } from './history.js';
 import type { LoadedFeature } from './features/index.js';
 import type { Historian } from './historian.js';
@@ -26,6 +27,20 @@ import { registerSecurityTxt } from './security-txt.js';
 const fail = (reply: FastifyReply, status: number, error: ErrorCode, message: string) => reply.code(status).send({ error, message });
 const LIMIT = 100;
 
+/** Text responses worth compressing; video, images and woff2 are compressed already. */
+const COMPRESSIBLE = /^(?:text\/|application\/(?:json|javascript|xml|manifest\+json)|image\/svg\+xml)/;
+/** The client's preferred encoding of br and gzip, honouring q=0 ("not this one"). */
+export function pickEncoding(accept: string | undefined): 'br' | 'gzip' | null {
+  const allowed = new Map<string, number>();
+  for (const part of (accept ?? '').toLowerCase().split(',')) {
+    const [name, ...params] = part.trim().split(';');
+    const q = params.map(p => /^\s*q=([\d.]+)\s*$/.exec(p)?.[1]).find(Boolean);
+    if (name) allowed.set(name.trim(), q === undefined ? 1 : Number(q));
+  }
+  const ok = (name: string) => (allowed.get(name) ?? allowed.get('*') ?? 0) > 0;
+  return ok('br') ? 'br' : ok('gzip') ? 'gzip' : null;
+}
+
 /**
  * The read API the EKO web app calls, answered from the edge's memory, plus the built web app itself, for the
  * deployment's chain (edge.chain). Accounts, agents and trading are served when a store is open; burn routes are not.
@@ -39,6 +54,19 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
   const hops = opts.trustProxyHops ?? 1;
   const chain = edge.chain.profile, { text } = chain;
   const app = Fastify({ logger: opts.logger ?? false, trustProxy: (_address: string, hop: number) => hop < hops, bodyLimit: 16_384 });
+  // Compression, added first so every route below gets it: JSON and HTML at a light brotli level (gzip for clients
+  // without br), at most a millisecond or two. Files come as streams and pass through: the web and landing builds ship
+  // .br/.gz next to them, which the static block at the end serves as they are.
+  app.addHook('onSend', async (req, reply, payload) => {
+    if ((typeof payload !== 'string' && !Buffer.isBuffer(payload)) || req.method === 'HEAD' || reply.getHeader('content-encoding')) return payload;
+    if (Buffer.byteLength(payload) < 1024 || !COMPRESSIBLE.test(String(reply.getHeader('content-type') ?? ''))) return payload;
+    const vary = String(reply.getHeader('vary') ?? '');
+    if (!/accept-encoding/i.test(vary)) reply.header('vary', vary ? `${vary}, accept-encoding` : 'accept-encoding');
+    const encoding = pickEncoding(req.headers['accept-encoding']);
+    if (!encoding) return payload;
+    reply.header('content-encoding', encoding).removeHeader('content-length');
+    return encoding === 'br' ? brotliCompressSync(payload, { params: { [zlib.BROTLI_PARAM_QUALITY]: 4 } }) : gzipSync(payload, { level: 6 });
+  });
   app.addHook('onSend', async (_req, reply, payload) => { reply.header('cache-control', reply.getHeader('cache-control') ?? 'no-store'); return payload; });
 
   app.get('/health', async () => {
@@ -125,7 +153,7 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
     const tf = (req.query.tf && req.query.tf in TIMEFRAMES ? req.query.tf : '1m') as Timeframe;
     const ctx = edge.ctx(), from = Number(req.query.from ?? 0), to = Number(req.query.to ?? ctx.nowSec);
     const hypeUsd = ctx.hypeUsd;
-    return { tf, bars: hypeUsd ? barsFromTrades(coin.trades, tf, hypeUsd, from, to) : [], asOfBlock: ctx.head,
+    return { tf, bars: hypeUsd ? barsFromTrades(coin.trades, tf, hypeUsd, from, to).slice(-MAX_BARS) : [], asOfBlock: ctx.head,
       firstTradeTs: coin.trades[0]?.ts ?? null, lastTradeTs: coin.trades.at(-1)?.ts ?? null, ...(hypeUsd ? {} : { unavailable: ['price'] }) };
   });
   // Wallet labels (agent / crew / human) are not computed by the edge yet: no markers rather than unlabelled ones.
@@ -133,8 +161,8 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
   app.get<{ Params: { address: string }; Querystring: { window?: string } }>('/v1/coins/:address/flow', async (req, reply) => {
     const coin = coinOr404(req.params.address, reply); if (!coin) return reply;
     const window = (['5m', '1h', '24h'].includes(req.query.window ?? '') ? req.query.window : '1h') as '5m' | '1h' | '24h';
-    return { window, agentPct: 0, crewPct: 0, humanPct: 0, washEstPct: 0, beta: true, confidence: 0,
-      meta: { confidence: 0, asOfBlock: Number(edge.tracker.head), unavailable: true, missing: ['agentPct', 'crewPct', 'humanPct', 'washEstPct'] } };
+    // Measured buy / sell activity, largest wallets and latest trades; the label split stays named missing (views.ts).
+    return flowView(coin, edge.ctx(), window, edge.chain.excluded(coin));
   });
 
   if (opts.store) registerMemoryRoutes(app, edge, { store: opts.store, ...(opts.historian ? { historian: opts.historian } : {}), ...(opts.funders ? { funders: opts.funders } : {}) });
@@ -166,6 +194,20 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
   app.get('/v2/ghost-reports', async () => ({ records: [] }));
   registerSecurityTxt(app);
 
+  // Link previews and the page description for a shared coin page (the web asks for /coin/<address>). Other share paths
+  // (scans, bags, receipts) have no server-side record on this build: an empty answer, not a 404, so pages log no error.
+  app.get<{ Querystring: { path?: string } }>('/v1/share-meta', async (req, reply) => {
+    const m = /^\/coin\/(0x[0-9a-fA-F]{40})$/.exec(String(req.query.path ?? ''));
+    const coin = m && isAddress(m[1]!) ? edge.tracker.coin(m[1]!) : undefined;
+    if (!coin) return reply.code(204).send();
+    const a = edge.assessment(coin.token), level = a?.verdict.level ?? 'pending';
+    const symbol = (a?.symbol ?? coin.symbol ?? '').replace(/[^\p{L}\p{N} ._$-]/gu, '').slice(0, 24) || coin.token.slice(0, 10);
+    const word = ({ clear: 'No flags', monitor: 'Monitor', danger: 'Danger' } as Record<string, string>)[level] ?? 'Being checked';
+    const site = `${req.protocol}://${String(req.headers['x-forwarded-host'] ?? req.headers.host)}`;
+    return { title: `$${symbol} · ${word} · EKO`, url: `${site}/coin/${coin.token}`,
+      description: `${word} on EKO's checks for $${symbol} (${edge.chain.profile.name}). Buyer risk at one block, not a buy recommendation. DYOR.` };
+  });
+
   // Post-launch features that are on (features/index.ts): their routes come before the catch-all below.
   for (const feature of opts.features ?? []) feature.register({ app, edge, ...(opts.store ? { store: opts.store } : {}), ...(opts.accounts ? { accounts: opts.accounts } : {}), ...(auth ? { auth } : {}) });
 
@@ -177,15 +219,30 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
   // (the layout EKO's server used). Without a landing build, "/" is the terminal's entry page.
   const web = opts.webDist ? resolve(opts.webDist) : null;
   if (web && existsSync(resolve(web, 'index.html'))) {
-    const shell = readFileSync(resolve(web, 'index.html'), 'utf8');
-    const html = (doc: string) => (_req: unknown, reply: FastifyReply) => reply.header('cache-control', 'no-cache').type('text/html; charset=utf-8').send(doc);
-    const assetHeaders = (res: FastifyReply, path: string) => { res.header('cache-control', /\/assets\//.test(path) ? 'public, max-age=31536000, immutable' : 'public, max-age=3600'); };
-    void app.register(fastifyStatic, { root: web, prefix: '/', wildcard: false, index: false, globIgnore: ['**/index.html'], setHeaders: assetHeaders });
+    // The terminal's page carries the public config inline (the same JSON as /v1/config), so the first render already
+    // knows the features, plan and trading state: no sidebar item, plan chip or trade panel changes size when the
+    // config request returns (layout shift). `<` is escaped so the JSON can never close the script element.
+    const shellFile = readFileSync(resolve(web, 'index.html'), 'utf8');
+    const inlineConfig = () => `<script id="eko-config" type="application/json">${JSON.stringify(publicConfig(tradingConfig, { accounts: !!opts.accounts, ...(opts.flags ? { flags: opts.flags } : {}) }, chain)).replace(/</g, '\\u003c')}</script>`;
+    const shell = { toString: () => shellFile.replace('<!--eko:head-->', `<!--eko:head-->${inlineConfig()}`) };
+    const html = (doc: string | { toString(): string }) => (_req: unknown, reply: FastifyReply) => reply.header('cache-control', 'no-cache').type('text/html; charset=utf-8').send(String(doc));
+    // Hashed bundles never change; fonts and landing media keep their names, so they get a month (and a day of
+    // stale-while-revalidate) rather than forever; everything else (manifest, icons, the site bridge) an hour.
+    const assetHeaders = (res: FastifyReply, path: string) => {
+      const rel = path.replaceAll('\\', '/');
+      res.header('cache-control', /\/assets\//.test(rel) ? 'public, max-age=31536000, immutable'
+        : /\/(fonts|media)\//.test(rel) ? 'public, max-age=2592000, stale-while-revalidate=86400' : 'public, max-age=3600');
+    };
+    // preCompressed: a request that accepts br (or gzip) gets the build's .br (.gz) file when there is one.
+    void app.register(fastifyStatic, { root: web, prefix: '/', wildcard: false, index: false, preCompressed: true, globIgnore: ['**/index.html'], setHeaders: assetHeaders });
     const landing = opts.landingDist ? resolve(opts.landingDist) : null;
     if (landing && existsSync(resolve(landing, 'index.html'))) {
-      void app.register(fastifyStatic, { root: landing, prefix: '/site/', decorateReply: false, wildcard: false, index: false, globIgnore: ['**/*.html'], setHeaders: assetHeaders });
+      void app.register(fastifyStatic, { root: landing, prefix: '/site/', decorateReply: false, wildcard: false, index: false, preCompressed: true, globIgnore: ['**/*.html'], setHeaders: assetHeaders });
       app.get('/', html(readFileSync(resolve(landing, 'index.html'), 'utf8')));
-      if (existsSync(resolve(landing, 'docs.html'))) app.get('/site/docs.html', html(readFileSync(resolve(landing, 'docs.html'), 'utf8')));
+      for (const page of ['docs.html', 'whitepaper.html']) {
+        const file = resolve(landing, page);
+        if (existsSync(file)) app.get(`/site/${page}`, html(readFileSync(file, 'utf8')));
+      }
     } else app.get('/', html(shell));
     app.get('/index.html', html(shell));
     // Client-side routes (/radar, /coin/0x…) get the terminal shell; API and asset paths stay 404.

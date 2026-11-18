@@ -3,9 +3,16 @@ import { publicSharePath, ShareMetaSchema, type ShareMeta } from '@eko/shared';
 import { fetchParsed } from './api';
 
 /** Text/attribute APIs only; the host uses the same server-projected metadata. */
+// The page's own description and preview tags (index.html), kept so a page without share metadata still has them.
+const STATIC = 'meta[name="description"]:not([data-eko-share]), meta[property^="og:"]:not([data-eko-share]), meta[name^="twitter:"]:not([data-eko-share])';
+let staticTags: Element[] | null = null;
 export function applyShareMeta(meta: ShareMeta | null, fallbackTitle: string) {
-  document.head.querySelectorAll('[data-eko-share], link[rel="canonical"], meta[property^="og:"], meta[name^="twitter:"], meta[name="description"]').forEach(tag => tag.remove());
+  staticTags ??= [...document.head.querySelectorAll(STATIC)];
+  document.head.querySelectorAll('[data-eko-share], link[rel="canonical"]').forEach(tag => tag.remove());
   document.title = meta?.title ?? fallbackTitle;
+  // Without share metadata the page keeps its own description (search engines and previews read it); with it, the
+  // share tags replace them.
+  for (const tag of staticTags) { if (meta) tag.remove(); else if (!tag.isConnected) document.head.append(tag); }
   if (!meta) return;
   const canonical = document.createElement('link'); canonical.rel = 'canonical'; canonical.href = meta.url;
   canonical.dataset.ekoShare = 'true'; document.head.append(canonical);

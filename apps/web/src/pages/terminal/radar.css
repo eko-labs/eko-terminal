@@ -9,7 +9,7 @@
 .head-stats{display:flex;gap:28px;margin:0}
 .head-stats div{display:flex;flex-direction:column-reverse;gap:2px}
 .head-stats dt{font-size:12px;color:var(--muted);white-space:nowrap}
-.head-stats dd{margin:0;font:500 22px/1.1 var(--sans);display:flex;flex-direction:column;gap:6px}
+.head-stats dd{margin:0;font:var(--type-stat);letter-spacing:var(--type-stat-ls);font-variant-numeric:tabular-nums;display:flex;flex-direction:column;gap:6px}
 .head-stats .minibars{width:92px}
 .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-bottom:14px}
 .toolbar-sort{display:flex;align-items:center;gap:8px;font-size:13px}
@@ -74,6 +74,9 @@
 .rt td.c-guard{white-space:normal;padding-top:6px;padding-bottom:6px;line-height:1.25}
 .rt td.c-guard>.tag,.rt td.c-guard>span:not([class]){display:block;height:auto;padding:0;border:0;background:none;font-size:11px;color:var(--muted);white-space:normal;overflow-wrap:anywhere}
 .rt td.c-guard>.tag+*,.rt td.c-guard>*+.tag{margin-top:3px}
+.rt .c-guard .verdict-explain{flex-wrap:wrap;row-gap:0;height:31px;line-height:1.15;text-align:left}
+.rt .c-guard .verdict-explain .verdict-run-up{flex-basis:100%}
+.rt .c-guard .verdict-explain .verdict-run-up>span{display:none}
 /* Activity shading on rows: a tint and an edge, always with a text tag or verdict beside it. */
 .rt tr.h-hot td{background:#8fcaf00d}.rt tr.h-hot td:first-child{box-shadow:inset 3px 0 var(--accent)}
 .rt tr.h-avoid td{background:#f08c7e0a}.rt tr.h-avoid td:first-child{box-shadow:inset 3px 0 var(--danger)}
@@ -123,7 +126,7 @@
  .toolbar-end,.sec-head .seg{display:none}
  .sec-head .sub{display:none}
 }
-@media (max-width:700px){.ghost-report{flex-wrap:wrap}.ghost-report span{flex-basis:calc(100% - 30px)}.ghost-report .btn{margin-left:27px}.toolbar-live{margin-left:0}.coin-id{flex-wrap:wrap}.head-stats{gap:20px}.hot-grid{grid-template-columns:1fr}}
+@media (max-width:700px){.ghost-report{flex-wrap:wrap}.ghost-report span{flex-basis:calc(100% - 30px)}.ghost-report .btn{margin-left:27px}.toolbar-live{margin-left:0}.head-stats{gap:20px}.hot-grid{grid-template-columns:1fr}}
 
 /* ==== Dithered accents (lib/dither.js, tiers in lib/heat.js marking) ====================================
    A blue-white shimmer that grows with the move, a low ember that grows with the risk. Tiers 1–2 step slowly
@@ -178,22 +181,22 @@
 /* Desk overrides from the approved prototype; scoped to this port. */
 .radar{padding:34px 32px 20px;counter-reset:sec;min-width:0}
 .radar .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:22px}
-.radar .page-head h1{font:400 clamp(52px,4.8vw,76px)/1 var(--display);letter-spacing:-.055em;margin:0 0 12px}
-.radar .page-head p{font-size:16px;color:var(--muted);margin:0;max-width:520px}
+.radar .page-head h1{margin-top:0}
+.radar .page-head p{margin:0;max-width:520px}
 .radar .sec-head{display:flex;align-items:baseline;flex-wrap:wrap;gap:10px 18px;margin:40px 0 14px;padding-bottom:10px;border-bottom:1px solid var(--rule2)}
-.radar .sec-head h2{margin:0;font:500 12.5px/1.4 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--ink)}
+.radar .sec-head h2{margin:0}
 .radar .sec-head h2::before{counter-increment:sec;content:counter(sec,decimal-leading-zero) " / ";color:var(--accent)}
 .radar .sec-head .sub{font-size:13px;color:var(--muted)}
 .radar .sec-head .end{display:flex;align-items:center;gap:18px;margin-left:auto}
-.radar .head-stats dt,.radar .rt th,.radar-insp .insp-sec>h3,.radar-insp .insp-bar>span{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase}
-.radar .head-stats dd{font:400 26px var(--display);letter-spacing:-.03em}
+.radar .head-stats dt,.radar .rt th,.radar-insp .insp-sec>h3,.radar-insp .insp-bar>span{font:var(--type-label);letter-spacing:var(--type-label-ls);text-transform:uppercase}
+.radar .head-stats dd{font:var(--type-stat);letter-spacing:var(--type-stat-ls);font-variant-numeric:tabular-nums}
 .radar .ghost-report{border:1px solid #f08c7e40;border-left:2px solid var(--danger);background:#f08c7e08}
 .radar .htile{border:1px solid var(--edge);border-top-color:var(--accent);background:var(--panel);box-shadow:none;padding:16px 18px 15px;gap:12px}
 .radar .htile.sel{border-color:var(--lit)}
 .radar .htile-sym{font-size:26px}
 .radar .htile-facts{align-items:flex-end}
 .radar .htile-facts>span{font:500 12px var(--mono);text-transform:uppercase;letter-spacing:.06em}
-.radar .htile-facts b{font:400 24px/1.1 var(--display);letter-spacing:-.02em;text-transform:none}
+.radar .htile-facts b{font:var(--type-stat);letter-spacing:var(--type-stat-ls);font-variant-numeric:tabular-nums;text-transform:none}
 .radar .htile-facts .score::after{content:" /100";font:400 12px var(--sans);color:var(--muted)}
 .radar .htile-facts small{font:400 10px var(--sans);text-transform:none;letter-spacing:0}
 .radar .rt-wrap{border:0;border-bottom:1px solid var(--rule2);border-radius:0;background:transparent}
@@ -228,13 +231,13 @@
 .rt .guard-disclosure{white-space:nowrap}
 .tpanel fieldset{border:0;padding:0;margin:0;min-width:0}.tp-side{display:flex;align-items:center;justify-content:space-between;gap:8px}.tp-side .seg button{padding:6px 14px}.tp-amounts{display:flex;flex-wrap:wrap;gap:5px;margin:12px 0}.tp-amounts input{width:80px;height:28px}.tp-quote{display:grid;grid-template-columns:auto 1fr;gap:7px;margin:14px 0;font-size:13px}.tp-quote dt{color:var(--muted)}.tp-quote dd{margin:0;text-align:right}.tp-guard{font-size:13px;padding:12px;background:var(--raise);color:var(--muted)}.tp-submit{width:100%;margin-top:12px;white-space:normal;font-size:13px}
 .radar-trade-drawer{position:fixed;inset:0 0 0 auto;width:min(440px,100vw);height:100dvh;max-height:100dvh;margin:0;padding:22px;background:var(--panel);color:var(--ink);border:1px solid var(--rule2)}.radar-trade-drawer::backdrop{background:#000a}.radar-trade-drawer .insp-bar{margin-bottom:24px}.radar-error,.radar-more{margin:16px 0}.empty{padding:32px;text-align:center;color:var(--muted)}
-@media(max-width:700px){.hot-grid{grid-template-columns:1fr}.radar{padding:26px 18px 18px}.radar .page-head h1{font-size:48px}.radar .sec-head .end{margin-left:0;flex-wrap:wrap;gap:10px}.radar .toolbar-live{font-size:12px}.radar .ghost-report{flex-wrap:wrap}.radar .ghost-report .btn{margin-left:27px}.radar .toolbar-end{margin-left:0}}
+@media(max-width:700px){.hot-grid{grid-template-columns:1fr}.radar{padding:26px 18px 18px}.radar .sec-head .end{margin-left:0;flex-wrap:wrap;gap:10px}.radar .toolbar-live{font-size:12px}.radar .ghost-report{flex-wrap:wrap}.radar .ghost-report .btn{margin-left:27px}.radar .toolbar-end{margin-left:0}}
 @media(prefers-reduced-motion:reduce){.radar *,.radar-insp *{animation:none!important;transition:none!important}}
 /* Prototype page geometry; the established shell owns its header and sidebar. */
 .radar{padding:44px 32px 64px;max-width:1480px}
 .radar .page-head{flex-wrap:wrap;gap:24px 40px;margin-bottom:36px}
-.radar .page-head h1{line-height:.98;margin:0}
-.radar .page-head p{margin:16px 0 0;color:var(--ink2);max-width:560px;line-height:1.5}
+.radar .page-head h1{margin-top:0}
+.radar .page-head p{margin:16px 0 0;max-width:560px}
 @media(max-width:899px){.radar{padding:18px 14px 90px}}
 @media(max-width:700px){.radar .page-head{align-items:flex-start;flex-direction:column;gap:16px;margin-bottom:28px}}
 .radar-decode{display:inline-block;position:relative;vertical-align:bottom}.radar-decode.decoding .decode-size{color:transparent}.radar-decode .decode-live{position:absolute;inset:0;white-space:nowrap;color:var(--ink);opacity:.7}.radar-decode .untrusted .tag{color:var(--danger)}
@@ -272,7 +275,7 @@
 @container(max-width:740px){.rt .c-coin{width:100%}}
 @container(max-width:600px){.rt .c-1h,.rt .c-sig{display:none}.rt .c-guard{width:148px}.rt .c-exit{width:72px}}
 @container(max-width:380px){.rt .c-guard{width:134px}.rt .c-exit{width:60px}.rt .rt-sym{font-size:17px}.rt th,.rt td{padding:0 6px}.rt th:first-child,.rt td:first-child{padding-left:6px}.rt th:last-child,.rt td:last-child{padding-right:6px}.rt-top .heat-tag{display:none}}
-.radar .head-stats{display:flex;flex-wrap:wrap;gap:16px 24px}.radar .head-stats small{font:12px var(--sans);letter-spacing:0}.radar .head-stats dt{font-size:10px}
+.radar .head-stats{display:flex;flex-wrap:wrap;gap:16px 24px}.radar .head-stats small{font:12px var(--sans);letter-spacing:0}
 /* Price and market cap columns, and the Columns menu (radarModel COLUMNS). */
 .rt .c-price{width:104px}.rt .c-mcap{width:84px}
 .rt tr.h-avoid td:is(.c-price,.c-mcap){color:var(--muted)}.rt tr.h-fading td:is(.c-price,.c-mcap){color:var(--ink2)}
@@ -285,3 +288,13 @@
 .col-pick-menu{position:absolute;z-index:30;top:calc(100% + 6px);left:0;min-width:200px;margin:0;padding:10px 12px;display:grid;gap:8px;background:var(--bg-2);border:1px solid var(--line-2);border-radius:6px;box-shadow:0 12px 32px rgba(0,0,0,.45)}
 .col-pick-menu label{display:flex;align-items:center;gap:8px;white-space:nowrap;cursor:pointer}
 .col-pick-menu .btn{justify-self:start;margin-top:2px}
+
+/* Layout shift: the Hot strip holds a tile's height before data and when nothing is hot (HotStrip). The tile's figures
+   use the big-stat role (26px desktop, 24px phones), so the reserve follows it. */
+.htile-skel,.htile-empty{min-height:188px}
+@media(max-width:700px){.htile-skel,.htile-empty{min-height:185px}}
+.htile-empty{display:flex;align-items:center;justify-content:center;margin:0;grid-column:1/-1;border:1px dashed var(--rule)}
+@media (max-width:760px){.htile-empty{flex:1 0 100%}}
+/* Layout shift: the sort menu is as wide as its longest option ("Market cap", "Agent flow") from the first paint; its
+   options arrive with the coins, and the wider menu pushed the Columns button onto a second toolbar row. */
+.toolbar-sort .select{width:9.5rem}

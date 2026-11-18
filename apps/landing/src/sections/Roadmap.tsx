@@ -29,7 +29,7 @@ export default function Roadmap() {
     <div className="road-axis-label" aria-hidden="true"><span>PLANNED SEQUENCE</span><i /></div>
     <div ref={road} className="road-stops">
       <div className="road-rail" aria-hidden="true"><div className="road-rail-ticks"/><motion.div className="road-rail-progress" style={{ scaleY: scrollYProgress }}/></div>
-      <motion.div className="road-traveller" aria-hidden="true" style={{ top: travellerTop }}><img src={`${import.meta.env.BASE_URL}media/eko-road-core${still ? "-still" : ""}.webp`} width="240" height="240" alt=""/><img className="road-traveller-mark" src={ekoMark} alt=""/></motion.div>
+      <motion.div className="road-traveller" aria-hidden="true" style={{ top: travellerTop }}><img src={`${import.meta.env.BASE_URL}media/eko-road-core${still ? "-still" : ""}.webp`} width="240" height="240" alt="" loading="lazy" decoding="async"/><img className="road-traveller-mark" src={ekoMark} alt=""/></motion.div>
       <ol className="road-items">{roadmapDrops.map((drop,index)=>{
         const isOpen = expanded.has(index);
         return <li className={`road-stop ${index%2 ? "road-right":"road-left"}`} id={`drop-${index+1}`} key={drop.title}>

@@ -2,8 +2,8 @@
 .mission-screen.page{padding:44px 32px 64px;max-width:1480px;background:none;overflow:visible}
 .mission-screen .page-head{gap:24px 40px;margin-bottom:36px;align-items:flex-end}
 .mission-screen .page-head>div:first-child{flex:1;min-width:0}
-.mission-screen .page-head h1{margin:0;font:400 clamp(52px,4.8vw,76px)/.98 var(--display);letter-spacing:-.055em;overflow-wrap:anywhere}
-.mission-screen .page-head p:not(.mc-ahead-sub){margin:16px 0 0;font-size:16px;line-height:1.5;color:var(--ink2);max-width:560px}
+.mission-screen .page-head h1{margin-top:0}
+.mission-screen .page-head p:not(.mc-ahead-sub){margin:16px 0 0;max-width:560px}
 .mission-screen .kv{grid-template-columns:minmax(0,1fr) minmax(0,auto);gap:8px 16px;font-size:14px}
 .mission-screen .kv :is(dt,dd){min-width:0;overflow-wrap:anywhere}
 .mission-screen .kv dt{color:var(--muted)}
@@ -57,7 +57,7 @@
 :where(.mission-screen) .mc-crumb{display:flex;gap:8px;font-size:13px;color:var(--muted);margin-bottom:10px}
 :where(.mission-screen) .mc-crumb a:hover{color:var(--ink)}
 :where(.mission-screen) .mc-crumb span:nth-child(2){color:var(--faint)}
-:where(.mission-screen) .mc-ahead h1{margin:0;font:400 clamp(36px,3.6vw,52px)/.95 var(--display);letter-spacing:-.045em}
+:where(.mission-screen) .mc-ahead h1{margin-top:0}
 :where(.mission-screen) .mc-ahead-sub{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin-top:12px;font-size:13px;color:var(--muted)}
 :where(.mission-screen) .mc-ahead-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 :where(.mission-screen) .mc-ahead-actions .tag{height:24px}

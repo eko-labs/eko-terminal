@@ -102,7 +102,7 @@ export interface JudgeContext {
 }
 export function judge(coin: CoinState, p: Probed, ctx: JudgeContext): Assessment {
   const { chain, nowSec } = ctx, { key, config, currentBuyFeePips, probe, name, symbol } = p;
-  const { antiSnipeActive, antiSnipe, feeBps, liquidity: locked, hook } = chain.facts(coin, p, nowSec);
+  const { antiSnipeActive, antiSnipe, feeBps, liquidity: locked, hook, runUp } = chain.facts(coin, p, nowSec);
   const hypeUsd = ctx.hypeUsd;
   const asOfBlock = Math.max(ctx.head, p.block);
   const simulations: Simulation[] = probe && probe.status !== 'unavailable' ? [{
@@ -117,7 +117,7 @@ export function judge(coin: CoinState, p: Probed, ctx: JudgeContext): Assessment
   const sources: CardSources = {
     holders: stats.holders, earlyBuyers: stats.earlyBuyers, dev: stats.dev,
     coin: coin.token, deployer: coin.creator, asOfBlock, asOfSec: nowSec, createdAtSec: coin.ts, createdAtBlock: coin.block,
-    launchpad: coin.launchpad, name, symbol, antiSnipeActive, simulations,
+    launchpad: coin.launchpad, name, symbol, antiSnipeActive, simulations, ...(runUp ? { runUp } : {}),
     ...(p.taxPct ? { taxes: { buyPct: p.taxPct.buy, sellPct: p.taxPct.sell, mutable: null, changes: [] } } : {}),
     ...(locked ? { liquidity: { positions: [{ owner: locked.owner, controlledBy: 'other' as const, share: 1, status: locked.status,
       evidence: [{ kind: 'address' as const, ref: locked.owner, label: locked.label }] }], priorRemovals: [] } } : {}),
@@ -126,7 +126,7 @@ export function judge(coin: CoinState, p: Probed, ctx: JudgeContext): Assessment
       address: key.hooks, ...hookBits(key.hooks), reviewed: hook.reviewed, sourceVerified: hook.sourceVerified, quoteSimGapPct: null,
       buyFeePct: hook.buyFeePct, sellFeePct: hook.sellFeePct, evidence: [{ kind: 'address' as const, ref: key.hooks, label: hook.label }] } } : {}),
   };
-  const snipers = findSnipers(coin, excluded, p.tips);
+  const snipers = findSnipers(coin, excluded, p.tips, chain.profile.sniperBlocks);
   const matches = evaluatePlaybooks({ ...sources, snipers, history: ctx.history ?? { launches: [] } }, chain.profile.playbooks);
   const receiptId = `pending:${coin.token.toLowerCase()}:${asOfBlock}`;
   const assembled = assembleVerdict(matches, { coin: coin.token, asOfBlock, receipt: { id: receiptId, hash: keccak256(stringToHex(receiptId)), status: 'pending' } });

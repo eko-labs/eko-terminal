@@ -91,6 +91,47 @@ export const CoinCardMetaSchema = z.partialRecord(z.enum(['identity', 'tradeabil
   coverageGaps: z.record(z.string(),AttributionCoverageGapSchema).optional(),
 }));
 export type CoinCardMeta = z.infer<typeof CoinCardMetaSchema>;
+/**
+ * Measured trading in a flow window, from the coin's own swaps and token transfers (no wallet labels needed). Additive:
+ * the agent / crew / human split stays named unavailable in `meta.flow` / `unavailable` until wallets are labelled.
+ * A trade's wallet is the one whose balance of the coin rose (buy) or fell (sell) most in that transaction; trades
+ * with no such wallet are counted in volume and in `unattributed`, never in buyers or sellers.
+ */
+export const FlowWalletSchema = z.object({
+  wallet: AddressSchema,
+  side: z.enum(['buy', 'sell']),
+  usd: z.number(),
+  trades: z.number().int().nonnegative(),
+  lastTs: z.number(),
+});
+export type FlowWallet = z.infer<typeof FlowWalletSchema>;
+export const FlowTradeSchema = z.object({
+  ts: z.number(),
+  side: z.enum(['buy', 'sell']),
+  usd: z.number(),
+  tokens: z.number(),
+  tx: z.string(),
+  wallet: AddressSchema.optional(),
+});
+export type FlowTrade = z.infer<typeof FlowTradeSchema>;
+export const FlowActivitySchema = z.object({
+  buyUsd: z.number(),
+  sellUsd: z.number(),
+  /** buyUsd − sellUsd. */
+  netUsd: z.number(),
+  buys: z.number().int().nonnegative(),
+  sells: z.number().int().nonnegative(),
+  /** Unique wallets with a buy / a sell in the window. */
+  buyers: z.number().int().nonnegative(),
+  sellers: z.number().int().nonnegative(),
+  /** Trades whose wallet was not identified. */
+  unattributed: z.number().int().nonnegative(),
+  /** The largest buyers and sellers by USD (the flow endpoint only). */
+  largest: z.array(FlowWalletSchema).optional(),
+  /** The window's latest trades, newest first (the flow endpoint only). */
+  recent: z.array(FlowTradeSchema).optional(),
+});
+export type FlowActivity = z.infer<typeof FlowActivitySchema>;
 export const CoinCardSchema = z.object({
   blueChip: BlueChipSchema.optional(),
   blueChipCriteria: BlueChipCriteriaSchema.optional(),
@@ -171,6 +212,7 @@ export const CoinCardSchema = z.object({
     declaredAgentPct: z.number().optional(),
     likelyAgentPct: z.number().optional(),
     modelVersion: z.string().optional(),
+    activity: FlowActivitySchema.optional(),
   }),
   playbooks: z.array(PlaybookMatchSchema),
   verdict: VerdictSchema,

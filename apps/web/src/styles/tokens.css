@@ -19,10 +19,63 @@
  --sans:"Helvetica Neue",Helvetica,Arial,sans-serif;--display:Syne,Arial,sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
  --e-out:cubic-bezier(.2,.85,.1,1);--e-spring:cubic-bezier(.3,1.2,.5,1);
  --r1:2px;--r2:2px;--r3:3px;
- /* Type scale: meta 12 · labels 13 · body 14 · section 16 · figure 24 · page 52–76. */
- --t-meta:12px;--t-label:13px;--t-body:14px;--t-sec:16px;--t-fig:24px;--t-page:clamp(52px,4.8vw,76px);
+ /* Legacy size names, now read from the type scale below. */
+ --t-meta:var(--type-meta-size);--t-label:13px;--t-body:var(--type-body-size);--t-sec:var(--type-panel-size);--t-fig:var(--type-stat-size);--t-page:var(--type-page-size);
+ /* Controls. --btn-edge clears 3:1 against the black ground, so a resting button reads as a control on its own;
+    --btn-sel is the chosen segment's plate, under the dither. */
+ --btn-edge:#4a6576;--btn-edge-hi:#6d8798;--btn-hover:#121f29;--btn-sel:linear-gradient(180deg,#0f1d27,#0a141b);
+ /* The phosphor dot field from the chart plates and the plan card, as a reusable layer: selected and lit controls
+    carry it, faint enough that text on top keeps its contrast. --dither-ink is the dark version for light plates. */
+ --dither-dots:radial-gradient(color-mix(in srgb,var(--accent) 34%,transparent) .7px,transparent .8px);
+ --dither-ink:radial-gradient(#04111a1f .7px,transparent .8px);
+ --dither-size:4px 4px;
 
 }
+
+/* ─── Type system ────────────────────────────────────────────────────────────────────────────────────────────────
+   Eight roles. Every heading, label and figure in the app takes one of them; a page does not invent its own size.
+
+   role            family    size        weight  line-height  tracking   use
+   page title      sans      44–64 (40)  400     1.12         -.045em    one per page: the h1 (coin symbol included)
+   section title   sans      18          600     1.3          -.01em     a zone of the page ("Hot right now", "All coins")
+   panel title     sans      15          600     1.35         -.005em    the head of a box (Verdict, Supply, Trade)
+   label/eyebrow   mono      11          500     1.4          .09em ⇪    names a value or a group; never the value itself
+   body            sans      14          400     1.5          0          running text
+   small/meta      sans      12          400     1.45         0          timestamps, sources, footnotes, helper text
+   stat (big)      sans      26          500     1.1          -.02em     the one number a block is about (price, a count)
+   stat (inline)   mono      14          500     1.4          -.01em     numbers in rows, tables and stat lines
+
+   Emphasis. Weight and brightness say what to read first, so they are spent, not sprinkled:
+   - Three weights only. 400 for text and display titles, 500 for labels and figures, 600 for section and panel titles,
+     verdicts and primary actions. Nothing heavier.
+   - Four inks, in order: --ink for titles, values, verdicts and anything a decision rests on; --ink2 for supporting
+     text; --muted for secondary labels and meta; --faint for eyebrows, legends and units.
+   - A label is never brighter or heavier than the value it names. To lift a value, raise its ink before its weight;
+     never make a secondary line both bigger and bolder.
+   - Accent blue marks state (selected, live, links), not importance; the warm colour is only for Danger. */
+:root{
+ /* Syne's lowercase g has a flat, open descender in the font outline itself. */
+ --type-page-family:var(--sans);--type-page-size:clamp(44px,2.4vw + 22px,64px);--type-page-weight:400;--type-page-lh:1.12;--type-page-ls:-.045em;
+ --type-section-family:var(--sans);--type-section-size:18px;--type-section-weight:600;--type-section-lh:1.3;--type-section-ls:-.01em;
+ --type-panel-family:var(--sans);--type-panel-size:15px;--type-panel-weight:600;--type-panel-lh:1.35;--type-panel-ls:-.005em;
+ --type-label-family:var(--mono);--type-label-size:11px;--type-label-weight:500;--type-label-lh:1.4;--type-label-ls:.09em;
+ --type-body-family:var(--sans);--type-body-size:14px;--type-body-weight:400;--type-body-lh:1.5;--type-body-ls:0;
+ --type-meta-family:var(--sans);--type-meta-size:12px;--type-meta-weight:400;--type-meta-lh:1.45;--type-meta-ls:0;
+ --type-stat-family:var(--sans);--type-stat-size:26px;--type-stat-weight:500;--type-stat-lh:1.1;--type-stat-ls:-.02em;
+ --type-stat-inline-family:var(--mono);--type-stat-inline-size:14px;--type-stat-inline-weight:500;--type-stat-inline-lh:1.4;--type-stat-inline-ls:-.01em;
+ /* Shorthands for `font:`; pair each with its letter-spacing token. */
+ --type-page:var(--type-page-weight) var(--type-page-size)/var(--type-page-lh) var(--type-page-family);
+ --type-section:var(--type-section-weight) var(--type-section-size)/var(--type-section-lh) var(--type-section-family);
+ --type-panel:var(--type-panel-weight) var(--type-panel-size)/var(--type-panel-lh) var(--type-panel-family);
+ --type-label:var(--type-label-weight) var(--type-label-size)/var(--type-label-lh) var(--type-label-family);
+ --type-body:var(--type-body-weight) var(--type-body-size)/var(--type-body-lh) var(--type-body-family);
+ --type-meta:var(--type-meta-weight) var(--type-meta-size)/var(--type-meta-lh) var(--type-meta-family);
+ --type-stat:var(--type-stat-weight) var(--type-stat-size)/var(--type-stat-lh) var(--type-stat-family);
+ --type-stat-inline:var(--type-stat-inline-weight) var(--type-stat-inline-size)/var(--type-stat-inline-lh) var(--type-stat-inline-family);
+ /* Room under a display title for descenders (g, y, p, j): a title never clips them, even inside an ellipsis box. */
+ --type-page-descent:.14em;
+}
+@media(max-width:700px){:root{--type-page-size:40px;--type-stat-size:24px}}
 
 /* Compatibility aliases consumed by kept screens; new components use Desk tokens. */
 :root {

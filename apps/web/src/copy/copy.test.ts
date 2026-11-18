@@ -21,9 +21,9 @@ const FORBIDDEN = [/price support/i, /\bfloor\b/i, /\bbid\b/i, /our chart gets b
   /ownerless/i, /(no ?one|nobody) can touch/i];
 
 describe('canonical §8 copy', () => {
-  it('snapshots every exact constant and fee wording', () => {
-    // The default (Elysium) build keeps the original snapshot; a Robinhood Chain pass (test:robinhood) has its own.
-    if (CHAIN_KEY === 'elysium') expect({ ...copy }).toMatchSnapshot(); else expect({ ...copy }).toMatchSnapshot(CHAIN_KEY);
+  it('snapshots every exact constant and fee wording', async () => {
+    // One file per chain: a shared snapshot file always held the other chain's entry, which CI reads as obsolete.
+    await expect(JSON.stringify({ ...copy }, null, 2) + '\n').toMatchFileSnapshot(`./__snapshots__/copy.${CHAIN_KEY}.json`);
   });
   it('keeps disclaimers out of hard-coded source text outside copy/', () => {
     const violations: string[] = [];

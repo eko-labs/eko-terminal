@@ -51,7 +51,7 @@
 .kband>div{display:flex;flex-direction:column;gap:4px;padding:16px 20px;border-left:1px solid var(--edge);min-width:0}
 .kband>div:first-child{border-left:0}
 .kband dt{font-size:13px;color:var(--muted)}
-.kband dd{margin:0;font:500 var(--t-fig)/1.15 var(--sans);color:var(--ink)}
+.kband dd{margin:0;font:var(--type-stat);letter-spacing:var(--type-stat-ls);font-variant-numeric:tabular-nums;color:var(--ink)}
 .kband-of{font-size:16px;color:var(--muted);font-weight:400}
 .kband dd.kband-c{font:400 13px/1.4 var(--sans);color:var(--muted)}
 .kband .up{color:var(--up)}
@@ -140,18 +140,18 @@
 /* Desk rules from the approved prototype, scoped to the port. */
 .mc3.page{padding:44px 32px 64px;max-width:1480px;background:none;overflow:visible;counter-reset:sec}
 .mc3 .page-head{gap:24px 40px;margin-bottom:36px;align-items:flex-end}
-.mc3 .page-head h1{margin:0;font:400 clamp(52px,4.8vw,76px)/.98 var(--display);letter-spacing:-.055em}
-.mc3 .page-head p{margin:16px 0 0;font-size:16px;line-height:1.5;color:var(--ink2);max-width:560px}
+.mc3 .page-head h1{margin-top:0}
+.mc3 .page-head p{margin:16px 0 0;max-width:560px}
 .mc-head-actions{display:flex;gap:8px;align-items:center}.mc-btn-kill{color:var(--danger)}
 .mc3 .mc-need{border:1px solid #d6ecfa33;border-left:2px solid var(--lit);border-radius:var(--r3);background:var(--panel);box-shadow:none}
 .mc3 .mc-need .fold-btn{padding-left:18px}.mc3 .mc-need .fold-head{padding-right:16px}
 .mc3 .mc-how{background:transparent}.mc3 .mc-how-steps,.mc3 .mc-recent-body,.mc3 .mc-terms{padding-left:0;padding-right:0}
 .mc3 :is(.alist,.kband){border:1px solid var(--edge);box-shadow:none}
-.mc3 .kband dd{font:400 30px/1.15 var(--display);letter-spacing:-.03em}
+
 .mc3 .kband dd.kband-c{font:400 13px/1.4 var(--sans);letter-spacing:0}
-.mc3 .kband dt,.mission-insp .insp-sec>h3,.mission-insp .insp-bar>span{font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.mc3 .kband dt,.mission-insp .insp-sec>h3,.mission-insp .insp-bar>span{font:var(--type-label);letter-spacing:var(--type-label-ls);text-transform:uppercase}
 .mc3 .sec-head{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;margin:40px 0 12px}
-.mc3 .sec-head h2{margin:0 6px 0 0;font:500 12.5px/1.4 var(--mono);letter-spacing:.09em;text-transform:uppercase}
+.mc3 .sec-head h2{margin:0 6px 0 0}
 .mc3 .sec-head h2::before{counter-increment:sec;content:counter(sec,decimal-leading-zero) " / ";color:var(--accent)}
 .mc3 .sec-head::after{content:'';order:5;flex:1 1 40px;height:1px;background:var(--rule2)}
 .mc3 .sec-head .end{order:9;margin-left:0}.mc3 .sec-head .sub{font-size:13px;color:var(--muted)}
@@ -169,7 +169,7 @@
 .jl-agent{display:block;color:var(--muted);font-size:12px;margin-bottom:4px}.jl-meta{display:block;font-size:12px;color:var(--muted);margin-top:8px}.recent-line{padding:14px 0}.jl-t{overflow-wrap:anywhere}
 .mc-empty{padding:40px;text-align:center;color:var(--muted)}.mc-ghost{width:80px;color:var(--accent)}.mc-gate{font-size:13px;color:var(--muted)}
 .mc-modal-overlay{position:fixed;inset:0;display:grid;place-items:center;background:#000b;z-index:150;padding:20px}.mc-modal{width:min(560px,100%);max-height:calc(100dvh - 40px);overflow:auto;border:1px solid var(--rule3);padding:24px;background:var(--panel)}.mc-modal h2{margin:0 0 20px;font:400 28px var(--display)}.mc-modal p{font-size:14px;line-height:1.6;color:var(--ink2)}.mc-modal .field{display:flex;flex-direction:column;gap:10px;margin-top:14px}.mc-modal-footer{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-top:24px}.mc-modal [role=alert]{color:var(--danger)}
-@media(max-width:899px){.mc3.page{padding:18px 14px 90px}.mc3 .page-head{flex-direction:column;align-items:flex-start;gap:16px;margin-bottom:28px}.mc3 .page-head p{font-size:14px}.mc3 .mc-head-actions{flex-wrap:wrap}.mc3 .fold-sum{display:block;font-size:12px;flex-basis:100%;margin-left:0;order:5}.mc3 .fold-btn{flex-wrap:wrap}.mc3 .kband>div{padding:16px 14px}.mc3 .sec-head .sub{flex-basis:100%;order:2}.mc3 .sec-head .end{order:3}.mc3 .sec-head::after{display:none}}
+@media(max-width:899px){.mc3.page{padding:18px 14px 90px}.mc3 .page-head{flex-direction:column;align-items:flex-start;gap:16px;margin-bottom:28px}.mc3 .mc-head-actions{flex-wrap:wrap}.mc3 .fold-sum{display:block;font-size:12px;flex-basis:100%;margin-left:0;order:5}.mc3 .fold-btn{flex-wrap:wrap}.mc3 .kband>div{padding:16px 14px}.mc3 .sec-head .sub{flex-basis:100%;order:2}.mc3 .sec-head .end{order:3}.mc3 .sec-head::after{display:none}}
 @media(prefers-reduced-motion:reduce){.mc3 .arow,.mc-pill-dot{animation:none}.mc-pbar i{transition:none}}
 :root[data-motion=off] .mc3 .arow,:root[data-motion=off] .mc-pill-dot{animation:none}
 /* The final Desk cascade: lists and figures sit on rules rather than boxed plates. */

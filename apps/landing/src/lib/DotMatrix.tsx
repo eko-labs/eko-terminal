@@ -14,6 +14,37 @@ export type DotMatrixCrop = { x: number; y: number; w: number; h: number }
 const GLYPHS = ' .,:;_<>/*+=O#SF'
 const SUPERSAMPLE = 3
 
+/**
+ * Dot colour is a ramp from dim to lit, read from the landing's tokens (eko.css: --eko-dot-lo/-mid/-hi), so the
+ * dither fields sit in the terminal's deep blues instead of flooding the page with its light accent. The fallbacks
+ * are the same values.
+ */
+const RAMP_STEPS = 48
+/** a playing video is resampled at most this often (ms): getImageData on every frame was most of the page's main-thread time */
+const VIDEO_SAMPLE_MS = 66
+/** while the block sits under the opening animation (an inert ancestor) it draws once and checks back this often (ms) */
+const COVERED_POLL_MS = 250
+const RAMP_FALLBACK = ['#0c2233', '#2c5673', '#5d9fd3'] as const
+
+function hexRgb(value: string, fallback: string): [number, number, number] {
+  const m = /^#?([0-9a-f]{6})$/i.exec(value.trim()) ?? /^#?([0-9a-f]{6})$/i.exec(fallback)!
+  const n = parseInt(m[1], 16)
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+}
+
+function dotRamp(el: Element): string[] {
+  const css = getComputedStyle(el)
+  const [lo, mid, hi] = (['--eko-dot-lo', '--eko-dot-mid', '--eko-dot-hi'] as const).map((name, k) =>
+    hexRgb(css.getPropertyValue(name), RAMP_FALLBACK[k]))
+  const ramp: string[] = []
+  for (let k = 0; k < RAMP_STEPS; k++) {
+    const t = k / (RAMP_STEPS - 1)
+    const [a, b, u] = t < 0.5 ? [lo, mid, t * 2] : [mid, hi, (t - 0.5) * 2]
+    ramp.push(`rgb(${Math.round(a[0] + (b[0] - a[0]) * u)},${Math.round(a[1] + (b[1] - a[1]) * u)},${Math.round(a[2] + (b[2] - a[2]) * u)})`)
+  }
+  return ramp
+}
+
 function hash(a: number, b: number) {
   const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453
   return s - Math.floor(s)
@@ -30,6 +61,7 @@ export default function DotMatrix({
   width,
   height,
   crop,
+  cropBasis,
   flipX = false,
   pitch = 10,
   gain = 1.8,
@@ -51,6 +83,8 @@ export default function DotMatrix({
   height: number
   /** region of the source (in source px) to show; default = object-cover */
   crop?: DotMatrixCrop
+  /** width (px) of the source file the crop was measured on; the crop is scaled to the served file, which can be smaller */
+  cropBasis?: number
   flipX?: boolean
   /** distance between dot centers, design px */
   pitch?: number
@@ -97,11 +131,9 @@ export default function DotMatrix({
     const cellH = height / rows
     const count = cols * rows
 
-    // per-cell sampled source: brightness 0..1 and a normalized color
+    // per-cell sampled source brightness 0..1; the colour comes from the ramp
     const lum = new Float32Array(count)
-    const colR = new Uint8ClampedArray(count)
-    const colG = new Uint8ClampedArray(count)
-    const colB = new Uint8ClampedArray(count)
+    const ramp = dotRamp(canvas)
 
     const sampler = document.createElement('canvas')
     sampler.width = cols * SUPERSAMPLE
@@ -127,7 +159,10 @@ export default function DotMatrix({
     }
 
     function resolveCrop(): DotMatrixCrop {
-      if (crop) return crop
+      if (crop) {
+        const k = cropBasis ? sourceSize().w / cropBasis : 1
+        return { x: crop.x * k, y: crop.y * k, w: crop.w * k, h: crop.h * k }
+      }
       const { w, h } = sourceSize()
       // object-cover
       const s = Math.max(width / w, height / h)
@@ -173,13 +208,6 @@ export default function DotMatrix({
           const max = Math.max(r, g, b)
           const i = cy * cols + cx
           lum[i] = Math.min(1, (max / 255) * gain)
-          if (max > 0) {
-            // keep the hue, push it toward full saturation/brightness so dots read vivid
-            const k = 255 / max
-            colR[i] = 143
-            colG[i] = 202
-            colB[i] = 240
-          }
         }
       }
       if (mask) buildMask()
@@ -249,6 +277,13 @@ export default function DotMatrix({
     let lastVideoTime = -1
     let lastAmbientTick = -1
     let lastAutoSweep = performance.now()
+    let lastSampleAt = -Infinity
+    let measure = true
+    let lastMeasure = -Infinity
+    let poll = 0
+    function onResize() {
+      measure = true
+    }
 
     function onPointerMove(e: PointerEvent) {
       const rect = canvas!.getBoundingClientRect()
@@ -286,7 +321,12 @@ export default function DotMatrix({
       if (e.pointerType !== 'mouse') pointer.inside = false
     }
 
-    function ensureBackingSize() {
+    function ensureBackingSize(now: number) {
+      // Reading layout every frame forced a reflow per frame. Measure on start, after a resize, and twice a second
+      // (a parent's fit-to-width scale can change without a window resize).
+      if (!measure && now - lastMeasure < 500) return
+      measure = false
+      lastMeasure = now
       const rect = canvas!.getBoundingClientRect()
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
       const bw = Math.max(1, Math.round(rect.width * dpr))
@@ -364,11 +404,7 @@ export default function DotMatrix({
           const lit = Math.min(1, l * (0.8 + 0.3 * breath) + f * 0.35 + wave * 0.25)
           if (lit < threshold && f < 0.2 && wave < 0.2) continue
 
-          const r = colR[i]
-          const g = colG[i]
-          const b = colB[i]
-          const shade = 0.45 + 0.55 * lit
-          ctx.fillStyle = `rgb(${(r * shade) | 0},${(g * shade) | 0},${(b * shade) | 0})`
+          ctx.fillStyle = ramp[Math.min(RAMP_STEPS - 1, Math.max(0, Math.round(lit * (RAMP_STEPS - 1))))]
 
           const glyphMode = f > 0.3 || (wave > 0.35 && hash(i, bucket) < wave)
           if (glyphMode && lit >= threshold * 0.5) {
@@ -390,7 +426,29 @@ export default function DotMatrix({
     function frame(now: number) {
       raf = 0
       if (disposed || !visible) return
-      ensureBackingSize()
+      ensureBackingSize(now)
+
+      // Under the opening animation nobody sees the block: draw it once, keep the video paused, check back later.
+      if (canvas!.closest('[inert]')) {
+        if (source instanceof HTMLVideoElement) {
+          if (!source.paused) source.pause()
+          if (sourceReady && lastVideoTime < 0) {
+            lastVideoTime = source.currentTime
+            sample()
+            dirty = true
+          }
+        }
+        if (sourceReady && dirty) {
+          draw(now)
+          dirty = false
+        }
+        poll = window.setTimeout(() => {
+          poll = 0
+          if (!disposed && visible && !raf) raf = requestAnimationFrame(frame)
+        }, COVERED_POLL_MS)
+        return
+      }
+      if (source instanceof HTMLVideoElement && source.paused) source.play().catch(() => {})
 
       const targetHover = pointer.inside ? 1 : 0
       hover += (targetHover - hover) * 0.12
@@ -406,8 +464,9 @@ export default function DotMatrix({
       }
       const sweeping = sweepStart >= 0 && now - sweepStart < 1000
       const animating = hover > 0.001 || sweeping
-      if (source instanceof HTMLVideoElement && sourceReady && source.currentTime !== lastVideoTime) {
+      if (source instanceof HTMLVideoElement && sourceReady && source.currentTime !== lastVideoTime && now - lastSampleAt >= VIDEO_SAMPLE_MS) {
         lastVideoTime = source.currentTime
+        lastSampleAt = now
         sample()
         dirty = true
       }
@@ -429,17 +488,18 @@ export default function DotMatrix({
       ([entry]) => {
         visible = entry.isIntersecting
         if (source instanceof HTMLVideoElement) {
-          if (visible) source.play().catch(() => {})
-          else source.pause()
+          if (!visible) source.pause()
         }
-        if (visible && !raf) {
+        if (visible && !raf && !poll) {
           dirty = true
+          measure = true
           raf = requestAnimationFrame(frame)
         }
       },
       { rootMargin: '100px' },
     )
     io.observe(canvas)
+    window.addEventListener('resize', onResize, { passive: true })
     window.addEventListener('pointermove', onPointerMove, { passive: true })
     document.addEventListener('pointerleave', onPointerLeaveWindow)
     window.addEventListener('pointerdown', onPointerDown, { passive: true })
@@ -450,6 +510,8 @@ export default function DotMatrix({
       disposed = true
       io.disconnect()
       cancelAnimationFrame(raf)
+      window.clearTimeout(poll)
+      window.removeEventListener('resize', onResize)
       window.removeEventListener('pointermove', onPointerMove)
       document.removeEventListener('pointerleave', onPointerLeaveWindow)
       window.removeEventListener('pointerdown', onPointerDown)
@@ -461,7 +523,7 @@ export default function DotMatrix({
         source.load()
       }
     }
-  }, [src, video, width, height, crop, flipX, pitch, gain, threshold, dotScale, radius, sweepOnEnter, ambient, autoSweepMs, litOnly, backdrop, backdropFade])
+  }, [src, video, width, height, crop, cropBasis, flipX, pitch, gain, threshold, dotScale, radius, sweepOnEnter, ambient, autoSweepMs, litOnly, backdrop, backdropFade])
 
   return <canvas ref={canvasRef} className={className} style={{ width, height, display: 'block', ...style }} />
 }

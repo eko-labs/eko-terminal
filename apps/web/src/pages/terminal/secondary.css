@@ -4,7 +4,7 @@
 .pairs-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
 .pcol{display:flex;flex-direction:column;min-width:0;height:max(480px,calc(100vh - var(--header) - var(--subnav) - var(--status) - 226px))}
 .pcol-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:12px 14px 11px;border-bottom:1px solid var(--rule2)}
-.pcol-head h2{margin:0;display:flex;align-items:center;gap:8px;font:500 14px var(--sans)}
+.pcol-head h2{margin:0;display:flex;align-items:center;gap:8px}
 .pcol-head p{margin:3px 0 0;font-size:12px;color:var(--muted)}
 .pcol-count{font:500 12px/16px var(--sans);color:var(--ink2);border:1px solid var(--rule2);border-radius:8px;padding:0 6px}
 .pcol-list{position:relative;flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--rule2) transparent}
@@ -163,11 +163,11 @@
 /* Desk geometry from the approved prototype, scoped to these two pages. */
 .sec-page{padding:44px 32px 64px;max-width:1480px;min-width:0;width:100%;background:none;overflow:visible}
 .sec-page .page-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:24px 40px;margin-bottom:36px}
-.sec-page .page-head h1{margin:0;font:400 clamp(52px,4.8vw,76px)/.98 var(--display);letter-spacing:-.055em}
-.sec-page .page-head p{margin:16px 0 0;font-size:16px;line-height:1.5;color:var(--ink2);max-width:560px}
+.sec-page .page-head h1{margin-top:0}
+.sec-page .page-head p{margin:16px 0 0;max-width:560px}
 .sec-page .panel{background:transparent;border:0;border-top:1px solid var(--rule2);border-radius:0;box-shadow:none}
 .sec-page .panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0 10px}
-.sec-page .panel-head h3{margin:0;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.sec-page .panel-head h3{margin:0}
 .sec-page .panel-head>.muted{font-size:12px}
 .sec-page .panel-body{padding:4px 0 18px}
 .sec-page .bar{height:4px;background:var(--off);border-radius:1px;overflow:hidden;flex:1}
@@ -185,7 +185,7 @@
 .pairs-page .pcol+.pcol{border-left:1px solid var(--rule);padding-left:12px}
 .pairs-page .prow{height:var(--pair-row-height,132px);gap:6px;box-sizing:border-box;overflow:hidden;background:transparent}
 .pairs-page .pr-sym .untrusted{max-width:150px}
-.pairs-page .pr-verdict{gap:6px;flex:none}
+.pairs-page .pr-verdict{gap:6px;flex:0 1 auto;min-width:0;max-width:76%}
 .pairs-page .pr-tax-line{height:18px;display:flex;gap:8px;align-items:center;white-space:nowrap}
 .pairs-page .pr-scanning{font-size:12px;color:var(--muted)}
 .pairs-page .pr-snipe{padding:0 4px;font-size:11px;line-height:16px}
@@ -212,7 +212,7 @@
 @media(max-width:1100px){.feed-page .feed-grid{grid-template-columns:1fr}.feed-page .feed-aside{position:static}}
 @media(max-width:900px){.pairs-page .pcol{height:auto;min-height:0}.pairs-page .pcol-list{overflow:visible}.pairs-page .pcol-head h2{display:none}.pairs-page .pcol-head p{margin:0}.pairs-page .pcol-head{align-items:center}}
 @media(max-width:700px){
- .sec-page{padding:18px 14px 32px}.sec-page .page-head{flex-direction:column;align-items:flex-start;gap:12px;margin-bottom:28px}.sec-page .page-head h1{font-size:48px}.sec-page .page-head p{font-size:14px}
+ .sec-page{padding:18px 14px 32px}.sec-page .page-head{flex-direction:column;align-items:flex-start;gap:12px;margin-bottom:28px}
  .feed-page .feed-toolbar{flex-wrap:nowrap;overflow:visible;margin:0 0 14px;padding:0;gap:10px 14px}.feed-page .frow:not(.frow-head){height:66px;min-height:66px}.feed-page .fr-sym{align-self:end}.feed-page .fr-desc{align-self:start}
  .pairs-page .pr-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 66px 62px;gap:10px}.pairs-page .pr-sym .untrusted{max-width:140px}.pairs-page .flow-beta{font-size:8px}.pairs-page .pr-top{gap:4px}.pairs-page .pr-id{gap:7px}.pairs-page .pr-verdict{gap:3px}.pairs-page .pr-verdict .heat-tag{display:none}
 }
@@ -227,7 +227,7 @@
 .live-slot::after{content:'Paused';visibility:hidden;height:0;overflow:hidden}
 
 /* Lead review: section labels and inline beta marks match the Desk prototype. */
-.pairs-page .pcol-head h2{font:500 12.5px/1.4 var(--mono);letter-spacing:.09em;text-transform:uppercase}
+
 .pairs-page .pcol-count{font:inherit;border:0;border-radius:0;padding:0}
 .pairs-page .pr-l .tag{display:inline-flex;height:14px;padding:0 4px;font-size:9.5px}
 .feed-page .fb-flow>span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}

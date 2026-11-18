@@ -58,11 +58,17 @@ export interface TrackerOptions {
   chunk?: number;
   /** Coins launched longer ago than this are forgotten (default 25 h: the 24 h outcome is measured first). */
   keepSec?: number;
+  /** A graduate with at least this much native currency traded in its last 24 hours outlives keepSec; 0 turns it off.
+   *  Default: the chain profile's. */
+  activeQuote24h?: number;
   maxTradesPerCoin?: number;
   maxFlowsPerCoin?: number;
   /** Default: the chain profile's. */
   blockTimeSec?: number;
   now?: () => number;
+  /** RPC for reads of old history (graduates, active graduates, missing coins, rebase): it must not answer an old span
+   *  from a provider that keeps only recent blocks. Default: the tracker's own. */
+  archiveRpc?: Rpc;
   /** Called once per new launch, as it is applied. */
   onLaunch?: (coin: CoinState) => void;
 }
@@ -70,6 +76,19 @@ export interface TrackerOptions {
 /** The default start-up replay in seconds (32,400 blocks at Elysium's ~98 ms). */
 export const BACKFILL_SEC = 3_175.2;
 const hex = (n: bigint | number) => `0x${n.toString(16)}`;
+/** A coin stays in memory for keepSec after its launch, or after its graduation when that came later (a coin can sit on
+ *  its curve for days and graduate today: the Graduated column shows it for a day). */
+const alive = (c: CoinState) => Math.max(c.ts, c.graduatedTs ?? 0);
+/** Native currency a coin traded in the 24 hours before `nowSec`. */
+export function quote24h(c: CoinState, nowSec: number): number {
+  let sum = 0;
+  for (let i = c.trades.length - 1; i >= 0 && c.trades[i]!.ts > nowSec - 86_400; i--) sum += c.trades[i]!.hype;
+  return sum;
+}
+/** How often a running tracker looks for graduates still trading that it does not follow (chain.active). */
+const ACTIVE_EVERY_SEC = 1800;
+/** A start that restored fewer coins than this rebuilds the memory window's launches from the chain (chain.graduates). */
+export const FULL_WARM_BELOW = 200;
 const big = (h: Hex) => BigInt(h);
 
 /**
@@ -88,16 +107,19 @@ export class Tracker implements TrackerCore {
   openMcapHype = DEFAULT_OPEN_MCAP_HYPE;
   readonly chain: ChainAdapter;
   private chunk: number;
-  private readonly opts: Required<Omit<TrackerOptions, 'chunk' | 'onLaunch'>>;
+  private readonly opts: Required<Omit<TrackerOptions, 'chunk' | 'onLaunch' | 'archiveRpc'>>;
+  private readonly archive: Rpc;
   private readonly onLaunch?: (coin: CoinState) => void;
 
   constructor(private readonly rpc: Rpc, chain: ChainAdapter | ElysiumRegistry, options: TrackerOptions = {}) {
     this.chain = chainOf(chain);
     const blockTimeSec = options.blockTimeSec ?? this.chain.profile.blockTimeSec;
     this.chunk = options.chunk ?? this.chain.profile.tracker.chunk;
-    this.opts = { backfillBlocks: options.backfillBlocks ?? this.chain.profile.tracker.backfillBlocks ?? Math.round(BACKFILL_SEC / blockTimeSec), keepSec: options.keepSec ?? 90_000, maxTradesPerCoin: options.maxTradesPerCoin ?? 5000,
+    this.opts = { backfillBlocks: options.backfillBlocks ?? this.chain.profile.tracker.backfillBlocks ?? Math.round(BACKFILL_SEC / blockTimeSec), keepSec: options.keepSec ?? 90_000,
+      activeQuote24h: options.activeQuote24h ?? this.chain.profile.tracker.activeQuote24h ?? 0, maxTradesPerCoin: options.maxTradesPerCoin ?? 5000,
       maxFlowsPerCoin: options.maxFlowsPerCoin ?? 20_000, blockTimeSec, now: options.now ?? (() => Date.now() / 1000) };
     this.onLaunch = options.onLaunch;
+    this.archive = options.archiveRpc ?? rpc;
   }
 
   coin(address: string): CoinState | undefined { return this.coins.get(address.toLowerCase()); }
@@ -109,6 +131,8 @@ export class Tracker implements TrackerCore {
   /** Coins saved before a restart (snapshot.ts), put back at start before the backfill runs. */
   private seeded: CoinState[] = [];
   restored = 0;
+  /** Restored coins whose saved trades reach into the replayed span (chain.rebase resets their running balances). */
+  private replayed: CoinState[] = [];
   seed(coins: CoinState[]) { this.seeded = coins; }
 
   async start(): Promise<void> {
@@ -116,8 +140,63 @@ export class Tracker implements TrackerCore {
     this.cursor = this.head > BigInt(this.opts.backfillBlocks) ? this.head - BigInt(this.opts.backfillBlocks) : 0n;
     const seeded = this.seeded; this.seeded = [];
     this.restored = this.restore(seeded);
-    if (this.restored && this.chain.rebase) await this.chain.rebase([...this.coins.values()], this.cursor, this.rpc);
+    // Only coins that traded inside the replayed span carry balances the replay would count twice.
+    if (this.replayed.length && this.chain.rebase) await this.chain.rebase(this.replayed, this.cursor, this.archive);
+    // Coins that graduated within the memory window but before this start (none restored for them): their whole history.
+    if (this.chain.graduates && this.cursor > 0n) {
+      const span = BigInt(Math.round(this.opts.keepSec / this.opts.blockTimeSec)), from = this.cursor > span ? this.cursor - span : 0n;
+      try {
+        // The whole window's launches only when the snapshot was missing or nearly empty (a first start, a lost volume):
+        // otherwise the snapshot already holds them and the rebuild would only slow the restart.
+        const logs = await this.chain.graduates(this.archive, from, this.cursor, (token) => this.coins.has(token.toLowerCase()), { coins: this.restored < FULL_WARM_BELOW });
+        if (logs.length) {
+          const refTs = await this.blockTs(this.cursor);
+          this.applyAll(logs, (l) => l.blockTimestamp && big(l.blockTimestamp) > 0n ? Number(big(l.blockTimestamp)) : Math.round(refTs - Number(this.cursor - big(l.blockNumber)) * this.opts.blockTimeSec));
+          this.prune();
+        }
+      } catch { /* The column fills as coins graduate; a failed look-back only leaves it emptier. */ }
+    }
+    // The lookup for graduates still trading (findActive) starts on the first tick, after this replay: run beside it,
+    // it shares the metered RPC and slowed the restart from ~70 s to ~170 s.
     await this.syncTo(this.head);
+  }
+
+  /** A coin stays while it is inside the memory window, or graduated and still trading (activeQuote24h). */
+  private kept(c: CoinState, cutoff: number, nowSec: number): boolean {
+    return alive(c) >= cutoff || (c.graduated && this.opts.activeQuote24h > 0 && quote24h(c, nowSec) >= this.opts.activeQuote24h);
+  }
+
+  private activeAt = 0;
+  private activeRun: Promise<void> | null = null;
+  private activeFound: { logs: RawLog[]; to: bigint }[] = [];
+  /** Look for graduates still trading that EKO does not follow (chain.active), in the background: the lookup reads each
+   *  one's whole history and can take many minutes, so the tracker keeps syncing and applies each coin on the tick after
+   *  its history is read (a restart midway keeps the coins already applied: the snapshot saves them). */
+  private findActive(to: bigint): void {
+    if (!this.chain.active || this.opts.activeQuote24h <= 0 || to === 0n || this.activeRun) return;
+    this.activeAt = this.opts.now();
+    const span = BigInt(Math.round(86_400 / this.opts.blockTimeSec)), from = to > span ? to - span : 0n;
+    this.activeRun = this.chain.active(this.archive, from, to, { token: (t) => this.coins.has(t.toLowerCase()), pool: (id) => this.byPool.has(id.toLowerCase()) }, this.opts.activeQuote24h, (logs) => { this.activeFound.push({ logs, to }); })
+      .catch(() => { /* tried again on the next round; the column only misses the older active graduates meanwhile */ })
+      .finally(() => { this.activeRun = null; });
+  }
+  /** Apply each coin the lookup has read so far (its logs end at `to`), then its swaps and transfers since `to`. */
+  private async applyActive(): Promise<void> {
+    for (const found of this.activeFound.splice(0)) await this.applyOneActive(found);
+  }
+  private async applyOneActive(found: { logs: RawLog[]; to: bigint }): Promise<void> {
+    const before = new Set(this.coins.keys()), refTs = this.headTs, cursor = this.cursor;
+    const stamp = (l: RawLog) => l.blockTimestamp && big(l.blockTimestamp) > 0n ? Number(big(l.blockTimestamp)) : Math.round(refTs - Number(cursor - big(l.blockNumber)) * this.opts.blockTimeSec);
+    this.applyAll(found.logs, stamp);
+    const fresh = [...this.coins.values()].filter(c => !before.has(c.token.toLowerCase()) && c.graduated);
+    if (!fresh.length || cursor <= found.to) return;
+    try {
+      const [swaps, transfers] = await Promise.all([
+        this.logs({ address: this.chain.swapManagers, topics: [SWAP_TOPIC, fresh.map(c => c.poolId as Hex)] }, found.to + 1n, cursor, this.archive),
+        this.logs({ address: fresh.map(c => c.token as Address), topics: [TRANSFER_TOPIC] }, found.to + 1n, cursor, this.archive),
+      ]);
+      this.applyAll([...swaps, ...transfers], stamp);
+    } catch { /* the coins' next trades still arrive; only the minutes the lookup took are missing from their history */ }
   }
 
   /**
@@ -126,13 +205,14 @@ export class Tracker implements TrackerCore {
    * the backfill entirely, and one older than the memory keeps is dropped. Returns how many were restored.
    */
   restore(coins: CoinState[]): number {
-    const cursor = Number(this.cursor), cutoff = this.opts.now() - this.opts.keepSec;
+    const cursor = Number(this.cursor), now = this.opts.now(), cutoff = now - this.opts.keepSec;
     let n = 0;
     for (const coin of coins) {
       const k = coin.token.toLowerCase();
-      if (coin.block > cursor || coin.ts < cutoff || this.coins.has(k)) continue;
+      if (coin.block > cursor || !this.kept(coin, cutoff, now) || this.coins.has(k)) continue;
       for (const t of coin.trades) if (t.block > cursor) coin.netHype -= t.side === 'buy' ? t.hype : -t.hype;
       for (const f of coin.flows) if (f.block > cursor && coin.supplyFromMints && f.from === '0x0000000000000000000000000000000000000000') coin.supply -= f.value;
+      if (coin.trades.some(t => t.block > cursor)) this.replayed.push(coin);
       coin.trades = coin.trades.filter(t => t.block <= cursor); coin.flows = coin.flows.filter(f => f.block <= cursor);
       // Graduation stays as saved: it is sticky, and the replay only skips a coin already graduated.
       this.coins.set(k, coin); this.index(coin); n++;
@@ -146,6 +226,14 @@ export class Tracker implements TrackerCore {
     if (this.cursor === 0n) return this.start();
     this.head = big(await this.rpc.request({ method: 'eth_blockNumber', params: [] }) as Hex);
     await this.syncTo(this.head);
+    if (this.chain.missing) {
+      try {
+        const logs = await this.chain.missing(this.archive, this.cursor, (token) => this.coins.has(token.toLowerCase()));
+        if (logs.length) this.applyAll(logs, (l) => l.blockTimestamp && big(l.blockTimestamp) > 0n ? Number(big(l.blockTimestamp)) : Math.round(this.headTs - Number(this.cursor - big(l.blockNumber)) * this.opts.blockTimeSec));
+      } catch { /* retried with the next graduation it sees; the coin otherwise ages in normally */ }
+    }
+    await this.applyActive();
+    if (this.opts.now() - this.activeAt >= ACTIVE_EVERY_SEC) this.findActive(this.cursor);
     this.prune();
   }
 
@@ -155,8 +243,8 @@ export class Tracker implements TrackerCore {
     return Number(big(b.timestamp));
   }
 
-  private async logs(filter: LogFilter, from: bigint, to: bigint): Promise<RawLog[]> {
-    return await this.rpc.request({ method: 'eth_getLogs', params: [{ ...(filter.address ? { address: filter.address } : {}), topics: filter.topics, fromBlock: hex(from), toBlock: hex(to) }] }) as RawLog[];
+  private async logs(filter: LogFilter, from: bigint, to: bigint, rpc: Rpc = this.rpc): Promise<RawLog[]> {
+    return await rpc.request({ method: 'eth_getLogs', params: [{ ...(filter.address ? { address: filter.address } : {}), topics: filter.topics, fromBlock: hex(from), toBlock: hex(to) }] }) as RawLog[];
   }
 
   private async syncTo(head: bigint) {
@@ -254,7 +342,7 @@ export class Tracker implements TrackerCore {
   private push(event: FeedEvent) { this.feed.push(event); if (this.feed.length > 1000) this.feed.splice(0, this.feed.length - 1000); }
 
   private prune() {
-    const cutoff = (this.headTs || this.opts.now()) - this.opts.keepSec;
-    for (const [key, coin] of this.coins) if (coin.ts < cutoff) { this.coins.delete(key); this.unlink(coin); }
+    const now = this.headTs || this.opts.now(), cutoff = now - this.opts.keepSec;
+    for (const [key, coin] of this.coins) if (!this.kept(coin, cutoff, now)) { this.coins.delete(key); this.unlink(coin); }
   }
 }

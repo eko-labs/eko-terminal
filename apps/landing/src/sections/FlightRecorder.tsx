@@ -25,8 +25,10 @@ export default function FlightRecorder() {
   const side = useTransform(scrollYProgress, [0.32, 0.6], ["0%", "3.84%"]);
   const vertical = useTransform(scrollYProgress, [0.32, 0.6], ["0%", "7%"]);
   const fade = useTransform(scrollYProgress, [0.04, 0.24, 0.55, 1], [0, 1, 1, 0.8]);
-  const contentFade = useTransform(scrollYProgress, [0.42, 0.6], [0, 1]);
-  const cueFade = useTransform(scrollYProgress, [0.4, 0.58], [1, 0]);
+  // In turn, never together: the opening line is gone before the journal starts to show (a cross-fade left both
+  // half-visible on top of each other wherever the scroll stopped between them).
+  const cueFade = useTransform(scrollYProgress, [0.34, 0.45], [1, 0]);
+  const contentFade = useTransform(scrollYProgress, [0.47, 0.6], [0, 1]);
 
   useMotionValueEvent(scrollYProgress, "change", (progress) => {
     setSettled(progress > 0.5);

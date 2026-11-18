@@ -1,6 +1,6 @@
 import { rememberCoinIdentity } from '../../lib/coinIdentity';
 import { BlueChipBadge } from '../../components/BlueChip';
-import { DANGER_ACCEPTED_TITLE, IN_POOL_TITLE, REFUSED_TITLE, TRADING_PAUSED_TITLE, runUpTitle } from '../../copy/availability';
+import { DANGER_ACCEPTED_TITLE, IN_POOL_TITLE, REFUSED_TITLE, TRADING_PAUSED_TITLE } from '../../copy/availability';
 import { CompactVerdictChip, GuardLegend } from '../../components/GuardCompact';
 import { AnalysisPolicyNotice } from '../../components/PolicyLinks';
 import { CHECK_LEGEND, NEAR_GRAD, SELL_FAILS, SELL_FAILS_TITLE } from '../../copy/availability';
@@ -19,9 +19,10 @@ import { useUi } from '../../store/ui';
 import { refused } from './radarModel';
 import { TradePanel } from '../../components/trade/TradePanel';
 import { CoinInspector, FlowBar, HeatLegend } from './RadarParts';
+import { FLOW_SHARE_TITLE, buyShare } from './FlowBar';
 import { Decode, Roll } from './radarMotion';
 import { formatAge } from '../../lib/format';
-import { retainCompactGuard, exitText, pct, PLAYBOOK_NAMES, scanDelayed } from './radarModel';
+import { retainCompactGuard, exitText, pct, PLAYBOOK_NAMES, noMatchLabel, scanDelayed } from './radarModel';
 import { antiSnipeLeft, antiSnipeTax, applyPairEvents, COLUMNS, firstScanText, pairColumns, PairResponseSchema, pairTradeDisabled, receivedAt, type PairsToday } from './pairsFeedModel';
 import { serverNow } from '../../lib/clock';
 import { useTerminalWindow } from './terminalWindow';
@@ -35,7 +36,7 @@ import { CHAIN_COPY } from '../../copy/chain';
 const P = CHAIN_COPY.pairs;
 const META = {
   new: { title: 'New', sub: P.new.sub, about: P.new.about },
-  near_grad: { title: 'About to graduate', sub: NEAR_GRAD, about: P.near_grad.about },
+  near_grad: { title: 'About to graduate', sub: ('sub' in P.near_grad && P.near_grad.sub) || NEAR_GRAD, about: P.near_grad.about },
   migrated: { title: 'Graduated', sub: P.migrated.sub, about: P.migrated.about },
 };
 // One fixed height per column (the list is windowed): identity, three lines of numbers and the action row.
@@ -64,19 +65,19 @@ export function PairView({ row, now, at, select, trade, stale }: { row: PairRow;
   const un = (field: NonNullable<PairRow['unavailable']>[number]) => row.unavailable?.includes(field);
   const score = pending ? undefined : runUpScore(row), change = un('change') ? undefined : row.change1hPct;
   return <li className={`prow tone ${tone}${heat === 'hot' ? ' lit' : ''} ${markClass(marking(row, { pending }))}${hasGuardLabels(row) ? ' guard-labels' : ''}`} data-address={row.address} data-pending={pending} onClick={(e) => select(row, e.currentTarget)}>
-    <div className="pr-top"><div className="pr-id"><button className="pr-sym tone-sym" title={`$${row.symbol.text}`} data-pick aria-label={`Inspect $${row.symbol.text}`} onClick={(e) => { e.stopPropagation(); select(row, e.currentTarget); }}><Decode text={`$${row.symbol.text}`}><span>$<UntrustedText value={row.symbol} /></span></Decode></button><span className="pr-age num">{formatAge(ageNow)}</span></div><span className="pr-verdict"><BlueChipBadge value={row.blueChip} /><HeatTag heat={heat} /><CompactVerdictChip priceMove={row.priceMove} level={row.verdict} guard={row.guardV2} failed={row.guardRefreshFailed} pending={row.verdictPending} scanDelayed={delayed} evaluatedPlaybooks={row.evaluatedPlaybooks} missing={row.missingChecks} detail={score === undefined ? undefined : String(score)} detailTitle={score === undefined ? undefined : runUpTitle(score)} /></span></div>
+    <div className="pr-top"><div className="pr-id"><button className="pr-sym tone-sym" title={`$${row.symbol.text}`} data-pick aria-label={`Inspect $${row.symbol.text}`} onClick={(e) => { e.stopPropagation(); select(row, e.currentTarget); }}><Decode text={`$${row.symbol.text}`}><span>$<UntrustedText value={row.symbol} /></span></Decode></button><span className="pr-age num">{formatAge(ageNow)}</span></div><span className="pr-verdict"><BlueChipBadge value={row.blueChip} /><HeatTag heat={heat} /><CompactVerdictChip priceMove={row.priceMove} level={row.verdict} guard={row.guardV2} failed={row.guardRefreshFailed} pending={row.verdictPending} scanDelayed={delayed} evaluatedPlaybooks={row.evaluatedPlaybooks} missing={row.missingChecks} stateLabel={noMatchLabel({ ...row, ageSec: ageNow })} runUp={score} /></span></div>
     <div className="pr-sub"><span className="pr-name"><UntrustedText value={row.name} /></span><span>·</span><span>{launchpadLabel(row.launchpad, row.column === 'migrated')}</span>{!pending && row.topPlaybook && <span className={`pr-play${row.verdict === 'danger' ? ' bad' : ''}`}>· {PLAYBOOK_NAMES[row.topPlaybook]}</span>}{left > 0 && <span className="pr-snipe num pr-end">{tax}% buy tax → 0 in {left} s</span>}</div>
     <div className="pr-metrics">
       <Metric label="Mkt cap">{row.marketCapUsd === undefined || un('marketCap') ? <UnavailableValue /> : <Roll value={cardUsd(row.marketCapUsd)} />}</Metric>
       <Metric label={row.launchpad !== 'pons' ? 'In pool' : row.column === 'migrated' ? 'Liquidity' : 'In curve'} title={row.launchpad !== 'pons' ? IN_POOL_TITLE : undefined}>{un('liquidity') ? <UnavailableValue /> : <Roll value={cardUsd(row.liquidityUsd)} />}</Metric>
       <Metric label="Vol 1h">{row.volume1hUsd === undefined || un('volume') ? <UnavailableValue /> : <Roll value={cardUsd(row.volume1hUsd)} />}</Metric>
       <Metric label="Trades 1h">{row.trades1h === undefined || un('volume') ? <UnavailableValue /> : <Roll value={row.trades1h.toLocaleString('en-US')} />}</Metric>
-      <Metric label="1h" tone={change === undefined || change === 0 ? undefined : change > 0 ? 'up' : 'down'}>{change === undefined ? <UnavailableValue /> : <Roll value={pct(change)} />}</Metric>
+      <Metric label="Price 1h" tone={change === undefined || change === 0 ? undefined : change > 0 ? 'up' : 'down'}>{change === undefined ? <UnavailableValue /> : <Roll value={pct(change)} />}</Metric>
     </div>
     <div className="pr-holders">
       <Held label="Top 10" value={row.top10Pct} watch={20} danger={50} /><Held label="Dev" value={row.devPct} watch={5} danger={20} /><Held label="First-minute buyers" value={row.earlyHeldPct} watch={15} danger={30} />
       {!un('buyers') && <span>Buyers <b className="num">{row.buyers.toLocaleString('en-US')}</b></span>}
-      {!un('flow') && <span>Agents <b className="num">{Math.round(row.flow.agentPct)}%</b></span>}
+      {!un('flow') ? <span>Agents <b className="num">{Math.round(row.flow.agentPct)}%</b></span> : row.flow.activity && <span title={FLOW_SHARE_TITLE}>Buys <b className="num">{(s => s === null ? '—' : `${s}%`)(buyShare(row.flow.activity))}</b></span>}
     </div>
     <div className="pr-grid tone-dim"><div className="pr-cell">{row.launchpad !== 'pons' ? row.column === 'migrated' ? <span className="pr-l">Graduated</span> : row.graduationPct === undefined ? null : <><span className="pr-l" title={GRAD_TITLE}>Graduation <b className="num">{Math.floor(row.graduationPct)}%</b></span><div className="pr-bar"><div className="bar"><i style={{ width: `${row.graduationPct}%` }} /></div></div></> : row.column === 'migrated' ? <span className="pr-l">Graduated to a pool</span> : <><span className="pr-l">Curve <b className="num">{row.curvePct === undefined ? <UnavailableValue /> : `${Math.floor(row.curvePct)}%`}</b></span><div className="pr-bar" hidden={row.curvePct === undefined}><div className="bar"><i style={{ width: `${row.curvePct ?? 0}%` }} /></div></div></>}</div><div className="pr-cell pr-spark">{row.spark8h && row.spark8h.length > 1 && !un('spark') ? <Spark series={row.spark8h} height={30} /> : null}</div><div className="pr-cell pr-exit"><span className="pr-l">Exit at $100</span><span className={`pr-v num${row.sellCheck?.status === 'refused' || (!un('exitCost') && row.exitCost100Pct > 15) ? ' bad' : ''}`} title={row.sellCheck?.status === 'refused' ? SELL_FAILS_TITLE : undefined}>{row.sellCheck?.status === 'refused' ? SELL_FAILS : un('exitCost') ? <UnavailableValue /> : exitText(row.exitCost100Pct)}</span></div><button className={`btn btn-sm${row.verdict === 'danger' || !tradingLive ? '' : ' btn-primary'}`} disabled={pairTradeDisabled(row, stale, tradingLive, riskMode)} title={row.verdictPending ? "Waiting for the guard's first scan." : stale ? 'Waiting for current data.' : no ? REFUSED_TITLE(riskMode, row.hardDanger === true) : row.verdict === 'danger' ? DANGER_ACCEPTED_TITLE : !tradingLive ? TRADING_PAUSED_TITLE : undefined} aria-label={`Trade $${row.symbol.text}`} onClick={(e) => { e.stopPropagation(); trade(row, e.currentTarget); }}>{no ? 'Refused' : 'Trade'}</button></div>
   </li>;

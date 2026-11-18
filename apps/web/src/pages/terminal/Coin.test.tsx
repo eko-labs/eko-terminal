@@ -15,6 +15,8 @@ import { ChartStage } from '../../components/chart/ChartStage';
 import { reconcileCandleTicks } from '../../components/chart/coinMath';
 import { SUB_MINUTE_UNAVAILABLE } from '../../copy/availability';
 import { coinMarkers } from '../../mocks/demo/coin';
+import { CHAIN_KEY } from '../../lib/chain';
+import { BUILD_NETWORK } from '../../lib/deployment';
 const row=createRadarRows()[0],card=createRadarCard(row.address)!;
 vi.mock('../../lib/useMedia',()=>({useMedia:()=>false}));
 afterEach(()=>vi.restoreAllMocks());
@@ -52,11 +54,27 @@ describe('coin card and signal copy',()=>{
    expect(renderToStaticMarkup(<Coin params={{address:row.address}}/>)).toContain('No trades in this window');
  });
  it('renders the five readings with fixed weights and a reproducible receipt, without agent copy',()=>{const html=renderToStaticMarkup(<CoinSignalPanel signal={card.signal!}/>);expect(html).toContain('Signal · five readings');expect(html).toContain('<th>Reading</th>');expect(html).toContain('How we got this');expect(html).not.toMatch(/agent/i);for(const reading of ['Momentum','Liquidity','Holders','Narrative','Risk'])expect(html).toContain(reading);expect(html).toContain('30%');expect(html).toContain('Beta');});
- it('has all card sections and only renders Swarm for verdict.beta',()=>{const render=(beta=undefined as typeof card.verdict.beta)=>renderToStaticMarkup(<CoinOverview card={card} verdict={{...card.verdict,beta}} flows={[card.flow]} evidenceOpen/>);const html=render();for(const word of ['Verdict','Tradeability','Liquidity','Supply','Owner powers','Receipt','Identity','Flow windows'])expect(html).toContain(word);expect(html).not.toContain('Swarm');expect(render({apeScore:42})).toContain('Swarm');expect(html).toContain('86% confidence');expect(html).toContain('Evidence');});
+ it('has all card sections and only renders Swarm for verdict.beta',()=>{const render=(beta=undefined as typeof card.verdict.beta)=>renderToStaticMarkup(<CoinOverview card={card} verdict={{...card.verdict,beta}} flows={[card.flow]} evidenceOpen/>);const html=render();for(const word of ['Verdict','Tradeability','Liquidity','Supply','Owner powers','Receipt','Identity','Trading flow'])expect(html).toContain(word);expect(html).not.toContain('Swarm');expect(render({apeScore:42})).toContain('Swarm');expect(html).toContain('86% confidence');expect(html).toContain('Evidence');});
  it('renders the verdict alone before the card and escapes evidence',()=>{const html=renderToStaticMarkup(<CoinVerdict verdict={{...card.verdict,reasons:['<script>alert(1)</script>']}}/>);expect(html).toContain('&lt;script&gt;');expect(html).not.toContain('<script>');expect(html).toContain('Verdict');});
  it('uses the shared coin price formatter in the guarded trade panel',()=>{
    const html=renderToStaticMarkup(<TradePanel coin={row.address} priceUsd={.0032176} priceFormat={formatCoinPrice}/>);
    expect(html).toContain('<dt>Price</dt><dd>$0.00322</dd>');
+ });
+ it('opens the coin elsewhere beside the copy button: DexScreener once graduated on Robinhood, otherwise the explorer',()=>{
+   const data={candlesUnavailable:false,candlesLoading:false,lastTradeTs:null,labelsUnavailable:true,bars:[],markers:[],flows:[],error:'',unknown:false,ageSec:0,retry:()=>{}};
+   const hook=vi.spyOn(coinData,'useCoin');
+   const header=(stage:'graduated'|'curve')=>{hook.mockReturnValue({...data,card:{...card,identity:{...card.identity,stage}},verdict:card.verdict});return renderToStaticMarkup(<Coin params={{address:row.address}}/>).match(/<span class="coin-ca">.*?<\/a><\/span>/)?.[0]??'';};
+   const graduated=header('graduated'),curve=header('curve');
+   expect(graduated).toContain('aria-label="Copy address"');
+   expect(curve).toContain(`href="${BUILD_NETWORK.explorerUrl}/token/${row.address}" target="_blank" rel="noopener noreferrer"`);
+   expect(curve).toContain('>Explorer<');
+   if(CHAIN_KEY==='robinhood'){
+     expect(graduated).toContain(`href="https://dexscreener.com/robinhood/${row.address}" target="_blank" rel="noopener noreferrer"`);
+     expect(graduated).toContain('>DexScreener<');
+     expect(curve).toContain('href="https://robinhoodchain.blockscout.com/token/');
+   } else {
+     expect(graduated).toContain('>Explorer<');expect(graduated).not.toContain('dexscreener');
+   }
  });
  it('keeps all eight contract intervals and the prototype 30m option in the toolbar',()=>{
    const html=renderToStaticMarkup(<TimeframeControls value="5m" onChange={()=>undefined}/>);

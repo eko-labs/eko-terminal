@@ -62,9 +62,11 @@ const clients = createMeteredClients({ ...env, RPC_PUBLIC_HTTP_URL: env.RPC_PUBL
 });
 // Plain JSON-RPC over the metered transport (budgets, timeouts and usage logs stay in force).
 const rpc: Rpc = { request: (input) => clients.public.request(input as Parameters<typeof clients.public.request>[0]) };
+// Old history (graduates, still-trading graduates, rebase) only from the paid archive: the public RPC keeps minutes.
+const archiveRpc: Rpc = { request: (input) => clients.archive.request(input as Parameters<typeof clients.archive.request>[0]) };
 const store = env.HISTORY_DB === 'off' ? null : new HistoryStore(env.HISTORY_DB ?? '.data/history.db');
 if (store) setStorageGuard(freeSpaceCheck(dirname(env.HISTORY_DB ?? '.data/history.db'), Number(env.STORE_MIN_FREE_MB ?? 512)));
-const tracker = new Tracker(rpc, chain, { backfillBlocks: Number(env.BACKFILL_BLOCKS ?? profile.tracker.backfillBlocks ?? Math.round(BACKFILL_SEC / profile.blockTimeSec)), chunk: Number(env.LOG_CHUNK ?? profile.tracker.chunk),
+const tracker = new Tracker(rpc, chain, { archiveRpc, backfillBlocks: Number(env.BACKFILL_BLOCKS ?? profile.tracker.backfillBlocks ?? Math.round(BACKFILL_SEC / profile.blockTimeSec)), chunk: Number(env.LOG_CHUNK ?? profile.tracker.chunk),
   ...(store ? { onLaunch: (c) => { try { store.recordLaunch({ token: c.token, launchpad: c.launchpad, deployer: c.creator, poolId: c.poolId, createdBlock: c.block, createdTs: c.ts,
     tx: c.tx, name: c.name, symbol: c.symbol, supply: c.supply.toString() }); } catch (error) { log('launch_record_failed', { error: String((error as Error).message).slice(0, 160) }); } } } : {}) });
 const explorerApi = env.EXPLORER_URL ?? profile.explorerApi;

@@ -23,13 +23,15 @@ export const rpcRoutes = [
 ] as const;
 const stateIndex: Record<string, number> = { eth_call: 1, eth_getCode: 1, eth_getStorageAt: 2, eth_getBalance: 1, eth_getTransactionCount: 1 };
 export function archiveOnly(request: RpcRequest, context: RouteContext = 'default'): boolean {
-  if (context === 'fork' || /^(debug_|trace_)/.test(request.method)) return true;
+  // The archive context is paid-only for every method: an old eth_getLogs span asked of the public RPC (it keeps
+  // minutes of history) comes back as an empty list, which reads as "no logs" rather than a failure.
+  if (context === 'fork' || context === 'archive' || /^(debug_|trace_)/.test(request.method)) return true;
   const i = stateIndex[request.method];
   if (i === undefined) return false;
   const block = request.params?.[i];
   // TODO(spec): Define a verified freshness cutoff for explicit block selectors.
   // Until then, pinned state may be outside the public RPC's short retention and requires paid archive.
-  return context !== 'enrich' && (context === 'archive' || (block != null && !['latest', 'pending', 'safe', 'finalized'].includes(String(block))));
+  return context !== 'enrich' && (block != null && !['latest', 'pending', 'safe', 'finalized'].includes(String(block)));
 }
 export const routeRequest = (r: RpcRequest, c: RouteContext = 'default'): Provider => rpcRoutes.find(route => route.matches(r, c))!.provider;
 export const supportsPublic = (r: RpcRequest, c: RouteContext = 'default') => !archiveOnly(r, c) && publicMethods.has(r.method);

@@ -1,0 +1,12 @@
+{
+  "DYOR": "DYOR · Not financial advice",
+  "NON_AFFILIATION": "Not affiliated with, endorsed by, or officially connected with Robinhood Markets, Inc.",
+  "BUILT_ON": "Built on Robinhood Chain",
+  "ADVISORY": "Advisory: your agent is told to check with EKO before every order. It can ignore the check, and EKO cannot stop a wallet it does not control.",
+  "ENFORCED_ONCHAIN": "Enforced on-chain by this agent’s session-key policy.",
+  "ONCHAIN_ADVISORY": "Advisory for now: on-chain enforcement turns on after its contract review passes.",
+  "APPROVAL_UNAVAILABLE": "This order needs approval, which is not available for this agent.",
+  "FEE_CURVE_ZERO": "0% on Pons-curve trades",
+  "BETA": "Beta · forecasts are graded against all launches",
+  "REAL_FUNDS": "Real funds · your wallet signs every trade"
+}

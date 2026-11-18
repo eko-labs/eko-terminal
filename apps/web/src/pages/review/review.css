@@ -1,7 +1,7 @@
 .review-page { max-width: 1200px; }
 .review-page .panel { padding: 20px 0; border-top: 1px solid var(--line); }
-.review-page h2 { font-size: 20px; margin-bottom: 12px; }
-.review-page h3 { font-size: 16px; margin: 12px 0; }
+.review-page h2 { margin-bottom: 12px; }
+.review-page h3 { margin: 12px 0; }
 .review-page p, .review-page li { margin-block: 8px; }
 .review-page ul, .review-page ol { padding-left: 24px; }
 .review-page code, .review-page dd { overflow-wrap: anywhere; }

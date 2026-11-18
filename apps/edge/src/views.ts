@@ -1,10 +1,11 @@
 import { zeroAddress, type Address } from 'viem';
-import { FlagNameSchema, findingsFirst, type CoinCard, type CoinSummary, type FeedItem, type PairRow, type PublicConfig, type RadarRow, type Verdict } from '@eko/shared';
+import { FlagNameSchema, findingsFirst, type CoinCard, type CoinSummary, type FeedItem, type Flow, type PairRow, type PublicConfig, type RadarRow, type Verdict } from '@eko/shared';
 import { toUntrusted, UNTRUSTED_LIMITS } from '@eko/untrusted';
 import type { Assessment } from './assess.js';
 import { changePct, spark } from './market.js';
 import { graduationBps, HALF_WAY_BPS } from './graduation.js';
 import type { CoinState, FeedEvent } from './tracker.js';
+import { flowActivity, type FlowWindow } from './flow-stats.js';
 import { ELYSIUM_PROFILE } from './chains/profiles.js';
 import type { ChainProfile } from './chains/types.js';
 
@@ -18,7 +19,9 @@ export interface ViewContext { nowSec: number; head: number; hypeUsd: number | n
   /** Base of the graduation line for launchpads without one (Tracker.openMcapHype). */
   openMcapHype?: number;
   /** The native coin's symbol (default HYPE). */
-  native?: 'HYPE' | 'ETH' }
+  native?: 'HYPE' | 'ETH';
+  /** Where About to graduate starts, in basis points of the way to graduation (the chain's; default half way). */
+  nearGradBps?: number }
 
 const NOT_YET = ['flow', 'signal'] as const;
 const usd = (hype: number, ctx: ViewContext) => ctx.hypeUsd ? hype * ctx.hypeUsd : 0;
@@ -26,6 +29,8 @@ const usd = (hype: number, ctx: ViewContext) => ctx.hypeUsd ? hype * ctx.hypeUsd
 const priceHype = (c: CoinState) => c.trades.at(-1)?.priceHype ?? (c.quote === zeroAddress ? c.openPrice : undefined) ?? 0;
 const supplyTokens = (c: CoinState) => Number(c.supply) / 1e18;
 const exitCost = (a: Assessment | undefined) => a?.probe?.exitCostPct ?? null;
+/** A bonding-curve coin's way to graduation in % (the New pairs card's Curve bar, the radar's run-up hint). */
+const curvePct = (c: CoinState, ctx: ViewContext) => { if (!c.curve || c.graduated) return {}; const bps = progressBps(c, ctx); return bps === null ? {} : { curvePct: bps / 100 }; };
 const graduationPct = (c: CoinState, ctx: ViewContext) => { const bps = progressBps(c, ctx); return bps === null ? {} : { graduationPct: bps / 100 }; };
 const levelOf = (a: Assessment | undefined): Verdict['level'] => a?.verdict.level ?? 'pending';
 const pct = (share: number) => Math.min(100, Math.max(0, Math.round(share * 10_000) / 100));
@@ -45,7 +50,7 @@ export function coinSummary(c: CoinState, a: Assessment | undefined, ctx: ViewCo
   if (exitCost(a) === null) unavailable.push('exitCost');
   return {
     address: c.token, name: toUntrusted(a?.name ?? c.name ?? '', UNTRUSTED_LIMITS.name), symbol: toUntrusted(a?.symbol ?? c.symbol ?? '', UNTRUSTED_LIMITS.symbol),
-    launchpad: c.launchpad, stage: c.graduated ? 'graduated' : 'curve', ...graduationPct(c, ctx),
+    launchpad: c.launchpad, stage: c.graduated ? 'graduated' : 'curve', ...graduationPct(c, ctx), ...curvePct(c, ctx),
     priceUsd: usd(priceHype(c), ctx), ...(ctx.hypeUsd && priceHype(c) ? {} : { priceUnavailable: true }),
     change1hPct: changePct(c.trades, ctx.nowSec - 3600), liquidityUsd: usd(Math.max(0, c.netHype), ctx),
     verdict: levelOf(a), ...(a ? { lastChecked: a.verdict.lastChecked, ratingAgeSec: Math.max(0, ctx.nowSec - Math.floor(Date.parse(a.at) / 1000)) } : {}),
@@ -63,16 +68,34 @@ export function hourStats(c: CoinState, nowSec: number) {
 }
 
 const emptyFlow = { window: '1h' as const, agentPct: 0, crewPct: 0, humanPct: 0, washEstPct: 0, beta: true, confidence: 0 };
+/** Wallet labels are not computed by the edge: the agent / crew / human split stays named missing. */
+const LABEL_FIELDS = ['agentPct', 'crewPct', 'humanPct', 'washEstPct'];
+
+/**
+ * A window's flow: the measured buy / sell activity (flow-stats.ts) beside the label split, which stays zero and named
+ * missing. With `detail` (the flow endpoint), the largest buyers and sellers and the latest trades come too.
+ */
+function flowOf(c: CoinState, ctx: ViewContext, window: FlowWindow = '1h', opts: { detail?: boolean; excluded?: readonly string[] } = {}) {
+  const activity = c.quote === zeroAddress ? flowActivity(c, window, ctx, opts) : null;
+  return { ...emptyFlow, window, ...(activity ? { activity } : {}) };
+}
+
+/** GET /v1/coins/:address/flow?window=: one window's flow, with its largest wallets and latest trades. */
+export function flowView(c: CoinState, ctx: ViewContext, window: FlowWindow, excluded: readonly string[] = []): Flow {
+  const flow = flowOf(c, ctx, window, { detail: true, excluded });
+  return { ...flow, meta: { confidence: flow.activity ? 1 : 0, asOfBlock: ctx.head, unavailable: true, missing: LABEL_FIELDS,
+    flags: flow.activity ? ['activity_measured', 'wallet_labels_unavailable'] : ['wallet_labels_unavailable'] } };
+}
 
 export function radarRow(c: CoinState, a: Assessment | undefined, ctx: ViewContext, rank: number): RadarRow {
   const h = hourStats(c, ctx.nowSec);
-  return { ...coinSummary(c, a, ctx), rank, flow: emptyFlow, exitCost1kPct: exitCost(a) ?? 0, spark8h: spark(c.trades, ctx.nowSec).map(p => p * (ctx.hypeUsd ?? 0)),
+  return { ...coinSummary(c, a, ctx), rank, flow: flowOf(c, ctx), exitCost1kPct: exitCost(a) ?? 0, spark8h: spark(c.trades, ctx.nowSec).map(p => p * (ctx.hypeUsd ?? 0)),
     volume1hUsd: usd(h.volumeHype, ctx), trades1h: h.trades };
 }
 
 export function pairRow(c: CoinState, a: Assessment | undefined, ctx: ViewContext): PairRow {
   const h = hourStats(c, ctx.nowSec);
-  return { ...coinSummary(c, a, ctx), column: pairColumn(c, ctx), buyers: a?.stats.buyers ?? 0, exitCost100Pct: exitCost(a) ?? 0, flow: emptyFlow,
+  return { ...coinSummary(c, a, ctx), column: pairColumn(c, ctx), buyers: a?.stats.buyers ?? 0, exitCost100Pct: exitCost(a) ?? 0, flow: flowOf(c, ctx),
     ...(a?.antiSnipe ? { antiSnipe: a.antiSnipe } : {}), verdictPending: levelOf(a) === 'pending',
     ...(a ? { top10Pct: pct(a.stats.holders.top10Share), devPct: pct(a.stats.dev.heldShare), earlyHeldPct: pct(earlyHeld(a)) } : {}),
     spark8h: spark(c.trades, ctx.nowSec).map(p => p * (ctx.hypeUsd ?? 0)), volume1hUsd: usd(h.volumeHype, ctx), trades1h: h.trades };
@@ -87,7 +110,7 @@ export const progressBps = (c: CoinState, ctx: ViewContext) => graduationBps(c, 
  */
 export function pairColumn(c: CoinState, ctx: ViewContext): PairRow['column'] {
   if (c.graduated) return 'migrated';
-  return (progressBps(c, ctx) ?? 0) >= HALF_WAY_BPS ? 'near_grad' : 'new';
+  return (progressBps(c, ctx) ?? 0) >= (ctx.nearGradBps ?? HALF_WAY_BPS) ? 'near_grad' : 'new';
 }
 
 /** A Pons coin's curve holds its reserves until graduation; after it, the lock is claimed only once the probe proved it. */
@@ -117,11 +140,11 @@ export function coinCard(c: CoinState, a: Assessment | undefined, ctx: ViewConte
     // is unverified, so its status is named missing below rather than claimed.
     liquidity: { depthUsd: { pct2: 0, pct5: 0, pct10: 0 }, lpStatus: c.launchpad === 'flaunch' ? 'removable' : c.launchpad === 'pons' ? 'pons_locked' : 'locked', feeTiers: a?.config ? [feeBps] : [] },
     supply: { top10Pct: a ? pct(a.stats.holders.top10Share) : 0, devPct: a ? pct(a.stats.dev.heldShare) : 0, bundlesHeldPct: a ? pct(earlyHeld(a)) : 0,
-      exemptWalletsHeldPct: 0, freshWalletsPct: 0, burnedPct: 0, circulating: c.supply.toString() },
+      exemptWalletsHeldPct: 0, freshWalletsPct: 0, burnedPct: 0, circulating: (c.supply / 10n ** 18n).toString() }, // whole tokens (every tracked coin has 18 decimals), not wei
     // Montra launches are clones of the factory's token master: no owner, tax, blacklist, pause, mint or upgrade. Other
     // launchpads' tokens are not reviewed: their owner powers are named unavailable in meta.control.
     control: { canChangeTax: false, canBlacklist: false, canPause: false, canMint: false, upgradeable: false },
-    flow: { ...emptyFlow },
+    flow: flowOf(c, ctx),
     playbooks: verdict.playbooks, verdict,
     meta: {
       tradeability: { confidence: cost === null ? 0 : 1, asOfBlock: block, ...(cost === null ? { unavailable: true, missing: ['exitCostPct'] } : { missing: ['exitCostPct.usd100', 'exitCostPct.usd10k'] }),
@@ -130,7 +153,8 @@ export function coinCard(c: CoinState, a: Assessment | undefined, ctx: ViewConte
       // bundlesHeldPct here is what the first minute's buyers still hold (funding is not traced, so no same-funder bundles).
       supply: a ? { confidence: 1, asOfBlock: block, missing: ['freshWalletsPct', 'exemptWalletsHeldPct'], flags: ['early_cohort_not_funder_bundles'] } : meta(['top10Pct', 'devPct', 'bundlesHeldPct', 'freshWalletsPct']),
       control: c.launchpad === 'montra' ? { confidence: 1, asOfBlock: block, flags: ['montra_factory_clone'] } : meta(['canChangeTax', 'canBlacklist', 'canPause', 'canMint', 'upgradeable']),
-      flow: meta(['agentPct', 'crewPct', 'humanPct', 'washEstPct']),
+      // The label split is not measured (unavailable); flow.activity, when present, is (flags).
+      flow: meta(LABEL_FIELDS, { flags: c.quote === zeroAddress && ctx.hypeUsd ? ['activity_measured', 'wallet_labels_unavailable'] : ['wallet_labels_unavailable'] }),
     },
     freshness: { block, ageSec: Math.max(0, ctx.nowSec - Math.floor(Date.parse(a?.at ?? new Date(ctx.nowSec * 1000).toISOString()) / 1000)) },
   };

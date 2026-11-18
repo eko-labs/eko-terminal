@@ -9,6 +9,7 @@ const combDivider =
   "/site/media/template/whyus-comb-divider.svg";
 import { popIn, AnimatedLines } from "../lib/animations";
 import DotMatrix, { type DotMatrixCrop } from "../lib/DotMatrix";
+import { useFitScale, useFitScaleAuto } from "../lib/fitScale";
 
 const TEXT_STEP = 0.03;
 
@@ -18,6 +19,8 @@ const DESIGN_WIDTH = 1510;
 // scale(2.5) from the left/right center) showed in each card
 const UPTIME_CROP: DotMatrixCrop = { x: 138, y: 225, w: 290, h: 300 };
 const ACCESS_CROP: DotMatrixCrop = { x: 575, y: 225, w: 300, h: 300 };
+// crops are in px of the 1000-wide original; the served texture is smaller (DotMatrix scales them)
+const TEXTURE_BASIS = 1000;
 
 // mobile cards are 372x176 (420 canvas minus 24px padding each side) - same
 // bands of the texture, widened to that ~2.1 aspect
@@ -32,55 +35,6 @@ const CONTENT_WIDTH = 1380;
 const CONTENT_HEIGHT = 983;
 
 const MOBILE_DESIGN_WIDTH = 420;
-
-function useFitScale(designWidth: number) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width;
-      if (width) setScale(width / designWidth);
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [designWidth]);
-
-  return { ref, scale };
-}
-
-function useFitScaleAuto(designWidth: number) {
-  const outerRef = useRef<HTMLDivElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
-  const [naturalHeight, setNaturalHeight] = useState(0);
-
-  useEffect(() => {
-    const el = outerRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width;
-      if (width) setScale(width / designWidth);
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [designWidth]);
-
-  useEffect(() => {
-    const el = innerRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver((entries) => {
-      const height = entries[0]?.contentRect.height;
-      if (height) setNaturalHeight(height);
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  return { outerRef, innerRef, scale, naturalHeight };
-}
 
 /**
  * Counts up to `value`, keeping its exact formatting: only the digits are
@@ -485,6 +439,7 @@ function EkoBentoMobile() {
                   width={MOBILE_CARD_WIDTH}
                   height={MOBILE_CARD_HEIGHT}
                   crop={MOBILE_UPTIME_CROP}
+                  cropBasis={TEXTURE_BASIS}
                   pitch={6}
                   gain={1.6}
                   radius={70}
@@ -566,6 +521,7 @@ function EkoBentoMobile() {
                   width={MOBILE_CARD_WIDTH}
                   height={MOBILE_CARD_HEIGHT}
                   crop={MOBILE_ACCESS_CROP}
+                  cropBasis={TEXTURE_BASIS}
                   pitch={6}
                   gain={1.6}
                   radius={70}
@@ -702,6 +658,7 @@ export default function EkoBento() {
                 width={338}
                 height={350}
                 crop={UPTIME_CROP}
+                cropBasis={TEXTURE_BASIS}
                 pitch={7}
                 gain={1.6}
                 radius={90}
@@ -817,6 +774,7 @@ export default function EkoBento() {
                 width={350}
                 height={350}
                 crop={ACCESS_CROP}
+                cropBasis={TEXTURE_BASIS}
                 pitch={7}
                 gain={1.6}
                 radius={90}

@@ -1,0 +1,50 @@
+/* The hosted site's Ague Thin face falls back to Outfit (see public/fonts/OFL-Outfit.txt). */
+@font-face {
+  font-family: 'Ague Thin';
+  src: url('../public/fonts/AgueThin-Thin.woff2') format('woff2'), url('../public/fonts/outfit-latin.woff2') format('woff2');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+.eko-header-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font: 100 23px/1 'Ague Thin', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-synthesis: none;
+  font-feature-settings: normal;
+  letter-spacing: -0.47px;
+  text-rendering: optimizeLegibility;
+  color: #fff;
+}
+.eko-header-brand > img {
+  display: block;
+  flex: none;
+  width: 44px;
+  height: 26px;
+  object-fit: contain;
+}
+/* Centre the capitals with the emblem, including in browsers without text-box-trim. */
+.eko-brand-text {
+  display: block;
+  flex: none;
+  line-height: 1;
+  white-space: nowrap;
+  translate: 0 0.09em;
+}
+@supports (text-box-trim: trim-both) {
+  .eko-brand-text {
+    text-box-trim: trim-both;
+    text-box-edge: cap alphabetic;
+    translate: none;
+  }
+}
+.eko-header-brand--compact {
+  font-size: 19px;
+  letter-spacing: -0.38px;
+}
+.eko-header-brand--compact > img {
+  width: 36px;
+  height: 22px;
+}

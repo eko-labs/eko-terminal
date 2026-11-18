@@ -25,7 +25,9 @@ export function tradeFromSwap(input: { amount0: bigint; amount1: bigint; sqrtPri
     hype: abs(input.amount0), tokens: abs(input.amount1), priceHype: priceHypeFromSqrt(input.sqrtPriceX96) };
 }
 
-export const TIMEFRAMES = { '1m': 60, '5m': 300, '15m': 900, '1h': 3600, '4h': 14400, '1d': 86400 } as const;
+export const TIMEFRAMES = { '1s': 1, '15s': 15, '30s': 30, '1m': 60, '5m': 300, '15m': 900, '30m': 1800, '1h': 3600, '4h': 14400, '1d': 86400 } as const;
+/** The most bars one candles reply carries (the newest ones). */
+export const MAX_BARS = 5000;
 export type Timeframe = keyof typeof TIMEFRAMES;
 export interface Bar { ts: number; o: number; h: number; l: number; c: number; vUsd: number }
 

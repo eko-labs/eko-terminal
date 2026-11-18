@@ -1,17 +1,18 @@
 import type { Flags } from '@eko/shared';
 import { resolveRoute } from '../../routes';
-import { IconRadar, IconPairs, IconFeed, IconBag, IconEye, IconChart, IconAgent, IconApproval, IconPlug, IconLab, IconResearch, IconScore, IconCrew } from '../icons';
+import { IconRadar, IconPairs, IconFeed, IconBag, IconEye, IconChart, IconAgent, IconApproval, IconPlug, IconLab, IconResearch, IconScore, IconCrew, IconReceipt } from '../icons';
 import { SHELL_COPY as C } from '../../copy/shell';
+import { ORDERS_COPY } from '../../copy/orders';
 import { FEATURES } from '../../features';
 
 export const NAV_GROUPS = [
-  ['Terminal', [['/radar', 'Radar'], ['/pairs', 'New pairs'], ['/feed', 'Feed'], ['/bags', 'Bags'], ['/watch', 'Watchlist'], ['/perps', 'Perps']]],
+  ['Terminal', [['/radar', 'Radar'], ['/pairs', 'New pairs'], ['/feed', 'Feed'], ['/bags', 'Bags'], ['/orders', ORDERS_COPY.nav], ['/watch', 'Watchlist'], ['/perps', 'Perps']]],
   ['Mission Control', [['/mission', 'Overview'], ['/mission/approvals', 'Approvals'], ['/mission/connect', 'Connect an agent'], ['/lab', 'Rule Lab'], ['/research', 'Research']]],
   ['Public record', [['/scoreboard', 'Scoreboard'], ['/census', 'Census']]],
 ] as const;
 type NavPath = typeof NAV_GROUPS[number][1][number][0];
 export const NAV_ICONS = {
-  '/radar': IconRadar, '/pairs': IconPairs, '/feed': IconFeed, '/bags': IconBag,
+  '/radar': IconRadar, '/pairs': IconPairs, '/feed': IconFeed, '/bags': IconBag, '/orders': IconReceipt,
   '/watch': IconEye, '/perps': IconChart, '/mission': IconAgent,
   '/mission/approvals': IconApproval, '/mission/connect': IconPlug,
   '/lab': IconLab, '/research': IconResearch, '/scoreboard': IconScore,

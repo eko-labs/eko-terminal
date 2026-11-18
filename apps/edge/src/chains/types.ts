@@ -26,13 +26,18 @@ export interface ChainProfile {
   /** Average block time: turns seconds of history into blocks and stamps logs that carry no timestamp. */
   blockTimeSec: number;
   /** eth_getLogs span the tracker starts with (halved on a "too many" reply), and its start-up replay when not
-   *  BACKFILL_SEC worth of blocks. */
-  tracker: { chunk: number; backfillBlocks?: number };
+   *  BACKFILL_SEC worth of blocks. activeQuote24h: a graduate that traded at least this much native currency in its
+   *  last 24 hours stays followed past the memory window (dead ones still leave); unset keeps the window alone. */
+  tracker: { chunk: number; backfillBlocks?: number; activeQuote24h?: number };
   /** Calls a minute the public RPC takes without answering 429 (the metered client paces to it). */
   publicRpm: number;
   /** The historian's first block: the main launchpad's deployment. */
   historianFromBlock: number;
   playbooks: PlaybookConfig;
+  /** Blocks after the launch block whose buyers count as launch snipers (snipers.ts). */
+  sniperBlocks: number;
+  /** Basis points of the way to graduation where the About to graduate column starts. */
+  nearGradBps: number;
   /** The native coin in USD: Hyperliquid's public mids (no key), read by symbol. */
   price: { url: string; symbol: string };
   /** Mission Control's approval venue (the shared contract's enum) and the scoreboard's outcome and identity version. */
@@ -84,6 +89,8 @@ export interface JudgeFacts {
   liquidity: { owner: Address; status: 'locked' | 'removable'; label: string } | null;
   /** How EKO knows the pool's hook, and the fee it takes. Used only when the pool has one. */
   hook: { label: string; reviewed: boolean; sourceVerified: boolean; buyFeePct: number | null; sellFeePct: number | null };
+  /** A bonding-curve coin's run-up (playbook run_up): supply bought out of the curve, in all and in the last hour. */
+  runUp?: { outShare: number; hourShare: number; ageSec: number; evidence: { kind: 'address'; ref: Address; label: string }[] };
 }
 
 /** Where a coin trades now: a launchpad's bonding curve before graduation, a v4 pool after. */
@@ -150,4 +157,15 @@ export interface ChainAdapter {
   /** Coins put back after a restart hold state as of the save, but the backfill replays from `block`: a chain whose
    *  coins carry running balances (a bonding curve's reserves) resets them to the chain's values at `block` here. */
   rebase?(coins: CoinState[], block: bigint, rpc: Rpc): Promise<void>;
+  /** At start, before the replay: the logs (launch, trades, transfers, pool swaps) of coins that graduated between
+   *  `from` and `to` and are not tracked yet, so the Graduated column does not start empty after a restart. */
+  graduates?(rpc: Rpc, from: bigint, to: bigint, known: (token: string) => boolean, opts?: { coins?: boolean }): Promise<RawLog[]>;
+  /** After each tick: the history of coins that graduated in it without being followed (launched before the memory). */
+  missing?(rpc: Rpc, to: bigint, known: (token: string) => boolean): Promise<RawLog[]>;
+  /** Graduates still trading that EKO does not follow (they left its memory, or graduated before it started): the
+   *  pools that swapped at least `minQuote` native currency between `from` and `to`, and each one's history (ending at
+   *  `to`). */
+  /** Each coin's logs go to `found` as soon as they are read (a first lookup can take many minutes, and a restart in
+   *  the middle should not lose the coins already read). */
+  active?(rpc: Rpc, from: bigint, to: bigint, known: { token(token: string): boolean; pool(id: string): boolean }, minQuote: number, found: (logs: RawLog[]) => void): Promise<void>;
 }

@@ -59,16 +59,16 @@ export function TradePanelView({ gate, tier, phase, priceUsd, priceUnavailable, 
   const needsAck = warnings.some(c => !snapshot.acknowledged.includes(c.code));
   return <>
     <fieldset disabled={busy}><legend className="sr-only">{L.side}</legend>
-      <div className="tp-side"><Seg options={[{ value: 'buy', label: L.buy }, { value: 'sell', label: L.sell }]} value={input.side} onChange={v => changeSide(v as 'buy' | 'sell')} label={L.side} /><span>{L.mode} <b>{modes[input.riskMode ?? 'safe']}</b></span></div>
+      <div className="tp-side"><Seg options={[{ value: 'buy', label: L.buy }, { value: 'sell', label: L.sell }]} value={input.side} onChange={v => changeSide(v as 'buy' | 'sell')} label={L.side} /><span className="tp-mode">{L.mode} <b>{modes[input.riskMode ?? 'safe']}</b></span></div>
       <div className="tp-amounts">{[25, 50, 100, 250].map(n => <button type="button" className="btn btn-sm" key={n} disabled={gate.cap === undefined || n > gate.cap} title={gate.cap === undefined ? C.config : C.cap(gate.cap)} aria-pressed={input.amountUsd === n} onClick={() => changeAmount(String(n))}>{dollars(n)}</button>)}
-        <label><span className="sr-only">{L.amount}</span><input className="input num" type="number" min="0" step="any" inputMode="decimal" value={Number.isFinite(input.amountUsd) ? input.amountUsd : ''} onChange={e => changeAmount(e.target.value)} /></label></div>
-      {gate.cap !== undefined && <p className="note">{C.cap(gate.cap)}</p>}
-      <label className="tp-slippage">{L.slippage}<input className="input num" type="number" min="0" max="99.99" step="0.01" inputMode="decimal" value={Number.isFinite(input.slippageBps) ? input.slippageBps / 100 : ''} onChange={e => changeSlippage(e.target.value)} /></label>
+        <label className="tp-amount"><span className="sr-only">{L.amount}</span><span className="tp-unit" aria-hidden="true">$</span><input className="input num" type="number" min="0" step="any" inputMode="decimal" value={Number.isFinite(input.amountUsd) ? input.amountUsd : ''} onChange={e => changeAmount(e.target.value)} /></label></div>
+      {gate.cap !== undefined && <p className="note tp-cap">{C.cap(gate.cap)}</p>}
+      <label className="tp-slippage"><span className="tp-label">{L.slippage}</span><input className="input num" type="number" min="0" max="99.99" step="0.01" inputMode="decimal" value={Number.isFinite(input.slippageBps) ? input.slippageBps / 100 : ''} onChange={e => changeSlippage(e.target.value)} /></label>
     </fieldset>
     {priceUsd !== undefined && <dl className="tp-quote"><dt>{L.price}</dt><dd>{priceUnavailable ? NOT_CHECKED : priceFormat(priceUsd)}</dd></dl>}
     {q && <><FeeLines quote={q} tier={tier} phase={phase} /><QuoteGuard quote={q} mode={input.riskMode ?? 'safe'} />{!q.binding && <p className="note">{C.indicative}</p>}</>}
     {guard && <GuardCompact verdict={{ version: 2, assessment: guard }} />}
-    <p className="tp-status" role={block === C.refused ? 'alert' : 'status'} aria-live={block === C.refused ? 'assertive' : 'polite'}>{busy ? C.busy : result ?? block ?? (needsAck ? C.review : null)}</p>
+    <p className={`tp-status${!busy && !result && block && block !== C.refused ? ' sr-only' : ''}`} role={block === C.refused ? 'alert' : 'status'} aria-live={block === C.refused ? 'assertive' : 'polite'}>{busy ? C.busy : result ?? block ?? (needsAck ? C.review : null)}</p>
     {block === C.connect ? <button className="btn tp-submit" onClick={() => window.dispatchEvent(new Event('eko:open-wallet'))}>{C.connect}</button> : block ? <button className="btn tp-submit" disabled>{block}</button> : needsAck ? <button className="btn tp-submit" disabled={busy} onClick={acknowledge}>{C.acknowledge}</button> : <button className={`btn tp-submit${input.side === 'buy' ? ' btn-primary' : ''}`} disabled={busy} onClick={submit}>{confirm ? C.confirm : input.side === 'buy' ? L.buy : L.sell} {dollars(input.amountUsd)}</button>}
     {snapshot.error && <button className="btn tp-retry" disabled={busy} onClick={retry}>{C.retry}</button>}
     <p className="note">{REAL_FUNDS}</p><AnalysisPolicyNotice />

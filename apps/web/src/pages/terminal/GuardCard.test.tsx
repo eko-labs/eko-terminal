@@ -217,7 +217,7 @@ describe('packet 036 Guard card fixtures', () => {
     const card = createRadarCard(createRadarRows()[0].address)!;
     const identity = { ...card.identity, stage: 'curve' as const, curvePct: 40 };
     const html = render(<CoinVerdict identity={identity} verdict={{ ...card.verdict, level: 'danger', guardV2: undefined }} />);
-    expect(html).toContain('· 75'); expect(html).toContain('Run-up score 75 of 100. The price is 4× the launch curve');
+    expect(html).toContain('Run-up 75'); expect(html).toContain('Run-up score 75 of 100. The price is 4× the launch curve');
     expect(render(<CoinVerdict identity={identity} verdict={{ ...card.verdict, level: 'pending', guardV2: undefined }} />)).not.toContain('Run-up score');
     expect(render(<CoinVerdict identity={{ ...identity, stage: 'graduated' as const, curvePct: 100 }} verdict={{ ...card.verdict, level: 'danger', guardV2: undefined }} />)).not.toContain('Run-up score');
   });

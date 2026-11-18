@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useInView, useReducedMotion } from "framer-motion";
 import { radarProfiles, Sparkline, Verdict } from "./EkoDashboard";
 import SignalCells from "./SignalCells";
+import { useIntroCovered } from "../intro-state";
 import ekoMark from "../assets/eko-mark.svg";
 import "./signal-grid.css";
 
@@ -116,6 +117,7 @@ export default function SignalGrid() {
     [paused, setPaused] = useState(false);
   const reduced = useReducedMotion();
   const inView = useInView(frame, { amount: 0.15 });
+  const covered = useIntroCovered();
   useEffect(() => {
     const el = frame.current;
     if (!el) return;
@@ -128,9 +130,10 @@ export default function SignalGrid() {
   useEffect(() => {
     const el = video.current;
     if (!el) return;
-    if (inView && !paused && !reduced) void el.play().catch(() => {});
+    // Held while the opening animation covers the page: nobody sees it, and it is the page's heaviest download.
+    if (inView && !covered && !paused && !reduced) void el.play().catch(() => {});
     else el.pause();
-  }, [inView, paused, reduced]);
+  }, [inView, covered, paused, reduced]);
   return (
     <section
       id="discover"

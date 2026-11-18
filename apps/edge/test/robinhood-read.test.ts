@@ -282,3 +282,103 @@ describe('Robinhood restart rebase', () => {
   });
 });
 
+
+describe('Robinhood run-up and snipers', () => {
+  const supply = 10n ** 27n, e18 = 10n ** 18n;
+  const base = { token: '0x1111111111111111111111111111111111111111' as Address, creator: '0x2222222222222222222222222222222222222222' as Address, block: 1000, ts: 10_000, supply, graduated: false };
+  it('measures supply bought out of the curve in all (from its token reserve) and net in the last hour', async () => {
+    const { curveRunUp } = await import('../src/chains/robinhood/index.js');
+    // 5/7 of supply is sold on the curve; 300M tokens (30% of supply) have left it.
+    const sellable = supply - supply * 2n / 7n;
+    const coin = { ...base, curve: { address: '0x3333333333333333333333333333333333333333' as Address, graduationThreshold: 42n * e18 / 10n, realQuoteReserve: 0n, realTokenReserve: sellable - 300_000_000n * e18 },
+      trades: [{ ts: 10_000, side: 'buy', tokens: 200_000_000 }, { ts: 13_700, side: 'buy', tokens: 150_000_000 }, { ts: 13_800, side: 'sell', tokens: 50_000_000 }] };
+    const r = curveRunUp(coin as never, 14_000);
+    expect(r.outShare).toBeCloseTo(0.30, 6);
+    expect(r.hourShare).toBeCloseTo(0.10, 6);
+    expect(r.ageSec).toBe(4000);
+    expect(r.evidence[0]!.ref).toBe(coin.curve.address);
+  });
+  it('gives the run_up playbook a Monitor at 30% out and a Danger at 30% in an hour (config v1)', async () => {
+    const { evaluatePlaybooks, CONFIG_V1 } = await import('@eko/playbooks');
+    const run = (outShare: number, hourShare: number) => evaluatePlaybooks({ coin: base.token, deployer: base.creator, asOfBlock: 1, asOfSec: 1, createdAtSec: 0, createdAtBlock: 0, launchpad: 'pons',
+      name: 'Sample', symbol: 'SMPL', runUp: { outShare, hourShare, ageSec: 600, evidence: [] }, history: { launches: [] } } as never, CONFIG_V1).find(m => m.id === 'run_up')?.level ?? null;
+    expect(run(0.05, 0.05)).toBeNull();
+    expect(run(0.31, 0.10)).toBe('monitor');
+    expect(run(0.35, 0.31)).toBe('danger');
+  });
+  it('counts buyers in the first 35 blocks as launch snipers on Robinhood (Pons\'s anti-snipe tax ends at 3 s)', async () => {
+    const { findSnipers } = await import('../src/snipers.js');
+    const { ROBINHOOD_PROFILE } = await import('../src/chains/profiles.js');
+    expect(ROBINHOOD_PROFILE.sniperBlocks).toBe(35);
+    const bot = '0x4444444444444444444444444444444444444444', curve = '0x3333333333333333333333333333333333333333', tx = `0x${'ab'.repeat(32)}` as Hex;
+    const coin = { ...base, trades: [{ ts: 10_003, block: 1032, tx, side: 'buy', hype: 0.1, tokens: 1, priceHype: 0.1 }],
+      flows: [{ tx, block: 1032, ts: 10_003, from: curve, to: bot, value: 50_000_000n * e18 }] };
+    expect(findSnipers(coin as never, [curve as Address])).toEqual([]);
+    const s = findSnipers(coin as never, [curve as Address], {}, ROBINHOOD_PROFILE.sniperBlocks);
+    expect(s).toHaveLength(1);
+    expect(s[0]!.boughtShare).toBeCloseTo(0.05, 6);
+  });
+});
+
+describe('Robinhood graduates at start-up', () => {
+  it('finds a Pons graduation in the window and fetches that coin\'s launch, curve trades, transfers and pool swaps', async () => {
+    const { robinhoodChain } = await import('../src/chains/robinhood/index.js');
+    const fx = gradFx as unknown as { token: Address; curve: Address; launchBlock: number; graduationBlock: number; launch: RawFx; curveLogs: RawFx[]; initialize: RawFx };
+    const from = BigInt(fx.launchBlock) - 10n, to = BigInt(fx.graduationBlock) + 10n;
+    const asks: { address?: string; topics: unknown[] }[] = [];
+    const rpc: Rpc = { request: async ({ method, params }) => {
+      expect(method).toBe('eth_getLogs');
+      const f = (params as [{ address?: string; topics: (string | string[] | null)[] }])[0]; asks.push(f);
+      const addr = f.address?.toLowerCase();
+      if (f.topics[0] === fx.initialize.topics[0]) return [fx.initialize];
+      if (addr === fx.curve.toLowerCase()) return fx.curveLogs;
+      if (f.topics[0] === fx.launch.topics[0]) return [fx.launch];
+      return [];
+    } };
+    const logs = await robinhoodChain().graduates!(rpc, from, to, () => false);
+    expect(logs[0]).toBe(fx.launch);
+    expect(logs).toContain(fx.initialize);
+    expect(logs.length).toBe(2 + fx.curveLogs.length);
+    // The coin's own transfers and its pool's swaps were asked for.
+    expect(asks.some(a => a.address?.toLowerCase() === fx.token.toLowerCase())).toBe(true);
+    expect(asks.some(a => (a.topics as string[])[1] === fx.initialize.topics[1])).toBe(true);
+    // A coin already tracked is skipped.
+    expect(await robinhoodChain().graduates!(rpc, from, to, () => true)).toEqual([]);
+  });
+});
+type RawFx = { address: string; topics: Hex[]; data: Hex; blockNumber: Hex; transactionHash: Hex; logIndex: Hex };
+
+describe('Robinhood coverage: old-launch graduates, live misses, warm start', () => {
+  it('finds a launch older than the window from the block the token first had code', async () => {
+    const { deployBlock } = await import('../src/chains/robinhood/index.js');
+    let calls = 0;
+    const rpc: Rpc = { request: async ({ method, params }) => { calls++; expect(method).toBe('eth_getCode'); return BigInt((params as string[])[1]!) >= 12_345n ? '0x60' : '0x'; } };
+    expect(await deployBlock(rpc, '0x1111111111111111111111111111111111111111', 1_000_000n)).toBe(12_345n);
+    expect(calls).toBeLessThan(25);
+    expect(await deployBlock({ request: async () => '0x' }, '0x1111111111111111111111111111111111111111', 10n)).toBeNull();
+  });
+  it('queues a live graduation of a coin it does not follow and fetches its history on the next tick', async () => {
+    const { robinhoodChain } = await import('../src/chains/robinhood/index.js');
+    const fx = gradFx as unknown as { token: Address; curve: Address; launch: RawFx; curveLogs: RawFx[]; initialize: RawFx };
+    const chain = robinhoodChain();
+    const t = { coin: () => undefined, coinByPool: () => undefined } as never;
+    chain.apply(fx.initialize as never, 1, t);
+    const rpc: Rpc = { request: async ({ params }) => { const f = (params as [{ address?: string; topics: unknown[] }])[0];
+      if (f.topics[0] === fx.launch.topics[0]) return [fx.launch];
+      if (f.address?.toLowerCase() === fx.curve.toLowerCase()) return fx.curveLogs;
+      return []; } };
+    const logs = await chain.missing!(rpc, BigInt(fx.initialize.blockNumber) + 10n, () => false);
+    expect(logs[0]).toBe(fx.launch);
+    expect(logs).toContain(fx.initialize);
+    expect(await chain.missing!(rpc, BigInt(fx.initialize.blockNumber) + 10n, () => false)).toEqual([]);
+  });
+  it('skips the whole-window launch rebuild when asked to (a healthy snapshot)', async () => {
+    const { robinhoodChain } = await import('../src/chains/robinhood/index.js');
+    const asks: unknown[] = [];
+    const rpc: Rpc = { request: async ({ params }) => { asks.push((params as [{ topics: unknown[] }])[0].topics[0]); return []; } };
+    await robinhoodChain().graduates!(rpc, 1n, 50_000n, () => false, { coins: false });
+    expect(asks.some(t => Array.isArray(t))).toBe(false);
+    await robinhoodChain().graduates!(rpc, 1n, 50_000n, () => false);
+    expect(asks.some(t => Array.isArray(t))).toBe(true);
+  });
+});

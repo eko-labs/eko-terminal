@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createRadarRows } from '../../mocks/demo/radar';
-import { applyRadarEvents, currentAgeSec, filterRows, hottest, refused, scanDelayed, SORTS, sortRows } from './radarModel';
+import { applyRadarEvents, currentAgeSec, filterRows, hottest, noMatchLabel, refused, scanDelayed, SORTS, sortRows } from './radarModel';
+import { pick } from '../../lib/chain';
 import type { ChannelEvent } from '../../lib/realtime';
 const event = (kind: string, data: unknown) => ({t:'ev',ch:'radar',seq:1,ts:1,kind,data}) as ChannelEvent<'radar'>;
 describe('Radar server order and user sorting', () => {
@@ -98,5 +99,51 @@ describe('price and market cap columns', () => {
     expect(parseColumns(JSON.stringify(['exit', 'price', 'bogus']))).toEqual(['price', 'exit']);
     expect(hiddenColumnClasses(['price', 'mcap'])).toContain(' hide-watch');
     expect(hiddenColumnClasses(['price', 'mcap'])).not.toContain('hide-price');
+  });
+});
+
+describe('Verdict context when no playbook matched', () => {
+  const clear = { verdict: 'clear' } as const;
+  const quiet = { ...clear, stage: 'curve', launchpad: 'pons', curvePct: 1, liquidityUsd: 1, ageSec: 300, trades1h: 0, volume1hUsd: 0 } as const;
+
+  it('names the venue or measured graduation progress for coins with activity', () => {
+    expect(noMatchLabel({ ...clear, stage: 'graduated', graduationPct: 100, trades1h: 3 })).toBe(pick({ robinhood: 'On Uniswap · no flags', elysium: 'Graduated · no flags' }));
+    expect(noMatchLabel({ ...clear, stage: 'curve', graduationPct: 0.15, trades1h: 13 })).toBe('Early · 0.1% to graduation');
+    expect(noMatchLabel({ ...clear, stage: 'curve', graduationPct: 4.26, trades1h: 4 })).toBe('Early · 4.3% to graduation');
+    expect(noMatchLabel({ ...quiet, curvePct: 14, trades1h: 1 })).toBe('Early · 14% to graduation');
+    expect(noMatchLabel({ ...quiet, curvePct: 15, trades1h: 1 })).toBe('15% to graduation · no flags');
+    expect(noMatchLabel({ ...clear, stage: 'curve', trades1h: 2 })).toBeUndefined();
+  });
+
+  it('requires five minutes, at most 1% progress and at most $1 in a Pons curve', () => {
+    expect(noMatchLabel(quiet)).toBe('Dead · no buyers');
+    expect(noMatchLabel({ ...quiet, ageSec: 299 })).toBe('Quiet · no trades');
+    expect(noMatchLabel({ ...quiet, curvePct: 1.01 })).toBe('Quiet · no trades');
+    expect(noMatchLabel({ ...quiet, liquidityUsd: 1.01 })).toBe('Quiet · no trades');
+    expect(noMatchLabel({ ...quiet, launchpad: 'montra' })).toBe('Quiet · no trades');
+    expect(noMatchLabel({ ...quiet, stage: 'graduated' })).toBe('Quiet · no trades');
+  });
+
+  it('uses the whole launch window to say no buyers and describes older curves by their reserves', () => {
+    expect(noMatchLabel({ ...quiet, ageSec: 3599, buyers: 0 })).toBe('Dead · no buyers');
+    expect(noMatchLabel({ ...quiet, ageSec: 3600 })).toBe('Dead · curve ≤$1');
+    expect(noMatchLabel({ ...quiet, buyers: 1 })).toBe('Dead · curve ≤$1');
+    expect(noMatchLabel({ ...quiet, ageSec: 3600, liquidityUsd: 10 })).toBe('Inactive · no trades in 1h');
+    expect(noMatchLabel({ ...quiet, ageSec: 3599, liquidityUsd: 10 })).toBe('Quiet · no trades');
+    expect(noMatchLabel({ ...quiet, stage: 'graduated', ageSec: 3600 })).toBe('Inactive · no trades in 1h');
+  });
+
+  it('requires measured inactivity and does not read missing liquidity as zero', () => {
+    for (const patch of [{ trades1h: 1 }, { volume1hUsd: 0.01 }, { trades1h: undefined }, { unavailable: ['volume'] as const }]) {
+      expect(noMatchLabel({ ...quiet, ...patch, unavailable: patch.unavailable && [...patch.unavailable] })).toBe('Early · 1.0% to graduation');
+    }
+    expect(noMatchLabel({ ...quiet, unavailable: ['liquidity'] })).toBe('Quiet · no trades');
+    expect(noMatchLabel({ ...quiet, liquidityUsd: undefined })).toBe('Quiet · no trades');
+    expect(noMatchLabel({ ...quiet, curvePct: undefined })).toBe('Quiet · no trades');
+  });
+
+  it('leaves risk flags and incomplete assessments in control of the chip', () => {
+    for (const verdict of ['monitor', 'danger', 'pending'] as const) expect(noMatchLabel({ ...quiet, verdict })).toBeUndefined();
+    expect(noMatchLabel({ ...quiet, verdictPending: true })).toBeUndefined();
   });
 });

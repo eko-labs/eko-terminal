@@ -37,7 +37,7 @@ describe('CA-35 availability',()=>{
   });
   it('shows one shared availability legend above Radar',()=>{
     const html=render(<Radar/>);
-    expect(html.match(/— not checked yet: exit costs and buyer mix arrive with the trade simulation and wallet labels/g)).toHaveLength(1);
+    expect(html.match(/— not measured yet for this coin \(its first sell check or trades have not come in\)/g)).toHaveLength(1);
   });
   it('marks unavailable coin sections rather than displaying structural zeros',()=>{
     const card=createRadarCard(createRadarRows()[0].address)!;

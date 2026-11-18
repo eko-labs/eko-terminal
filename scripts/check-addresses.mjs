@@ -7,8 +7,14 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const heritageTestnet = new Map();
 export function addressViolations(files, registryText) {
   const allowed = new Set((registryText.match(/0x[0-9a-fA-F]{40}(?![0-9a-fA-F])/g) ?? []).map(a => a.toLowerCase()));
-  // Sentinels, not contracts: zero, the common burn address, and address one (Montra names it as a launch's holder-fee recipient).
-  allowed.add(`0x${'0'.repeat(40)}`); allowed.add(`0x${'0'.repeat(36)}dead`); allowed.add(`0x${'0'.repeat(39)}1`);
+  // Sentinels, not contracts: zero, the common burn address, address one (Montra names it as a launch's holder-fee
+  // recipient) and address two (v4-periphery's ADDRESS_THIS: the router itself).
+  allowed.add(`0x${'0'.repeat(40)}`); allowed.add(`0x${'0'.repeat(36)}dead`); allowed.add(`0x${'0'.repeat(39)}1`); allowed.add(`0x${'0'.repeat(39)}2`);
+  // Robinhood Chain contracts the edge reads that the registry schema has no entry for yet (measured on chain
+  // 2026-11-17, chains/robinhood/profile.ts): the WETH/USDG pool behind the ETH price cross-check, and the Pons launch
+  // locker and v4 PositionManager that hold each graduation's liquidity.
+  // TODO(spec): move them into addresses.4663.yaml once its schema has places for them.
+  for (const a of ['0x52e65B17fB6E5BA00Ed806f37Afcd2DaA50271Ca', '0x267444D099b10fB5Ed7c3Cc7B7c767AdcA574952', '0x58daec3116aae6D93017bAAea7749052E8a04fA7']) allowed.add(a.toLowerCase());
   return files.flatMap(({ path, text }) => [...text.matchAll(/(?<![0-9a-fA-F])0x[0-9a-fA-F]{40}(?![0-9a-fA-F])/g)].flatMap(match => {
     const address = match[0].toLowerCase();
     if (allowed.has(address) || heritageTestnet.get(path)?.has(address)) return [];

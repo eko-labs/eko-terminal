@@ -1,0 +1,39 @@
+/* The type roles from tokens.css, applied. Headings take their role by default (h1 page, h2 section, h3 and h4 panel)
+   at zero specificity, so a component can still place them; the shared heads below (page head, section head, panel
+   head) set the role outright. Page stylesheets set spacing and colour, never another size or weight. */
+:where(h1,h2,h3,h4){color:var(--ink)}
+:where(h1){font:var(--type-page);letter-spacing:var(--type-page-ls)}
+:where(h2){font:var(--type-section);letter-spacing:var(--type-section-ls)}
+:where(h3,h4){font:var(--type-panel);letter-spacing:var(--type-panel-ls)}
+
+/* Page title. The descender room is padding taken back by the margin, so the title keeps its place in the layout and
+   an ellipsis or overflow box around it still contains the tail of a g or y. */
+.t-page,.page-head h1,.coin-id h1,.scan-page h1,.empty h1{
+ font:var(--type-page);letter-spacing:var(--type-page-ls);color:var(--ink);
+ padding-bottom:var(--type-page-descent);margin-bottom:calc(-1 * var(--type-page-descent));overflow-wrap:anywhere;
+}
+.page-head h1{margin-top:0}
+
+/* Section title: a zone of a page. The numbered heads keep their counter as a mono label in accent. */
+.t-section,.sec-head h2,.section-title,.coin-zone-title,.ord-head h2{
+ font:var(--type-section);letter-spacing:var(--type-section-ls);text-transform:none;color:var(--ink);
+}
+.sec-head h2::before{font:var(--type-label);letter-spacing:var(--type-label-ls);vertical-align:.15em;margin-right:2px}
+
+/* Panel title: the head of a box. */
+.t-panel,.panel-title,.panel-head h2,.panel-head h3,.pcol-head h2,.coin-card-panel .sec h4{
+ font:var(--type-panel);letter-spacing:var(--type-panel-ls);text-transform:none;color:var(--ink);
+}
+
+/* Label / eyebrow: names a value or a group, and recedes. */
+.t-label,.eyebrow,.shell-page .eyebrow,.coin-stat dt,.cfw-head,.head-stats dt{
+ font:var(--type-label);letter-spacing:var(--type-label-ls);text-transform:uppercase;color:var(--faint);
+}
+
+.t-body{font:var(--type-body);letter-spacing:var(--type-body-ls)}
+.t-meta{font:var(--type-meta);letter-spacing:var(--type-meta-ls);color:var(--muted)}
+.t-stat{font:var(--type-stat);letter-spacing:var(--type-stat-ls);font-variant-numeric:tabular-nums;color:var(--ink)}
+.t-stat-inline{font:var(--type-stat-inline);letter-spacing:var(--type-stat-inline-ls);font-variant-numeric:tabular-nums;color:var(--ink)}
+
+/* A page head's intro line is body text in the supporting ink. */
+.page-head p{font:var(--type-body);color:var(--ink2)}

@@ -5,64 +5,16 @@ import ekoMark from '../assets/eko-mark.svg'
 import PortfolioDashboard from './EkoDashboard'
 import { popIn, AnimatedLines, DrumText, HoverLine, ScrambleText } from '../lib/animations'
 import DotMatrix from '../lib/DotMatrix'
+import { useFitScale, useFitScaleAuto } from '../lib/fitScale'
 import { pick } from '../chain'
 
 const DESIGN_WIDTH = 1512
 const DESIGN_HEIGHT = 935
 
-function useFitScale(designWidth: number) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(1)
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const observer = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width
-      if (width) setScale(width / designWidth)
-    })
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [designWidth])
-
-  return { ref, scale }
-}
-
 const MOBILE_DESIGN_WIDTH = 420
 
-function useFitScaleAuto(designWidth: number) {
-  const outerRef = useRef<HTMLDivElement>(null)
-  const innerRef = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(1)
-  const [naturalHeight, setNaturalHeight] = useState(0)
-
-  useEffect(() => {
-    const el = outerRef.current
-    if (!el) return
-    const observer = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width
-      if (width) setScale(width / designWidth)
-    })
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [designWidth])
-
-  useEffect(() => {
-    const el = innerRef.current
-    if (!el) return
-    const observer = new ResizeObserver((entries) => {
-      const height = entries[0]?.contentRect.height
-      if (height) setNaturalHeight(height)
-    })
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
-
-  return { outerRef, innerRef, scale, naturalHeight }
-}
-
-const navLinks = ['Discover', 'Senses', 'Harness', 'Terminal', 'Docs']
-const navTargets: Record<string, string> = { Discover: '#discover', Senses: '#senses', Harness: '#harness', Terminal: '/radar', Docs: '/site/docs.html' }
+const navLinks = ['Discover', 'Senses', 'Harness', 'Terminal', 'Docs', 'Whitepaper']
+const navTargets: Record<string, string> = { Discover: '#discover', Senses: '#senses', Harness: '#harness', Terminal: '/radar', Docs: '/site/docs.html', Whitepaper: '/site/whitepaper.html' }
 
 function MobileNavLink({ label, onSelect }: { label: string; onSelect: () => void }) {
   const [hovering, setHovering] = useState(false)
@@ -268,14 +220,9 @@ function MobileHero() {
         >
           {/* nav */}
           <div className="relative flex items-center justify-between">
-            <div className="eko-brand">
-              <img src={ekoMark} alt="" width={36} height={22} />
-              <span
-                className="eko-brand-text eko-wordmark ml-[14px] text-[19px] text-white"
-                style={{ letterSpacing: '-0.38px' }}
-              >
-                EKO
-              </span>
+            <div className="eko-header-brand eko-header-brand--compact">
+              <img src={ekoMark} alt="" />
+              <span className="eko-brand-text">EKO</span>
             </div>
             <button
               type="button"
@@ -467,8 +414,8 @@ export default function Hero() {
             top: 444,
             width: 948.8,
             height: 978.69,
-            background: '#8FCAF0',
-            opacity: 0.4,
+            background: 'var(--eko-glow)',
+            opacity: 0.22,
             filter: 'blur(60px)',
             mixBlendMode: 'screen',
           }}
@@ -480,8 +427,8 @@ export default function Hero() {
             top: 210.61,
             width: 801.72,
             height: 750.04,
-            background: 'linear-gradient(180deg, #8FCAF0 0%, #D6ECFA 100%)',
-            opacity: 0.3,
+            background: 'linear-gradient(180deg, var(--eko-glow) 0%, var(--eko-dot-mid) 100%)',
+            opacity: 0.22,
             filter: 'blur(50px)',
           }}
         />
@@ -492,8 +439,8 @@ export default function Hero() {
             top: 625.97,
             width: 651.76,
             height: 669.37,
-            background: 'linear-gradient(180deg, #8FCAF0 0%, #D6ECFA 100%)',
-            opacity: 0.3,
+            background: 'linear-gradient(180deg, var(--eko-glow) 0%, var(--eko-dot-mid) 100%)',
+            opacity: 0.22,
             filter: 'blur(50px)',
           }}
         />
@@ -517,18 +464,17 @@ export default function Hero() {
         <GuideBand top={418.75} lineDelay={0.2} fadeDelay={0.25} />
 
         {/* nav */}
-        <div className="eko-brand absolute" style={{ left: 114, top: 24, height: 26 }}>
-          <motion.img src={ekoMark} alt="" width={44} height={26} {...popIn(true, 0)} />
+        <div className="eko-header-brand absolute" style={{ left: 114, top: 24, height: 26 }}>
+          <motion.img src={ekoMark} alt="" {...popIn(true, 0)} />
           <motion.span
-            className="eko-brand-text eko-wordmark ml-[14px] text-[23px] text-white"
-            style={{ letterSpacing: '-0.47px' }}
+            className="eko-brand-text"
             initial={{ y: 8, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5 }}
           >EKO</motion.span>
         </div>
 
-        <div className="absolute flex items-center" role="navigation" aria-label="Main navigation" style={{ left: 308, top: 25, width: 274, height: 24 }}>
+        <div className="absolute flex items-center" role="navigation" aria-label="Main navigation" style={{ left: 308, top: 25, width: 520, height: 24 }}>
           {navLinks.map((label, i) => (
             <HoverLine
               key={label}
@@ -539,7 +485,7 @@ export default function Hero() {
               effect="scramble"
               className="absolute whitespace-nowrap text-[16px] text-white/70"
               style={{
-                left: [0, 90, 174, 265, 358][i],
+                left: [0, 90, 174, 265, 358, 424][i],
                 fontFamily: 'var(--font-display)',
                 letterSpacing: '-0.64px',
               }}

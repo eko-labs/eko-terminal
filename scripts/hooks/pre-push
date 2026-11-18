@@ -1,5 +1,5 @@
 #!/bin/sh
-# EKO pre-push check: the fast part of CI, on your machine, before anything reaches GitHub or Railway.
+# EKO pre-push check. Use `pnpm ship` for full local CI, the private push, and publication to the public mirror.
 # Install once per clone with `sh scripts/hooks/install.sh` (or `pnpm hooks:install`).
 #
 # Always: workspace typecheck and the live service's tests (apps/edge). Plus the tests of every other workspace

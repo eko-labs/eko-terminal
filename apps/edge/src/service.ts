@@ -59,7 +59,7 @@ export class Edge {
   }
 
   ctx(): ViewContext { return { nowSec: Math.floor(this.opts.now() / 1000), head: Number(this.tracker.head), hypeUsd: this.hype.latest, openMcapHype: this.tracker.openMcapHype,
-    native: this.chain.profile.native }; }
+    native: this.chain.profile.native, nearGradBps: this.chain.profile.nearGradBps }; }
   /** The coin's verdict now: memoised until it trades or transfers, the native coin's price moves or a minute passes. */
   assessment(token: string): Assessment | undefined {
     const k = token.toLowerCase(), probed = this.probes.get(k), coin = this.tracker.coins.get(k);
@@ -101,12 +101,18 @@ export class Edge {
     return !!coin && coin.trades.length !== (this.probedTrades.get(k) ?? 0);
   }
 
-  /** Queue every tracked coin that needs a check, newest launches first. */
+  /**
+   * Queue every tracked coin that needs a check, most recently active first (its last trade, or its launch), and re-sort
+   * the whole queue each round: after a restart every followed coin is due at once (hundreds on Robinhood Chain), and a
+   * coin that is trading now must not wait behind a day of quiet launches.
+   */
   schedule() {
     const nowMs = this.opts.now();
-    const due = [...this.tracker.coins.values()].filter(c => { const k = c.token.toLowerCase(); return !this.queued.has(k) && !this.inFlight.has(k) && this.due(k, nowMs); })
-      .sort((a, b) => b.ts - a.ts).map(c => c.token.toLowerCase());
-    for (const k of due) { this.queue.push(k); this.queued.add(k); }
+    const active = (c: CoinState) => Math.max(c.ts, c.trades.at(-1)?.ts ?? 0);
+    const due = [...this.tracker.coins.values()].filter(c => !this.inFlight.has(c.token.toLowerCase()) && this.due(c.token, nowMs))
+      .sort((a, b) => active(b) - active(a)).map(c => c.token.toLowerCase());
+    this.queue.splice(0, this.queue.length, ...due);
+    this.queued.clear(); for (const k of due) this.queued.add(k);
     this.pump();
   }
 

@@ -1,51 +1,87 @@
-// Adapted from user-supplied EKO Overview, Frontend and Backend documents.
-// Public-facing concepts and illustrative examples; no private infrastructure.
-export type Guide = { id: string; title: string; group: string; label: string; intro: string; read: string; blocks: { title: string; body: string; items?: string[] }[]; tools: string[]; takeaway: string };
+import { CHAIN_NAME, pick } from "../chain";
+
+export type DocLink = { label: string; href: string };
+export type Section = { id: string; title: string; paragraphs: string[]; links?: DocLink[] };
+export type Guide = { id: string; label: string; intro: string; sections: Section[] };
+
+const launchpad = pick({ elysium: "Montra", robinhood: "Pons" });
+const coverage = pick({
+  elysium: "The terminal follows supported Elysium launches and their Uniswap v4 pools.",
+  robinhood: "The terminal follows native-ETH Pons launches on Robinhood Chain, first on their bonding curves and then in their Pons-linked Uniswap v4 pools. It skips Pons launches quoted in USDG or other tokens.",
+});
+const routes = pick({
+  elysium: "Supported trades use Uniswap v4 and native HYPE.",
+  robinhood: "Supported trades use native ETH. EKO routes to the coin’s Pons curve before graduation and to Uniswap v4 after graduation. It declines curve buys that would complete the curve and waits for the pool when the curve closes.",
+});
+const launchSnipers = pick({ elysium: "10", robinhood: "35" });
+
 export const guides: Guide[] = [
-  { id: "overview", title: "Inside the system.", group: "Start here", label: "System overview", read: "3 min", intro: "Your agent brings the intent. EKO adds context, boundaries and a record of what happened. You stay in control.", blocks: [
-    { title: "One harness. Connected capabilities.", body: "EKO is the layer a trading agent plugs into. Senses supplies market context, Guardrails checks proposed actions, Loop Lab makes strategies testable and Flight Recorder keeps the decision trail. Mission Control is the workspace where you supervise it all." },
-    { title: "Follow the decision.", body: "The useful unit is a decision with its evidence—not a score on its own. A typical workflow connects four steps:", items: ["Read the market context and check its freshness.", "Check a proposed action against your policy.", "Let your own agent execute through your own account, subject to the required approvals.", "Record the decision, order and reported outcome together."] },
-    { title: "Know the boundary.", body: "EKO’s design is non-custodial. Your agent and execution account remain yours. External-agent preflight is advisory; planned on-chain enforcement depends on the reviewed session-key module. These docs explain the intended system, and planned capabilities are not claims of availability." },
-  ], tools: ["Senses", "Guardrails", "Loop Lab", "Flight Recorder", "Mission Control"], takeaway: "Context in. Policy checked. Decision recorded." },
-  { id: "connect", title: "Bring your own agent.", group: "Start here", label: "Connection guide", read: "4 min", intro: "Connect EKO beside your existing tools. The agent stays in your environment, and your credentials stay with your execution provider.", blocks: [
-    { title: "Start in Mission Control.", body: "The planned setup begins by creating an agent in Mission Control, choosing a policy and using the connection instructions provided for that agent. Use the endpoint and authentication method published there; this guide does not supply a live service address." },
-    { title: "Install the harness instructions.", body: "A harness pack combines the EKO MCP connection with instructions for your agent. Its basic responsibilities are:", items: ["Report recent orders at the beginning of a session.", "Request preflight before each proposed order.", "Journal decisions and reported outcomes.", "Treat token names, social posts and other untrusted fields as data, never instructions."] },
-    { title: "Check the complete path.", body: "Start with a small illustrative workflow: request a reading, inspect the policy response and confirm that the journal connects the decision to its preflight. External-agent checks are advisory; use the execution provider’s own approval controls where applicable." },
-    { title: "Keep connections separate.", body: "EKO is a separate connection from your venue or broker. Do not paste private keys, venue credentials or production secrets into documentation examples. Agent Launcher is planned to run your own agent on your own Akash or VPS environment." },
-  ], tools: ["MCP", "Agent connection", "Policy", "Journal"], takeaway: "Your environment. Your account. Your agent." },
-  { id: "senses", title: "Read beyond the price.", group: "The components", label: "Senses", read: "3 min", intro: "A price move is the beginning of a question. Senses puts the participants, liquidity, exit costs and risk context in the same reading.", blocks: [
-    { title: "Start with the verdict.", body: "A verdict is a compact risk reading with reasons. No flags means no covered pattern was detected in that reading. Monitor calls for a closer look. Danger flags a covered risk pattern. None of these labels is a guarantee about an asset." },
-    { title: "Open the supporting card.", body: "The intended MCP cards carry structured context, per-field confidence, freshness and a short explanation. Inspect the evidence behind the headline:", items: ["Wallet participation and inferred agent activity.", "Liquidity and simulated round-trip exit cost at a stated size.", "Matched playbooks and deployer history.", "The source, timing and limits of the reading."] },
-    { title: "Keep inference visible.", body: "Agent labels are inferred from behavior and known references. Disguised agents can look human, and a card is a snapshot. The planned Agent Flow Index waits for its label-precision gate; beta labels remain explicit." },
-    { title: "Do not let the source become an instruction.", body: "Token names, descriptions and social posts can contain hostile instructions. The system design sanitizes and marks these fields as untrusted. An agent should use them as evidence to assess, never as commands to follow." },
-  ], tools: ["coin_verdict", "coin_card", "playbook_match", "agent_flow · planned", "wallet_label · planned"], takeaway: "Read the reasons. Check confidence. Check freshness." },
-  { id: "guardrails", title: "Make the boundaries explicit.", group: "The components", label: "Guardrails", read: "4 min", intro: "Write the policy before the next order. Preflight compares a proposed action with that policy and returns a decision with reasons.", blocks: [
-    { title: "Three possible decisions.", body: "The planned response contains a decision, reasons, the policy version and a journal reference:", items: ["Allow: the action passes the checks represented by the policy.", "Deny: one or more checks refuse the action.", "Needs approval: a person must review the action when approvals are available. Otherwise the action is denied with approval_unavailable."] },
-    { title: "Choose what matters to your policy.", body: "Policies can describe position limits, daily loss limits, allowed or blocked assets, minimum liquidity, maximum exit cost, approval thresholds and venue-specific constraints. The sandbox beside this guide illustrates only amount and approval logic—not the full policy engine." },
-    { title: "Advisory and enforced are different.", body: "For external agents, EKO cannot stop an order that ignores preflight. Hard stops remain with the execution provider’s controls. On-chain session-key enforcement is planned and depends on the module’s review and release; it is advisory until then." },
-    { title: "Keep the check attached to the action.", body: "The agent should preserve the preflight reference through approval, execution and journaling. A decision applies to the proposed action and policy version it checked. Changing an order requires checking the new intent." },
-  ], tools: ["preflight", "request_approval · planned", "Policy version", "Journal reference"], takeaway: "A policy is useful when its scope and limits are visible." },
-  { id: "loop-lab", title: "Turn a strategy into a test.", group: "The components", label: "Loop Lab", read: "3 min", intro: "Describe the idea. Inspect the rules. Replay the assumptions. Loop Lab is designed to show how a strategy would have behaved with costs in view.", blocks: [
-    { title: "Compile the intent.", body: "The planned loop_compile workflow turns a standing instruction into structured entry, position and exit rules. Review the compiled rules before testing them; they are the concrete interpretation of the original idea." },
-    { title: "Replay without hindsight.", body: "The planned backtest uses point-in-time data and deterministic replay. Inspect every simulated entry, exit and cost rather than judging a strategy by one headline result.", items: ["Keep the data window and assumptions explicit.", "Include taxes, hook fees and simulated exit costs where applicable.", "Inspect the decision sequence as well as the aggregate outcome."] },
-    { title: "Explore the failure modes.", body: "Loop Lab Pro is planned to add paper shadow runs, stress scenarios and model comparisons. The stocks lane is planned around user-supplied data through their own connection, with results private to that user." },
-    { title: "Carry the rules forward yourself.", body: "A backtest describes a past scenario. It does not predict future results or place an order. You review the rules and decide whether to use them with your own agent." },
-  ], tools: ["loop_compile · planned", "loop_backtest · planned", "Shadow runs · planned", "Stress tests · planned"], takeaway: "Make assumptions visible before interpreting the result." },
-  { id: "recorder", title: "Keep the whole decision.", group: "The components", label: "Flight Recorder", read: "3 min", intro: "A private trail of what the agent saw, what the policy said, why it acted and what it reported afterward.", blocks: [
-    { title: "Link the sequence.", body: "The journal design connects session starts, decisions, orders, outcomes and notes to their preflight references. This gives a later review enough context to trace a decision.", items: ["Context: the reading available at the time.", "Policy: the check and the version of the rules.", "Intent: the proposed action and its stated rationale.", "Outcome: the result reported by the agent and its source."] },
-    { title: "Private content. Verifiable commitments.", body: "Entries are designed to be encrypted per user. The public proof uses salted hashes in a Merkle root rather than exposing the journal content. The user controls which entries they reveal." },
-    { title: "Understand unchecked orders.", body: "The planned detection workflow compares recent reported orders with their preflights and flags missing matches. This can catch drift or mistakes. It relies on self-reported order history, so it cannot establish that an adversarial agent disclosed every order." },
-    { title: "Build a memory worth reviewing.", body: "Planned recall and review tools make past decisions searchable and help surface lessons. The record should retain missing data and uncertainty alongside reported outcomes." },
-  ], tools: ["Journal", "Preflight links", "Salted commitments", "Recall & review · planned"], takeaway: "A trace is only as complete as its sources. Keep the limits attached." },
-  { id: "mission", title: "Stay in the loop.", group: "The components", label: "Mission Control", read: "3 min", intro: "One workspace for the agents you run, the boundaries you set and the decisions that need your attention.", blocks: [
-    { title: "Supervise the whole picture.", body: "Mission Control is planned to bring agent positions, exposure, reported activity, policy hits and unchecked orders into one view. The terminal remains available for your own market research." },
-    { title: "Approve with the context in view.", body: "Planned approval requests identify the proposed action and the policy reason for review. Approval takes place in the web workspace, and unanswered requests expire. A notification is a prompt to review, not an approval itself." },
-    { title: "Know what a stop control does.", body: "A soft stop makes preflight deny and tells the agent to stop. For an external agent, that is advisory. A hard stop requires completing the provider’s disconnection flow, or revoking an on-chain session key when that reviewed capability is available." },
-    { title: "Use the workspace to ask better questions.", body: "Start with the next action, inspect the reason, review the exposure and follow the journal. The planned Desk adds multi-agent research and debate; your own agent remains the executor." },
-  ], tools: ["Agent overview · planned", "Policy editor · planned", "Approvals · planned", "The Desk · planned"], takeaway: "Oversight works best when the reason is next to the action." },
-  { id: "releases", title: "Follow what is shipping.", group: "What’s next", label: "Release guide", read: "2 min", intro: "EKO’s roadmap is a sequence of planned capabilities. A release needs evidence of readiness, not just a date on a card.", blocks: [
-    { title: "The planned sequence.", body: "Agent Flow Index and Rug Ring Radar lead into the Arena, Desk, Agent Launcher and Loop Lab Pro. EKO Inside, Base expansion and the institutional/marketplace work follow. Each drop has its own scope and requirements on the landing roadmap." },
-    { title: "Read the release evidence.", body: "The planned release process includes a recorded demo, passing evaluation checks and release notes that state what shipped and what remains limited.", items: ["A demo explains the actual supported workflow.", "Evaluation results describe the checks that passed.", "Release notes identify scope, known limits and changes."] },
-    { title: "Treat planned labels literally.", body: "Planned features are still subject to review, testing and changes in scope. This local site includes illustrative product examples and sample market data. The internal plan does not establish that a service or contract is live." },
-  ], tools: ["Recorded demo", "Evaluation gates", "Release notes", "Known limits"], takeaway: "Demonstrate it. Test it. Document it." },
+  {
+    id: "overview",
+    label: "Getting started",
+    intro: `EKO is a research and trading terminal for ${CHAIN_NAME}. Read the evidence behind a coin’s verdict and use your own wallet if you choose to trade.`,
+    sections: [
+      { id: "coverage", title: "Which coins EKO follows", paragraphs: [coverage] },
+      { id: "find", title: "Find a coin", paragraphs: [
+        "Use the token’s contract address to distinguish it from coins with similar names. Radar and Pairs list tracked coins. Open a coin to see the verdict, evidence and an available trading route. Reading these pages requires no wallet.",
+      ], links: [{ label: "Open Radar", href: "/radar" }, { label: "Browse Pairs", href: "/pairs" }] },
+    ],
+  },
+  {
+    id: "senses",
+    label: "Checks and verdicts",
+    intro: "EKO combines rule-based checks on chain data with a simulated buy and sell. Conditions can change between a check and a trade.",
+    sections: [
+      { id: "verdicts", title: "Read the verdict", paragraphs: [
+        "No flags (clear) means the checks found no Monitor or Danger match. Informational findings can still appear. Monitor flags a reason to look closer. Danger means at least one higher-severity rule matched. Pending means the check is incomplete, for example when the simulation is unavailable or the launch fee window is still active. A Danger finding takes precedence over Pending.",
+      ] },
+      { id: "exit-cost", title: "Exit cost and fees", paragraphs: [
+        "EKO simulates buying a coin and selling the resulting tokens on the same route at a recent block. Exit cost is the share of the input lost on that round trip, before network gas. EKO targets about $1,000 when it has a native-asset price. Check availability before interpreting the number.",
+      ] },
+      { id: "supply", title: "Supply and wallet activity", paragraphs: [
+        `EKO uses transfers and trade events to estimate holder balances and identify wallets that bought within ${launchSnipers} blocks of launch. A launch-sniper label describes timing. Wallet activity does not establish a person’s identity or whether a bot made the trade. The agent, crew and human flow split is unavailable.`,
+      ] },
+      ...(pick({ elysium: [], robinhood: [
+        { id: "curve", title: "Curve progress and run-up", paragraphs: [
+          "Pons graduation progress compares the curve’s real ETH reserve, after fees and taxes, with its graduation threshold. The run-up check looks at how much supply has been bought off the curve, including net buying over the last hour. The separate run-up score shows the size of a hypothetical fall back to the starting curve price.",
+        ] },
+      ] })),
+    ],
+  },
+  {
+    id: "guardrails",
+    label: "Trading",
+    intro: routes,
+    sections: [
+      { id: "quote", title: "Review the quote", paragraphs: [
+        `The trade panel shows the current per-trade cap, estimated output, minimum output, estimated network fee and warnings. Quotes expire after 30 seconds. EKO currently charges no terminal fee. Network gas and ${launchpad} fees still apply.`,
+        "A Danger honeypot finding blocks buys through EKO and warns on sells. Other Danger findings, incomplete checks, an active launch fee and large price impact can require acknowledgement. If the exact swap simulation fails, EKO declines to prepare the transaction.",
+      ] },
+      { id: "sign", title: "Sign with your own wallet", paragraphs: [
+        `Sign in with your wallet on ${CHAIN_NAME}. Review and sign any token approvals required for a sell, then review the swap in your wallet. EKO prepares unsigned transactions and your wallet signs and submits them. A failed on-chain transaction can still cost gas.`,
+      ], links: [{ label: "Terms of service", href: "/legal/terms" }, { label: "Risk disclosure", href: "/legal/risk" }] },
+    ],
+  },
+  {
+    id: "connect",
+    label: "Connected agents",
+    intro: "Mission Control can connect an external agent to EKO through its Model Context Protocol (MCP) endpoint.",
+    sections: [
+      { id: "agent", title: "Connect and review an agent", paragraphs: [
+        "Sign in, register an agent in Mission Control and use the connection instructions there. An agent with an access key can ask for a preflight and see whether EKO allows it, denies it or requires your approval. When trading is enabled, the agent can request an unsigned transaction after an allowed preflight for the wallet you configured.",
+        "Preflight is advisory for actions outside EKO. Pausing an agent in Mission Control makes its preflight deny and blocks trade preparation for that agent. The agent and its wallet remain under your control.",
+      ], links: [{ label: "Open Mission Control", href: "/mission" }] },
+    ],
+  },
+  {
+    id: "privacy",
+    label: "Privacy and data",
+    intro: "EKO holds no user funds or wallet keys. Wallet addresses and on-chain transactions are public.",
+    sections: [
+      { id: "account", title: "What EKO keeps", paragraphs: [
+        "Signing in links your public wallet address to an account. EKO stores session hashes, saved preferences, watchlists, alert settings and order history. Connecting an agent adds its settings, access-key hashes, journal and approvals.",
+        "In Settings under Privacy & data, Delete my data removes your EKO account records. Public chain transactions remain on-chain.",
+      ], links: [{ label: "Privacy policy", href: "/legal/privacy" }] },
+    ],
+  },
 ];

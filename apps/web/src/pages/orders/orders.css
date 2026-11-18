@@ -1,0 +1,56 @@
+/* /orders: the signed-in wallet's order history. Desktop table; cards under 700px (the Bags pattern). */
+.orders-page{max-width:1240px}
+.orders-page .connect-card{margin:0}
+.ord-head{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.ord-head h2{margin:0}
+.ord-head>.btn{margin-left:auto}
+.ord-live{display:flex;align-items:center;gap:8px;margin:0;font-size:13px;color:var(--ink2)}
+.ord-table-wrap{overflow-x:auto;max-width:100%}
+.ord-table{min-width:860px}
+.ord-table td{vertical-align:middle}
+.ord-table td.r .num{font-family:var(--mono)}
+.ord-time{font-family:var(--mono);font-size:13px;color:var(--ink2)}
+.ord-coin{display:flex;flex-direction:column;gap:2px;min-width:0;max-width:220px;color:var(--ink);text-decoration:none}
+.ord-coin:hover .ord-sym,.ord-coin:focus-visible .ord-sym{color:var(--accent)}
+.ord-sym{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ord-sym.addr{font:500 13px var(--mono)}
+.ord-name{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ord-side{display:inline-flex;align-items:center;height:20px;padding:0 7px;border:1px solid var(--rule2);border-radius:var(--r1);font:500 12px var(--sans);color:var(--ink2)}
+.ord-side.buy{border-color:color-mix(in srgb,var(--accent) 55%,transparent);color:var(--accent)}
+.ord-dir{font-size:12px;color:var(--faint)}
+.ord-none{color:var(--faint)}
+.ord-status{display:inline-flex;align-items:baseline;gap:8px}
+.ord-status>i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--faint);transform:translateY(-1px)}
+.ord-status.ok>i{background:var(--accent)}
+.ord-status.live>i{background:var(--lit);animation:shell-live 2.4s ease-in-out infinite}
+.ord-status.bad>i{background:var(--danger)}
+.ord-status.bad{color:var(--danger)}
+.ord-status small{display:block;font-size:12px;color:var(--muted);white-space:normal}
+.ord-tx{font:13px var(--mono);color:var(--accent)}
+.ord-tx:hover{color:var(--lit)}
+/* An order waiting for the chain carries the quiet row shimmer (lib/dither.ts). */
+.ord-table tr.ord-open,.ord-cards li.ord-open{background-image:linear-gradient(90deg,transparent,var(--bg) 55%),var(--dh-1-0,none)}
+.ord-cards{display:none;list-style:none;margin:0;padding:0}
+.ord-note{margin:0;padding:14px 0 0;font-size:12px;color:var(--muted)}
+.ord-error{display:flex;align-items:center;gap:16px;padding:18px 0;color:var(--danger)}
+.ord-error p{margin:0}
+.ord-empty{padding:48px 16px}
+.ord-empty span{max-width:440px}
+.ord-empty .btn{margin-top:10px}
+.ord-skel{padding-top:8px}
+.ord-skel-row{display:grid;grid-template-columns:110px minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:24px;padding:14px 0;border-bottom:1px solid var(--rule)}
+.ord-skel-row .skel{height:14px}
+@media(max-width:700px){
+  .ord-table-wrap{display:none}
+  .ord-cards{display:block}
+  .ord-cards li{display:grid;gap:12px;padding:14px 0;border-bottom:1px solid var(--rule)}
+  .ord-card-top{display:flex;align-items:center;gap:10px;min-width:0}
+  .ord-card-top .ord-coin{flex:1;max-width:none}
+  .ord-card-top .ord-time{font-size:12px;color:var(--muted);white-space:nowrap}
+  .ord-card-kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;margin:0}
+  .ord-card-kv dt{font-size:12px;color:var(--muted);margin-bottom:3px}
+  .ord-card-kv dd{margin:0;overflow-wrap:anywhere}
+  .ord-head>.btn{margin-left:0}
+  .ord-live{order:3;flex-basis:100%}
+  .ord-skel-row{grid-template-columns:1fr 1fr;gap:12px}
+}

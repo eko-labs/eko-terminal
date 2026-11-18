@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { AddressSchema, TradeOrderSchema, TradeQuoteSchema, UnsignedTxSchema, type PublicConfig, type TradeOrder, type TradeQuote, type UnsignedTx } from '@eko/shared';
 import type { TradeHandoff } from '../components/trade/TradeContext';
 import { panelBlock, emptyQuote, quoteExpired, tradeRequestKey } from '../components/trade/tradePanelModel';
-import { isUserRejection, newIdempotencyKey } from './trade';
+import { isUserRejection, newIdempotencyKey } from './tradeKeys';
 import { BUILD_CHAIN_ID } from './chain';
 import { deploymentMismatch } from './deployment';
 

@@ -71,12 +71,15 @@ export function paintCandles(canvas:HTMLCanvasElement,g:CandlesGeometry,progress
  const {W,H}=g,{c,dpr}=setup(canvas,W,H),n=g.candles.length;c.save();clipTo(c,g);
  c.fillStyle='rgba(70,125,170,.07)';c.beginPath();for(let x=g.L;x<=g.W-g.R;x+=3)for(let y=g.T;y<=g.B;y+=3)c.rect(x,y,1.2,1.2);c.fill();
  c.globalCompositeOperation='lighter';
- const bw=candleWidth(g.slot);
+ // Zoomed far out (thin candles, hundreds on screen) the glow is dropped and a down body is filled solid: blur per
+ // candle is the costly part, and an outlined body under 3 px reads as noise.
+ const bw=Math.max(1,candleWidth(g.slot)),thin=bw<3,glow=g.slot>=4;
  for(let i=0;i<n;i++){
   if(i/n>progress)break;const k=g.candles[i],x=g.x(i),up=k.c>=k.o,top=g.y(Math.max(k.o,k.c)),bot=g.y(Math.min(k.o,k.c)),h=Math.max(1,bot-top);
-  c.save();c.shadowColor=up?'rgba(100,190,250,.7)':'rgba(60,110,150,.4)';c.shadowBlur=(up?4:2)*dpr;
+  c.save();if(glow){c.shadowColor=up?'rgba(100,190,250,.7)':'rgba(60,110,150,.4)';c.shadowBlur=(up?4:2)*dpr;}
   c.strokeStyle=up?'rgba(200,232,252,.85)':'rgba(96,130,156,.8)';c.lineWidth=1;c.beginPath();c.moveTo(x,g.y(k.h));c.lineTo(x,g.y(k.l));c.stroke();
   if(up){c.fillStyle='rgba(190,228,251,.92)';c.fillRect(x-bw/2,top,bw,h);}
+  else if(thin){c.fillStyle='rgba(96,130,156,.9)';c.fillRect(x-bw/2,top,bw,h);}
   else{c.fillStyle='rgba(20,34,46,.95)';c.fillRect(x-bw/2,top,bw,h);c.strokeStyle='rgba(96,130,156,.9)';c.strokeRect(x-bw/2+.5,top+.5,bw-1,Math.max(0,h-1));}
   c.restore();
  }
@@ -98,6 +101,6 @@ export const sweepDelay=(e:number,dur=1000)=>Math.round((1-Math.cbrt(1-Math.min(
 
 /** Volume plate under the candles, using the same phosphor bars without clearing their light. */
 export function paintVolume(canvas:HTMLCanvasElement,g:CandlesGeometry & {volumes:readonly number[]},progress=1){
- const c=canvas.getContext('2d');if(!c)return;const max=Math.max(1,...g.volumes),bw=candleWidth(g.slot);c.save();clipTo(c,g);c.globalCompositeOperation='lighter';
+ const c=canvas.getContext('2d');if(!c)return;let max=1;for(const v of g.volumes)max=Math.max(max,v);const bw=Math.max(1,candleWidth(g.slot));c.save();clipTo(c,g);c.globalCompositeOperation='lighter';
  g.volumes.forEach((v,i)=>{if(i/g.volumes.length>progress)return;const x=g.x(i)-bw/2,top=g.B-v/max*32;c.fillStyle=g.candles[i].c>=g.candles[i].o?'rgba(150,210,250,.35)':'rgba(96,130,156,.25)';for(let y=g.B-2;y>=top;y-=3)c.fillRect(x,y,bw,2);});c.restore();
 }

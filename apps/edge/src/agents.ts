@@ -82,8 +82,10 @@ export class AgentStore {
     assertStorage();
     const secret = `eko_${randomBytes(24).toString('base64url')}`, keyId = `key_${randomBytes(6).toString('hex')}`, prefix = secret.slice(0, 10);
     this.db.prepare('INSERT INTO agent_keys(key_id, agent_id, prefix, hash, created_at) VALUES(?, ?, ?, ?, ?)').run(keyId, agentId, prefix, sha(secret), now());
+    // Revoked rows kept beside the live ones (at most MAX_KEYS_PER_AGENT), so the agent never holds more than KEY_ROWS_KEPT.
+    // (Keeping the newest KEY_ROWS_KEPT rows of any kind let live keys older than them push the count past the cap.)
     this.db.prepare(`DELETE FROM agent_keys WHERE agent_id = ? AND revoked_at IS NOT NULL AND key_id NOT IN
-      (SELECT key_id FROM agent_keys WHERE agent_id = ? ORDER BY created_at DESC, rowid DESC LIMIT ?)`).run(agentId, agentId, KEY_ROWS_KEPT);
+      (SELECT key_id FROM agent_keys WHERE agent_id = ? AND revoked_at IS NOT NULL ORDER BY created_at DESC, rowid DESC LIMIT ?)`).run(agentId, agentId, KEY_ROWS_KEPT - MAX_KEYS_PER_AGENT);
     return { keyId, prefix, secret };
   }
   /** Orders trade_prepare made for an agent are stored under `agent:<id>` (the trading table exists only with trading on). */

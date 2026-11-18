@@ -1,18 +1,36 @@
 import { bucketStart as sharedBucketStart, type Bar, type Tick, type Timeframe } from '@eko/shared';
-export const COIN_TIMEFRAMES = ['1s', '15s', '1m', '5m', '15m', '1h', '4h', '1d'] as const;
-export type CoinTimeframe = typeof COIN_TIMEFRAMES[number] | '30m';
-export const seconds = (tf: CoinTimeframe) => ({ '1s': 1, '15s': 15, '1m': 60, '5m': 300, '15m': 900, '30m': 1800, '1h': 3600, '4h': 14400, '1d': 86400 })[tf];
-// CA-4 adds short coin intervals; leave the retained market/backtest Timeframe contract alone.
-export const bucketStart = (ts: number, tf: CoinTimeframe) => tf === '1s' || tf === '15s' || tf === '30m' ? Math.floor(ts / seconds(tf)) * seconds(tf) : sharedBucketStart(ts, tf as Timeframe);
+export const COIN_TIMEFRAMES = ['1s', '15s', '30s', '1m', '5m', '15m', '30m', '1h', '4h', '1d'] as const;
+export type CoinTimeframe = typeof COIN_TIMEFRAMES[number];
+export const seconds = (tf: CoinTimeframe) => ({ '1s': 1, '15s': 15, '30s': 30, '1m': 60, '5m': 300, '15m': 900, '30m': 1800, '1h': 3600, '4h': 14400, '1d': 86400 })[tf];
+// Coin intervals the retained market/backtest Timeframe contract does not have are anchored here.
+const OWN: readonly CoinTimeframe[] = ['1s', '15s', '30s', '30m'];
+export const bucketStart = (ts: number, tf: CoinTimeframe) => OWN.includes(tf) ? Math.floor(ts / seconds(tf)) * seconds(tf) : sharedBucketStart(ts, tf as Timeframe);
 export const anchorTime = bucketStart;
 export interface View { s: number; e: number }
 export const slotWidth = (width: number, view: View) => width / (view.e - view.s);
 export { candleWidth } from '../../lib/phosphor';
+/** Zoom runs from 5 bars to every loaded bar (at least 40 slots, so a short history can still go thin); a view wider
+ *  than the data keeps it against the right edge, as trading charts do. */
 export function clampView(v: View, n: number): View {
   if (!n) return { s: 0, e: 1 };
-  const span = Math.max(Math.min(8, n), Math.min(n * 1.15, v.e - v.s));
-  const s = Math.max(-span * .05, Math.min(v.s, n + span * .15 - span));
+  const span = Math.max(Math.min(5, n), Math.min(Math.max(n * 1.15, 40), v.e - v.s));
+  const right = n + span * .15 - span, s = Math.max(Math.min(-span * .05, right), Math.min(v.s, right));
   return { s, e: s + span };
+}
+/** Exponential moving average of closes (seeded with the first close). */
+export function emaOf(closes: readonly number[], period: number): number[] {
+  const k = 2 / (period + 1), out: number[] = [];
+  let prev = closes[0] ?? 0;
+  for (const c of closes) { prev = c * k + prev * (1 - k); out.push(prev); }
+  return out;
+}
+/** Time-axis label for a bar: seconds on sub-minute intervals, the date on day-long ones (local time). */
+export function timeLabel(ts: number, tf: CoinTimeframe): string {
+  const d = new Date(ts * 1000), two = (n: number) => String(n).padStart(2, '0'), hm = `${two(d.getHours())}:${two(d.getMinutes())}`;
+  if (tf.endsWith('s')) return `${hm}:${two(d.getSeconds())}`;
+  if (tf === '1d') return `${d.toLocaleString('en', { month: 'short' })} ${d.getDate()}`;
+  if (tf === '1h' || tf === '4h') return `${d.getMonth() + 1}/${d.getDate()} ${hm}`;
+  return hm;
 }
 export function zoomView(v: View, factor: number, fraction: number): View {
   const at = v.s + fraction * (v.e - v.s), span = (v.e - v.s) * factor;

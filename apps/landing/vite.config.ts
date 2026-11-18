@@ -1,6 +1,34 @@
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
+import fs from 'node:fs'
+import path from 'node:path'
+import { brotliCompressSync, constants as zlib, gzipSync } from 'node:zlib'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
+
+// The edge serves dist as it is (@fastify/static, preCompressed): text files get .br and .gz siblings here, once, at
+// the best levels, instead of being compressed per request. The HTML pages are served from memory and compressed there.
+function precompress(): Plugin {
+  let outDir = ''
+  const walk = (dir: string): string[] =>
+    fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]))
+  return {
+    name: 'eko-precompress',
+    apply: 'build',
+    enforce: 'post',
+    configResolved(config) {
+      outDir = path.resolve(config.root, config.build.outDir)
+    },
+    closeBundle() {
+      for (const file of walk(outDir)) {
+        if (!/\.(?:js|css|svg|json|txt)$/.test(file)) continue
+        const data = fs.readFileSync(file)
+        if (data.length < 1024) continue
+        fs.writeFileSync(`${file}.br`, brotliCompressSync(data, { params: { [zlib.BROTLI_PARAM_QUALITY]: 11, [zlib.BROTLI_PARAM_SIZE_HINT]: data.length } }))
+        fs.writeFileSync(`${file}.gz`, gzipSync(data, { level: 9 }))
+      }
+    },
+  }
+}
 
 // One landing build per chain: VITE_EKO_CHAIN (Dockerfile.edge passes EKO_CHAIN) picks the copy in src/chain.ts.
 // index.html is the Elysium page as it has always been and an Elysium build leaves it untouched; a Robinhood build
@@ -27,6 +55,6 @@ function chainHtml(chain: string | undefined): Plugin {
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
   base: '/site/',
-  plugins: [react(), tailwindcss(), chainHtml(loadEnv(mode, process.cwd(), 'VITE_').VITE_EKO_CHAIN)],
-  build: { rolldownOptions: { input: { main: 'index.html', docs: 'docs.html' } } },
+  plugins: [react(), tailwindcss(), chainHtml(loadEnv(mode, process.cwd(), 'VITE_').VITE_EKO_CHAIN), precompress()],
+  build: { rolldownOptions: { input: { main: 'index.html', docs: 'docs.html', whitepaper: 'whitepaper.html' } } },
 }))

@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    if: github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      FOUNDRY_OFFLINE: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        # Version comes from package.json's packageManager.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+      # Some package tests build or read the contract; fresh runners may download the exact solc in foundry.toml.
+      - uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1.9.1
+        with:
+          version: v1.7.1
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      # The mirror omits private deployment fixtures and spec documents.
+      - name: Test published packages and applications
+        env:
+          VITEST_MAX_WORKERS: '2'
+        run: |
+          pnpm -r --workspace-concurrency=1 --filter '!@eko/web' --filter '!@eko/playbooks' --filter '!@eko/engines' --filter '!@eko/server' test
+          pnpm --filter @eko/playbooks test --exclude test/config.test.mjs
+          pnpm --filter @eko/engines test --exclude test/guard-cutover.test.ts --exclude test/launch-enumeration.test.ts --exclude test/monthly-evaluation.test.ts
+          pnpm --filter @eko/server test --exclude test/launch-monitoring.test.ts --exclude test/monitoring-rules.test.ts --exclude test/roles.test.ts --exclude test/staging-rollback.test.ts
+
+  frontend:
+    if: github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        chain: [elysium, robinhood]
+    env:
+      VITE_EKO_CHAIN: ${{ matrix.chain }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+      - run: pnpm install --frozen-lockfile
+        id: dependencies
+      - run: pnpm --filter @eko/web --filter @eko/landing typecheck
+      - run: pnpm --filter @eko/web test
+        env:
+          VITEST_MAX_WORKERS: '2'
+      # The image builds both; build them here too so a broken bundle fails before deploy.
+      - run: pnpm --filter @eko/landing build
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+      - run: pnpm --filter @eko/web build
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+
+  secrets:
+    if: github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Install checksum-verified Gitleaks
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/gitleaks_8.30.1_linux_x64.tar.gz"
+          curl --fail --silent --show-error --location \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
+            --output "$archive"
+          printf '%s  %s\n' '551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb' "$archive" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/gitleaks-bin"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/gitleaks-bin" gitleaks
+          echo "$RUNNER_TEMP/gitleaks-bin" >> "$GITHUB_PATH"
+      - run: gitleaks git --config .gitleaks.toml --redact --log-opts="--all" .

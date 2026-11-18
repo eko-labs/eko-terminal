@@ -21,7 +21,7 @@ export const ELYSIUM_PROFILE: ChainProfile = {
   publicRpc: ELYSIUM_PUBLIC_RPC, explorerUrl: ELYSIUM_EXPLORER, explorerApi: `${ELYSIUM_EXPLORER}/api`,
   // ~98 ms blocks (measured 2026-11-11); the historian starts at the Montra factory's deployment.
   blockTimeSec: 0.098, tracker: { chunk: 2000 }, publicRpm: 600, historianFromBlock: 580_000,
-  playbooks: ELYSIUM_PLAYBOOK_CONFIG, price: { url: HYPERLIQUID_INFO, symbol: 'HYPE' },
+  playbooks: ELYSIUM_PLAYBOOK_CONFIG, sniperBlocks: 10, nearGradBps: 5000, price: { url: HYPERLIQUID_INFO, symbol: 'HYPE' },
   venue: 'elysium', outcomeVersion: 'elysium-1', mcp: { name: 'eko-elysium', title: 'EKO (Elysium)' },
   text: { launches: 'Montra launches', token: 'Montra token', coins: 'Montra coins', earlyFee: "Montra's early-buy fee", tradeVenue: 'Uniswap v4' },
 };
@@ -34,10 +34,15 @@ export const ROBINHOOD_PROFILE: ChainProfile = {
   publicRpc: rh.publicRpcUrl, explorerUrl: rh.explorerUrl, explorerApi: null,
   // ~0.102 s blocks. Transfers run 4.6 to 8.1 a block against eth_getLogs' 10,000-result cap: spans start at 500 blocks,
   // and the start-up replay is 32,400 blocks (55 minutes). The historian would start at the Pons factory's deployment.
-  blockTimeSec: 0.102, tracker: { chunk: 500, backfillBlocks: 32_400 },
+  // A graduate with 2.5 ETH (~$4.5k) or more traded in its last 24 hours stays in the Graduated column past a day.
+  blockTimeSec: 0.102, tracker: { chunk: 500, backfillBlocks: 32_400, activeQuote24h: 2.5 },
   // Bursts of heavy eth_getLogs draw 429s, and the metered client then pauses the lane; 4 to 5 calls a second are safe.
   publicRpm: 270, historianFromBlock: 26_841_846,
-  playbooks: SINGLE_PROBE_PLAYBOOK_CONFIG, price: { url: HYPERLIQUID_INFO, symbol: 'ETH' },
+  // 35 blocks (~3.5 s): Pons's anti-snipe tax runs 3 s (99%, 6.18%, 0.19%), so bots buy as it ends; the same first-35-block
+  // window the Pons calibration (config v1, bundle_dump.firstBlocks) used for early-block buys.
+  // About to graduate from 30% of the curve: a Pons curve spends most of its life under a third full, and the coins
+  // traders watch for graduation (other terminals' "almost bonded") are the ones past it.
+  playbooks: SINGLE_PROBE_PLAYBOOK_CONFIG, sniperBlocks: 35, nearGradBps: 3000, price: { url: HYPERLIQUID_INFO, symbol: 'ETH' },
   venue: 'rhc', outcomeVersion: 'robinhood-1', mcp: { name: 'eko-robinhood', title: 'EKO (Robinhood Chain)' },
   text: { launches: 'Pons launches', token: 'Pons token', coins: 'Pons coins', earlyFee: "Pons' launch snipe tax", tradeVenue: 'Pons curve or Uniswap v4' },
 };

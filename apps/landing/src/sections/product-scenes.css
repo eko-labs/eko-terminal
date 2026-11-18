@@ -462,7 +462,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: url("/media/eko-signal-field.webp") center/cover;
+  background: url("/site/media/eko-signal-field.webp") center/cover;
   opacity: 0.32;
   z-index: -1;
 }

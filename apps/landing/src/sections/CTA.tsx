@@ -4,6 +4,7 @@ const waveGlow = '/site/media/template/cta-wave-glow.webp'
 import PortfolioDashboard from './EkoDashboard'
 import { popIn, AnimatedLines, DrumText } from '../lib/animations'
 import DotMatrix from '../lib/DotMatrix'
+import { useFitScale, useFitScaleAuto } from '../lib/fitScale'
 
 const DESIGN_WIDTH = 1516
 const DESIGN_HEIGHT = 1275
@@ -12,57 +13,10 @@ const DESIGN_HEIGHT = 1275
 // part inside the canvas (1526x929 px on screen) was ever visible - this is that
 // part in source px of the 2298x1417 texture
 const WAVE_CROP = { x: 0, y: 0, w: 1942, h: 1182 }
-
-function useFitScale(designWidth: number) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(1)
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const observer = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width
-      if (width) setScale(width / designWidth)
-    })
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [designWidth])
-
-  return { ref, scale }
-}
+// crops are in px of the 2298-wide original; the served texture is smaller (DotMatrix scales them)
+const WAVE_BASIS = 2298
 
 const MOBILE_DESIGN_WIDTH = 420
-
-function useFitScaleAuto(designWidth: number) {
-  const outerRef = useRef<HTMLDivElement>(null)
-  const innerRef = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(1)
-  const [naturalHeight, setNaturalHeight] = useState(0)
-
-  useEffect(() => {
-    const el = outerRef.current
-    if (!el) return
-    const observer = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width
-      if (width) setScale(width / designWidth)
-    })
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [designWidth])
-
-  useEffect(() => {
-    const el = innerRef.current
-    if (!el) return
-    const observer = new ResizeObserver((entries) => {
-      const height = entries[0]?.contentRect.height
-      if (height) setNaturalHeight(height)
-    })
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
-
-  return { outerRef, innerRef, scale, naturalHeight }
-}
 
 function ArrowRight({ color }: { color: string }) {
   return (
@@ -146,7 +100,7 @@ export default function CTA() {
             top: 255,
             width: 1516,
             height: 594,
-            background: 'linear-gradient(180deg, rgba(143,202,240,0) 0%, rgba(143,202,240,0.2) 100%)',
+            background: 'linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--eko-glow) 14%, transparent) 100%)',
           }}
         />
 
@@ -210,6 +164,7 @@ export default function CTA() {
           width={1526}
           height={929}
           crop={WAVE_CROP}
+          cropBasis={WAVE_BASIS}
           flipX
           pitch={12}
           gain={1.7}
@@ -281,7 +236,7 @@ export default function CTA() {
             style={{
               width: MOBILE_DESIGN_WIDTH,
               height: 320,
-              background: 'linear-gradient(180deg, rgba(143,202,240,0) 0%, rgba(143,202,240,0.2) 100%)',
+              background: 'linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--eko-glow) 14%, transparent) 100%)',
             }}
           />
 
@@ -342,6 +297,7 @@ export default function CTA() {
             width={MOBILE_DESIGN_WIDTH}
             height={MOBILE_WAVE_HEIGHT}
             crop={MOBILE_WAVE_CROP}
+            cropBasis={WAVE_BASIS}
             flipX
             pitch={8}
             gain={1.7}

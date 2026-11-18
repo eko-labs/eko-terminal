@@ -1,15 +1,7 @@
 @import './fonts-hosted.css';
+@import './header-brand.css';
 @import "tailwindcss";
 
-/* Ague Thin is licensed for the hosted site only and is not in the public repository; builds without it fall
-   back to Outfit (SIL OFL, public/fonts/OFL-Outfit.txt) through the src list. */
-@font-face {
-  font-family: 'Ague Thin';
-  src: url('/site/fonts/AgueThin-Thin.woff2') format('woff2'), url('/site/fonts/outfit-latin.woff2') format('woff2');
-  font-weight: 100;
-  font-style: normal;
-  font-display: swap;
-}
 @font-face {
   font-family: 'Ague Thin';
   src: url('/site/fonts/AgueThin-ThinItalic.woff2') format('woff2'), url('/site/fonts/outfit-latin.woff2') format('woff2');
@@ -42,7 +34,6 @@ p {
   margin: 0;
 }
 
-/* Centre the Ague capitals with the emblem, rather than its tall font line box. */
 .eko-brand {
   display: inline-flex;
   align-items: center;
@@ -51,18 +42,4 @@ p {
   display: block;
   flex-shrink: 0;
   object-fit: contain;
-}
-.eko-brand-text {
-  display: block;
-  flex-shrink: 0;
-  line-height: 1;
-  white-space: nowrap;
-  translate: 0 0.09em;
-}
-@supports (text-box-trim: trim-both) {
-  .eko-brand-text {
-    text-box-trim: trim-both;
-    text-box-edge: cap alphabetic;
-    translate: none;
-  }
 }

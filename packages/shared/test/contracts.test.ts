@@ -45,6 +45,15 @@ describe('frozen contract samples (FACTS §7, BACKEND §23)', () => {
     });
   }
 
+  it('carries measured flow activity additively on the flow response, the coin card and the radar row',()=>{
+    const activity=samples.FlowActivity;
+    expect(contracts.FlowSchema.parse({...samples.Flow,activity}).activity).toEqual(activity);
+    expect(contracts.CoinCardSchema.shape.flow.parse({...samples.Flow,activity}).activity).toEqual(activity);
+    expect(contracts.RadarRowSchema.shape.flow.parse({...samples.Flow,activity}).activity).toEqual(activity);
+    // Older payloads without it still parse.
+    expect(contracts.FlowSchema.parse(samples.Flow).activity).toBeUndefined();
+  });
+
   it('preserves named actor coverage on both coin sections and wallet-flow responses',()=>{
     const meta={confidence:0,asOfBlock:1,missing:['wallet_flow:unattributed'],coverageGaps:{wallet_flow:attributionGap}};
     expect(contracts.CoinCardMetaSchema.parse({flow:meta})).toEqual({flow:meta});

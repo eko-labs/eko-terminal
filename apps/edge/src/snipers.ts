@@ -12,12 +12,12 @@ export const SNIPER_BLOCKS = 10; // ~1 s at Elysium's ~98 ms blocks (measured 20
 /** One launch sniper, in the shape the launch_snipers rule reads (thresholds live in the playbooks config). */
 export type Sniper = NonNullable<CardSources['snipers']>[number] & { txs: Hex[] };
 
-/** The coin's launch snipers: net buyers in swap transactions in the first SNIPER_BLOCKS blocks, deployer excluded. */
-export function findSnipers(coin: CoinState, excluded: Address[], tips: Record<string, number> = {}): Sniper[] {
+/** The coin's launch snipers: net buyers in swap transactions in the first `blocks` blocks (the chain's window), deployer excluded. */
+export function findSnipers(coin: CoinState, excluded: Address[], tips: Record<string, number> = {}, blocks = SNIPER_BLOCKS): Sniper[] {
   const supply = coin.supply > 0n ? coin.supply : 1n;
   const share = (v: bigint) => Number((v * 1_000_000n) / supply) / 1_000_000;
   const skip = new Set([...excluded.map(a => a.toLowerCase()), coin.creator.toLowerCase(), '0x0000000000000000000000000000000000000000']);
-  const early = new Set(coin.trades.filter(t => t.side === 'buy' && t.block - coin.block <= SNIPER_BLOCKS).map(t => t.tx.toLowerCase()));
+  const early = new Set(coin.trades.filter(t => t.side === 'buy' && t.block - coin.block <= blocks).map(t => t.tx.toLowerCase()));
   const balance = new Map<string, bigint>();
   for (const f of coin.flows) { balance.set(f.from, (balance.get(f.from) ?? 0n) - f.value); balance.set(f.to, (balance.get(f.to) ?? 0n) + f.value); }
   const byWallet = new Map<string, { block: number; txs: Set<string>; bought: bigint }>();

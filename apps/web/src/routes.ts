@@ -2,6 +2,7 @@ import { createElement, type ComponentType } from 'react';
 import type { FlagName, Flags } from '@eko/shared';
 import { match } from './lib/router';
 import { PAGE_TITLES } from './copy/shell';
+import { ORDERS_COPY } from './copy/orders';
 import { FEATURES } from './features';
 export type Stage = 'T' | 'D0' | 'D0+1' | `Drop ${1|2|3|4|5|6|7|8|9}`;
 export interface RouteDef {
@@ -44,6 +45,8 @@ const BASE_ROUTES: readonly RouteDef[] = [
   route('/radar', 'T', 'terminal'), route('/feed', 'T', 'terminal'), route('/pairs', 'T', 'terminal'),
   route('/coin/:address', 'T', 'terminal'), route('/deployer/:address', 'T', 'terminal'), route('/scan', 'T', 'static'), route('/scan/:id', 'T', 'terminal'),
   route('/bags', 'T', 'terminal', 'siwe'), route('/bags/r/:id', 'T', 'terminal'), route('/watch', 'T', 'terminal', 'siwe'),
+  // Orders shows its own signed-out state (with the shell's sign-in prompt), so the route is not marked siwe: App would add a second prompt.
+  { path: '/orders', stage: 'T', workspace: 'terminal', auth: 'public', title: ORDERS_COPY.title, load: () => import('./pages/orders/Orders') },
   route('/official', 'T', 'trust'), route('/transparency', 'T', 'trust'), route('/security', 'T', 'trust'),
   route('/scoreboard', 'T', 'trust'), route('/receipt/:id', 'T', 'trust'), route('/census', 'T', 'trust'), route('/drops', 'T', 'trust'),
   route('/mission', 'T', 'mission', 'siwe'), route('/mission/agents/:id', 'T', 'mission', 'siwe'), route('/mission/connect', 'T', 'mission', 'siwe'),

@@ -2171,6 +2171,50 @@
     "beta": true,
     "confidence": 0.9
   },
+  "FlowWallet": {
+    "wallet": "0xabababababababababababababababababababab",
+    "side": "buy",
+    "usd": 420.5,
+    "trades": 3,
+    "lastTs": 1794330600
+  },
+  "FlowTrade": {
+    "ts": 1794330600,
+    "side": "sell",
+    "usd": 120.25,
+    "tokens": 1500000,
+    "tx": "0x1111111111111111111111111111111111111111111111111111111111111111",
+    "wallet": "0xabababababababababababababababababababab"
+  },
+  "FlowActivity": {
+    "buyUsd": 1200.5,
+    "sellUsd": 800.25,
+    "netUsd": 400.25,
+    "buys": 12,
+    "sells": 7,
+    "buyers": 9,
+    "sellers": 5,
+    "unattributed": 1,
+    "largest": [
+      {
+        "wallet": "0xabababababababababababababababababababab",
+        "side": "buy",
+        "usd": 420.5,
+        "trades": 3,
+        "lastTs": 1794330600
+      }
+    ],
+    "recent": [
+      {
+        "ts": 1794330600,
+        "side": "sell",
+        "usd": 120.25,
+        "tokens": 1500000,
+        "tx": "0x1111111111111111111111111111111111111111111111111111111111111111",
+        "wallet": "0xabababababababababababababababababababab"
+      }
+    ]
+  },
   "ReceiptKind": "verdict",
   "Bytes32": "0x1111111111111111111111111111111111111111111111111111111111111111",
   "ReceiptItem": {

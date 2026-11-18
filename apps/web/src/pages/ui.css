@@ -2,7 +2,7 @@ html:has(.ui-review),body:has(.ui-review),#root:has(.ui-review){height:auto;over
 .ui-review{max-width:1480px;margin:auto;padding:44px 32px 64px;counter-reset:sec;color:var(--ink);font:14px/1.45 var(--sans)}
 .ui-page-head{margin-bottom:36px}
 .ui-label{font:12px/1.4 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
-.ui-page-head h1{margin:20px 0;font:400 var(--t-page)/.98 var(--display);letter-spacing:-.055em}
+.ui-page-head h1{margin:20px 0;font:400 var(--t-page)/.98 var(--type-page-family);letter-spacing:-.055em}
 .ui-page-head p{color:var(--ink2);font-size:16px}
 .ui-review .fold{margin-top:24px}
 .ui-row{display:flex;flex-wrap:wrap;align-items:center;gap:16px;margin:16px 0}

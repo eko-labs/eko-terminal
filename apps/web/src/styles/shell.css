@@ -4,17 +4,26 @@ html,body,#root{height:auto;min-height:100%;overflow:visible}body{overflow:auto;
 .eko-shell{min-height:100vh;background:var(--bg)}
 .eko-shell a{text-decoration:none}
 .apphdr{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:22px;height:var(--header);padding:0 max(22px,calc((100vw - var(--frame))/2 + 22px));background:var(--bg-glass);backdrop-filter:blur(10px);border-bottom:1px solid var(--rule)}
-.apphdr-brand{display:flex;align-items:center;gap:10px;flex:none;width:calc(var(--sidebar) - 22px);font:600 23px/1 var(--sans);color:var(--ink)}
+.apphdr-brand{flex:none;width:calc(var(--sidebar) - 22px)}
 .apphdr-crumb{display:flex;align-items:center;font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
 .apphdr-crumb span+span:before{content:'/';margin:0 12px;color:var(--faint)}.apphdr-crumb [aria-current=page]{color:var(--ink)}
-.apphdr-live{margin-left:auto;display:flex;align-items:center;gap:8px;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
-.apphdr-sep{width:1px;height:12px;margin:0 6px;background:var(--rule2)}
-.live-dot{width:7px;height:7px;border-radius:50%;background:var(--monitor)}.live-dot.open{background:var(--accent);animation:shell-live 2.4s ease-in-out infinite}@keyframes shell-live{50%{opacity:.4}}
+/* Top right: the UTC clock alone. A quiet badge joins it only while data is delayed or the stream is down. */
+.apphdr-end{margin-left:auto;display:flex;align-items:center;gap:14px;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.apphdr-clock{min-width:12ch;text-align:right}
+.apphdr-badge{display:inline-flex;align-items:center;gap:7px;height:22px;padding:0 8px;border:1px dashed var(--btn-edge);border-radius:var(--r1);color:var(--ink2)}
+.apphdr-badge i{width:6px;height:6px;border-radius:50%;background:var(--muted)}
+.apphdr-badge.delayed{border-style:solid;background:var(--dither-dots) 0 0/var(--dither-size),var(--raise)}.apphdr-badge.delayed i{background:var(--monitor)}
 .shell-frame{display:grid;grid-template-columns:var(--sidebar) minmax(0,1fr);max-width:var(--frame);margin:0 auto;min-height:calc(100vh - var(--header))}
 .side{position:sticky;top:var(--header);align-self:start;height:calc(100dvh - var(--header));z-index:40;display:flex;flex-direction:column;gap:18px;padding:18px 12px 14px;background:var(--side);border-right:1px solid var(--rule);overflow-y:auto;scrollbar-width:thin}
 .scanbox{display:flex;align-items:center;gap:6px;border:1px solid var(--rule2);padding:9px 8px;border-radius:var(--r2)}
-.scanbox input{width:100%;min-width:0;background:none;border:0;color:var(--ink);font-size:13px}.scanbox input::placeholder{color:var(--faint)}.scanbox kbd{font:11px var(--mono);color:var(--faint)}
-.side-nav{position:relative;display:flex;flex-direction:column;gap:18px}.side-ind{position:absolute;left:0;right:0;top:0;background:var(--raise);transition:transform .42s var(--e-out),height .42s var(--e-out);pointer-events:none;border-radius:var(--r2)}
+.scanbox input{width:100%;min-width:0;background:none;border:0;color:var(--ink);font-size:13px}.scanbox input::placeholder{color:var(--faint)}
+/* The "/" shortcut shows while the box is idle; once there is a query, the scan key takes its place (never both). */
+.scanbox kbd{display:inline-grid;place-items:center;flex:none;min-width:20px;height:20px;padding:0 5px;border:1px solid var(--rule2);border-radius:var(--r1);font:11px var(--mono);color:var(--faint)}
+.scanbox button{display:inline-grid;place-items:center;flex:none;width:26px;height:26px;border:1px solid var(--btn-edge);border-radius:var(--r1);background:var(--raise);color:var(--ink)}
+.scanbox button:hover{border-color:var(--btn-edge-hi);background:var(--btn-hover)}.scanbox button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.scanbox input:placeholder-shown~button,.scanbox:focus-within kbd,.scanbox input:not(:placeholder-shown)~kbd{display:none}
+.scanbox:focus-within{border-color:var(--btn-edge)}
+.side-nav{position:relative;display:flex;flex-direction:column;gap:18px}.side-ind{position:absolute;left:0;right:0;top:0;background:var(--dither-dots) 0 0/var(--dither-size),var(--raise);box-shadow:inset 2px 0 0 var(--accent);transition:transform .42s var(--e-out),height .42s var(--e-out);pointer-events:none;border-radius:var(--r2)}
 .side-group{position:relative;display:flex;flex-direction:column;gap:1px}.side-gt{padding:0 10px 6px 14px;font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
 .side-item{position:relative;display:flex;align-items:center;gap:10px;min-height:34px;padding:0 10px;font-size:14px;color:var(--muted);font-weight:400}.side-item:hover{color:var(--ink);background:var(--hover)}.side-item[aria-current=page]{color:var(--ink)}
 .side-badge{margin-left:auto;min-width:20px;padding:1px 6px;background:var(--lit);color:#04111a;font-size:11px;text-align:center;border-radius:9px}
@@ -22,25 +31,30 @@ html,body,#root{height:auto;min-height:100%;overflow:visible}body{overflow:auto;
 .side-foot .wallet{width:100%}.side-foot .wallet-btn{width:100%;justify-content:center}.side-foot .wallet-menu{position:fixed;left:max(14px,calc((100vw - var(--frame))/2 + 14px));bottom:24px;top:auto;right:auto;max-height:80dvh;overflow:auto;z-index:80}
 .side-legal{font-size:11px;line-height:1.5;color:var(--faint);padding:0 4px}.side-legal p{margin:4px 0}.side-legal a:hover{color:var(--ink)}
 .trial{display:flex;flex-direction:column;gap:8px;width:100%;padding:12px;background:var(--panel);border:1px solid var(--rule);border-radius:var(--r3);font-size:13px}.trial-top{display:flex;justify-content:space-between;gap:10px}.trial-bar{height:3px;background:var(--off)}.trial-bar i{display:block;height:100%;background:var(--accent);transition:width 1s linear}
-.shell-main{min-width:0;outline:none}.shell-page{padding:34px 32px 20px}.shell-page .page-head{display:block;margin-bottom:28px}.shell-page .page-head h1{font:400 var(--t-page)/1 var(--display);letter-spacing:-.05em;margin:12px 0 16px}.shell-page .page-head p{font-size:16px;color:var(--muted)}.shell-page .eyebrow{font:11px var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--faint)}
+.shell-main{min-width:0;outline:none}.shell-page{padding:34px 32px 20px}.shell-page .page-head{display:block;margin-bottom:28px}.shell-page .page-head h1{margin:12px 0 calc(16px - var(--type-page-descent))}
 .shell-note{margin:0;padding:18px 24px;color:var(--muted)}.route-param{overflow-wrap:anywhere;color:var(--muted)}.connect-card,.shell-error{margin:0 32px 24px;padding:18px 24px;background:var(--panel);border:1px solid var(--rule)}.shell-error{margin-top:20px;font-size:13px;display:flex;align-items:center;gap:20px}
 /* Contain the inspector entry transform inside its page, including its first animation frame. */
-.with-insp{overflow-x:clip;display:grid;grid-template-columns:minmax(0,1fr);min-height:240px}.with-insp.open{grid-template-columns:minmax(0,1fr) var(--insp)}.inspector-list{padding:16px 32px}.inspector-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid var(--rule)}.insp-link{font-size:13px;color:var(--ink2)}
+/* --insp is the chosen pane width (components/shell/PaneResizer sets it on the layout); --insp-w is what the pane gets:
+   at least --insp-min, at most --insp-max, and never so wide that the page column drops under --main-min. The percentage
+   resolves where --insp-w is used: the layout's width for the docked column, the viewport's for the fixed overlay. */
+.with-insp{--insp-min:320px;--insp-max:760px;--main-min:560px;--insp-w:clamp(var(--insp-min),var(--insp),max(var(--insp-min),min(var(--insp-max),100% - var(--main-min))));position:relative;overflow-x:clip;display:grid;grid-template-columns:minmax(0,1fr);min-height:240px}.with-insp.open{grid-template-columns:minmax(0,1fr) var(--insp-w)}
+/* The page column fills whatever the pane leaves, so a narrow pane never strands a gap on the right. */
+.with-insp>.page{max-width:none}.inspector-list{padding:16px 32px}.inspector-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid var(--rule)}.insp-link{font-size:13px;color:var(--ink2)}
 .insp{position:sticky;top:var(--header);max-height:calc(100dvh - var(--header));overflow:auto;display:flex;flex-direction:column;gap:20px;padding:18px 20px 40px;background:var(--side);border-left:1px solid var(--rule);animation:insp-in .32s var(--e-out)}.insp-bar{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--muted)}.insp h2{font:400 30px/1 var(--display);margin:0}.insp-scrim{display:none}@keyframes insp-in{from{opacity:0;transform:translateX(16px)}}
 .mbar,.mtab{display:none}.skip{position:fixed;top:8px;left:8px;z-index:200;padding:10px;background:var(--lit);color:var(--bg);transform:translateY(-180%)}.skip:focus{transform:none}.eko-veil{position:fixed;z-index:180;pointer-events:none;background:var(--raise)}
 .shell-sheet{background:var(--bg);color:var(--ink);border:1px solid var(--rule);width:min(460px,100vw);max-height:85dvh;padding:24px}.shell-sheet::backdrop{background:#000a}.sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}.shell-sheet .side-nav{margin-bottom:24px}
 .eko-shell .toasts{right:max(20px,calc((100vw - var(--frame))/2 + 20px))}
 /* The toast stack never takes taps itself; only the toasts in it do. */
 .eko-shell .toasts{pointer-events:none}.eko-shell .toasts>*{pointer-events:auto}
-@media(max-width:1479px){.with-insp.open{grid-template-columns:minmax(0,1fr)}.insp{position:fixed;right:0;top:var(--header);bottom:0;z-index:65;width:min(var(--insp),100vw);max-height:none;box-shadow:-30px 0 60px -20px #000}.insp-scrim{display:block;position:fixed;inset:var(--header) 0 0;z-index:64;background:#000a}}
-@media(max-width:899px){:root{--header:60px}.apphdr,.side{display:none}.shell-frame{display:block}.mbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:8px;height:var(--header);padding:0 14px;background:var(--bg);border-bottom:1px solid var(--rule)}.mbar .apphdr-brand{width:auto;font-size:18px}.mbar .apphdr-brand svg{width:22px;height:22px}.mbar-r{margin-left:auto;display:flex;align-items:center;gap:8px}.mbar .trial{width:auto;font-size:11px;padding:7px;max-width:130px}.mbar .wallet-btn{padding:8px;min-width:34px}.mtab{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;bottom:0;left:0;right:0;z-index:70;min-height:58px;padding-bottom:env(safe-area-inset-bottom);background:var(--bg);border-top:1px solid var(--rule)}.mtab>a,.mtab>button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 0;font-size:12px;color:var(--muted)}.mtab svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.5}.mtab-icon{position:relative;display:flex}.mtab-icon .side-badge{position:absolute;left:12px;top:-5px;margin:0}.mtab [aria-current=page],.mtab [aria-expanded=true]{color:var(--ink)}.shell-main{padding-bottom:80px}.shell-page{padding:26px 18px 18px}.shell-page .page-head h1{font-size:48px}.connect-card,.shell-error{margin-left:18px;margin-right:18px}.inspector-list{padding:12px 18px}.insp{bottom:58px;width:100vw}.eko-shell .toasts{top:auto;bottom:76px}}
+@media(max-width:1479px){.with-insp{--main-min:120px}.with-insp.open{grid-template-columns:minmax(0,1fr)}.insp{position:fixed;right:0;top:var(--header);bottom:0;z-index:65;width:var(--insp-w);max-height:none;box-shadow:-30px 0 60px -20px #000}.insp-scrim{display:block;position:fixed;inset:var(--header) 0 0;z-index:64;background:#000a}}
+@media(max-width:899px){:root{--header:60px}.apphdr,.side{display:none}.shell-frame{display:block}.mbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:8px;height:var(--header);padding:0 14px;background:var(--bg);border-bottom:1px solid var(--rule)}.mbar .apphdr-brand{width:auto}.mbar-r{margin-left:auto;display:flex;align-items:center;gap:8px}.mbar .trial{width:auto;font-size:11px;padding:7px;max-width:130px}.mbar .wallet-btn{padding:8px;min-width:34px}.mtab{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;bottom:0;left:0;right:0;z-index:70;min-height:58px;padding-bottom:env(safe-area-inset-bottom);background:var(--bg);border-top:1px solid var(--rule)}.mtab>a,.mtab>button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 0;font-size:12px;color:var(--muted)}.mtab svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.5}.mtab-icon{position:relative;display:flex}.mtab-icon .side-badge{position:absolute;left:12px;top:-5px;margin:0}.mtab [aria-current=page],.mtab [aria-expanded=true]{color:var(--ink)}.shell-main{padding-bottom:80px}.shell-page{padding:26px 18px 18px}.connect-card,.shell-error{margin-left:18px;margin-right:18px}.inspector-list{padding:12px 18px}.insp{bottom:58px;width:100vw}.eko-shell .toasts{top:auto;bottom:76px}}
 @media(prefers-reduced-motion:reduce){.eko-shell *{animation:none!important;transition:none!important}}
 [data-motion=off] .eko-shell *{animation:none!important;transition:none!important}
 /* Reviewed Desk navigation and wallet controls. */
 .side-item>svg{flex:none;width:16px;height:16px}
 .eko-shell .wallet-btn{color:var(--ink);border-color:var(--rule2)}
-.eko-shell .wallet-btn.btn-primary{background:var(--lit);border-color:var(--lit);color:var(--brand-ink)}
-.eko-shell .wallet-btn.btn-primary:hover,.eko-shell .wallet-btn.btn-primary[aria-expanded=true]{background:#fff;border-color:#fff}
+.eko-shell .wallet-btn.btn-primary{background:var(--dither-ink) 0 0/var(--dither-size),var(--lit);border-color:var(--lit);color:var(--brand-ink)}
+.eko-shell .wallet-btn.btn-primary:hover,.eko-shell .wallet-btn.btn-primary[aria-expanded=true]{background:var(--dither-ink) 0 0/var(--dither-size),#fff;border-color:#fff}
 .eko-shell .wallet-btn:focus-visible{outline-color:var(--accent)}
 .eko-shell .iconbtn,.eko-shell .scanbox button,.eko-shell .rt-pick{min-width:24px;min-height:24px}
 @media(pointer:coarse){.eko-shell .iconbtn,.eko-shell .scanbox button,.eko-shell .rt-pick{min-width:44px;min-height:44px}.eko-shell .side-item{min-height:44px}}
@@ -63,14 +77,6 @@ html,body,#root{height:auto;min-height:100%;overflow:visible}body{overflow:auto;
 /* Research notes list (/research): rows on rules, no bullets. */
 .research-notes{list-style:none;margin:0 0 24px;padding:0;border-top:1px solid var(--rule)}.research-notes>li{border-bottom:1px solid var(--rule)}
 
-/* Fixed slots: the header's status ("Connecting" → "Live") and block number ("—" → "4,663,000") change after load,
-   and the group is right-aligned, so without these the whole group shifts (FRONTEND §3.3, no layout shift). */
-.apphdr-status{display:inline-flex;align-items:center;justify-content:flex-end;gap:8px;min-width:calc(14ch + 15px)}
-.apphdr-block{display:inline-block;min-width:10ch}
-/* The chain name leads the status group so every terminal page says where it reads; narrow headers keep the
-   sidebar's "Built on Robinhood Chain" instead. */
-.apphdr-chain{color:var(--ink)}
-@media(max-width:1119px){.apphdr-chain,.apphdr-chain+.apphdr-sep{display:none}}
 
 .policy-links{display:flex;flex-wrap:wrap;gap:6px 16px;margin:12px 0}
 .policy-links a{text-decoration:underline;text-underline-offset:3px}
@@ -104,7 +110,7 @@ html,body,#root{height:auto;min-height:100%;overflow:visible}body{overflow:auto;
 .side-risk .seg button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:9px 0 8px;font-size:12.5px;color:var(--muted);letter-spacing:.01em}
 .side-risk .seg button:hover{color:var(--ink)}
 .side-risk .seg button[aria-pressed=true]{color:var(--ink);background:none}
-.side-risk .seg-ind{background:linear-gradient(180deg,#0f1d27,#0a141b);
+.side-risk .seg-ind{background:var(--dither-dots) 0 0/var(--dither-size),var(--btn-sel);
  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 55%,transparent),0 0 14px -4px color-mix(in srgb,var(--accent) 60%,transparent)}
 .risk-level{display:inline-flex;align-items:flex-end;gap:2px;height:10px}
 .risk-level i{width:3px;border-radius:1px;background:var(--rule2);transition:background .2s,box-shadow .2s}
@@ -113,3 +119,28 @@ html,body,#root{height:auto;min-height:100%;overflow:visible}body{overflow:auto;
 .side-risk .seg button:hover .risk-level i.on{background:var(--muted)}
 .side-risk .seg button[aria-pressed=true] .risk-level i.on{background:var(--accent);box-shadow:0 0 5px color-mix(in srgb,var(--accent) 70%,transparent)}
 @media (prefers-reduced-motion:reduce){.plan-dot{animation:none}.plan-go,.risk-level i{transition:none}}
+
+/* Side pane drag edge (components/shell/PaneResizer): a 12 px strip centred on the pane's left rule. At rest only a
+   small dithered grip shows; on hover, focus or drag the rule lights. The grip is sticky, so it stays in view while the
+   page scrolls. Docked panes run the full height of the layout; overlay panes (under 1480 px) are fixed, so the edge is
+   too. Phones keep the full-width sheet and get no edge. */
+.pane-resize{position:absolute;top:0;bottom:0;right:var(--insp-w);z-index:66;width:12px;margin-right:-6px;cursor:col-resize;touch-action:none;outline:none}
+.pane-resize::before{content:'';position:absolute;top:0;bottom:0;left:5px;width:2px;background:transparent;transition:background var(--dur-1)}
+.pane-resize:hover::before,.pane-resize:focus-visible::before,.pane-resizing .pane-resize::before{background:var(--accent)}
+.pane-grip{position:sticky;top:calc(var(--header) + 40vh);display:block;width:8px;height:44px;margin-left:2px;border:1px solid var(--btn-edge);border-radius:var(--r1);background:var(--dither-dots) 0 0/var(--dither-size),var(--raise);transition:border-color var(--dur-1)}
+.pane-resize:hover .pane-grip,.pane-resize:focus-visible .pane-grip,.pane-resizing .pane-grip{border-color:var(--accent)}
+.pane-resize:focus-visible .pane-grip{outline:2px solid var(--accent);outline-offset:2px}
+.pane-resizing,.pane-resizing *{cursor:col-resize!important;user-select:none!important}
+.pane-resizing .insp{animation:none}
+@media(max-width:1479px){.pane-resize{position:fixed;top:var(--header)}.pane-grip{top:40vh}}
+@media(max-width:899px){.pane-resize{display:none}}
+
+/* Pane bars: the close and copy keys are squares with their own box, spaced from the words beside them. */
+.insp-bar .iconbtn{width:30px;height:30px;font-size:18px}
+.insp-sub .addr{gap:6px}.insp-sub .addr .iconbtn{width:24px;height:24px;font-size:13px}
+@media(pointer:coarse){.insp-bar .iconbtn,.insp-sub .addr .iconbtn{width:44px;height:44px}}
+
+/* Tap targets (Lighthouse): the sidebar and footer policy links are at least 24px tall. */
+.side-legal a,.policy-links a{display:inline-flex;align-items:center;min-height:24px}
+/* Layout shift: the phone bar's plan chip and wallet button stay on one line (they wrapped until the session loaded). */
+@media(max-width:899px){.mbar-r{flex-wrap:nowrap;white-space:nowrap}.mbar .trial{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}

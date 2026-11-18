@@ -679,6 +679,7 @@ export function Footer() {
         <div>
           <h2>Explore</h2>
           <a href="/site/docs.html">Documentation</a>
+          <a href="/site/whitepaper.html">Whitepaper</a>
           <a href="#faq">FAQ</a>
           <a href="/feed">Signal feed ↗</a>
           <a href="/legal/terms">Terms</a>

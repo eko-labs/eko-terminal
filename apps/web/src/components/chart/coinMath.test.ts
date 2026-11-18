@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aggregateTick, reconcileCandleTicks, barsForTimeframe, anchorTime, bucketStart, candleWidth, COIN_TIMEFRAMES, panView, seconds, slotWidth, stretchScale, zoomView } from './coinMath';
+import { aggregateTick, reconcileCandleTicks, barsForTimeframe, anchorTime, bucketStart, candleWidth, clampView, COIN_TIMEFRAMES, emaOf, panView, seconds, slotWidth, stretchScale, timeLabel, zoomView } from './coinMath';
 import { burnLabel, clusterMarkers, markerName, markerSize } from './markerMath';
 import type { Address, ChartMarker } from '@eko/shared';
 const marker=(over:Partial<ChartMarker>={}):ChartMarker=>({ts:Date.parse('2026-10-01T12:03:41Z')/1000,side:'buy',sizeUsd:1240,label:'declared_agent',confidence:.91,wallet:'0xabcdef1234567890abcdef1234567890abcdefcd',...over});
@@ -20,6 +20,9 @@ describe('coin chart math',()=>{
    expect(bars[0].c).toBe(4);expect(barsForTimeframe(bars,'15m')).toBe(bars);
  });
  it('keeps the point under the pointer fixed at three zooms',()=>{const v={s:0,e:72};for(const factor of [.5,.8,1.25])for(const f of [.1,.5,.9]){const at=v.s+f*(v.e-v.s),next=zoomView(v,factor,f);expect((at-next.s)/(next.e-next.s)).toBeCloseTo(f,12);expect(candleWidth(slotWidth(960,next))/slotWidth(960,next)).toBeCloseTo(.72);}});
+ it('zooms from 5 bars out to every loaded bar, keeping a wide view against the right edge',()=>{expect(clampView({s:0,e:1},3000).e-clampView({s:0,e:1},3000).s).toBe(5);const all=clampView({s:-9000,e:9000},3000);expect(all.e-all.s).toBeCloseTo(3450);expect(all.s).toBeGreaterThanOrEqual(-3450*.05-1e-9);expect(all.e).toBeLessThanOrEqual(3000+3450*.15+1e-9);const short=clampView({s:-500,e:500},10);expect(short.e-short.s).toBe(40);expect(short.e).toBeCloseTo(10+40*.15);});
+ it('offers 1s, 15s and 30s intervals and labels their axis to the second',()=>{expect(COIN_TIMEFRAMES.slice(0,3)).toEqual(['1s','15s','30s']);expect(seconds('30s')).toBe(30);expect(bucketStart(95,'30s')).toBe(90);expect(timeLabel(1_800_000_007,'1s')).toMatch(/^\d\d:\d\d:07$/);expect(timeLabel(1_800_000_007,'5m')).toMatch(/^\d\d:\d\d$/);});
+ it('computes an EMA seeded with the first close',()=>{expect(emaOf([10,10,10],9)).toEqual([10,10,10]);const e=emaOf([10,20],3);expect(e[1]).toBeCloseTo(15);});
  it('pans by slot units at every zoom',()=>{for(const span of [12,36,72]){const v={s:10,e:10+span},next=panView(v,80,800);expect(next.e-next.s).toBeCloseTo(span);expect(next.s).toBeCloseTo(10-span*.1);}});
  it('stretches the price range exponentially with bounded wheel/drag scale',()=>{expect(stretchScale(1,100)).toBeCloseTo(Math.exp(.2));expect(stretchScale(stretchScale(1,100),-100)).toBeCloseTo(1);expect(stretchScale(1,-100000)).toBe(.25);expect(stretchScale(1,100000)).toBe(6);});
  it('aggregates live OHLC/volume and ignores ticks older than the last bucket',()=>{let bars=aggregateTick([],{ts:120,price:10,volumeUsd:20,block:1},'1m');bars=aggregateTick(bars,{ts:130,price:12,volumeUsd:30,block:2},'1m');bars=aggregateTick(bars,{ts:140,price:9,volumeUsd:10,block:3},'1m');expect(bars).toEqual([{ts:120,o:10,h:12,l:9,c:9,vUsd:60}]);expect(aggregateTick(bars,{ts:110,price:1,volumeUsd:10,block:1},'1m')).toEqual(bars);expect(aggregateTick(bars,{ts:180,price:11,volumeUsd:5,block:4},'1m').at(-1)).toEqual({ts:180,o:11,h:11,l:11,c:11,vUsd:5});});

@@ -9,11 +9,10 @@ import { useShell } from '../store/shell';
 import { capturedReferral, clearReferral } from './referral';
 import { rememberPending, forgetPending } from './pendingReports';
 import { BUILD_CHAIN_ID } from './chain';
+import { isUserRejection, newIdempotencyKey } from './tradeKeys';
+export { isUserRejection, newIdempotencyKey };
 export { flushPendingReports } from './pendingReports';
 
-export function newIdempotencyKey() {
-  return `ik_${crypto.randomUUID()}`;
-}
 
 /**
  * Sign-In With Ethereum: binds the wallet to this account so on-chain orders are attributable. Always signs for this
@@ -89,12 +88,6 @@ export async function approveExactPermit2(step: { token: string; spender: string
   return hash;
 }
 
-export function isUserRejection(err: unknown): boolean {
-  const e = err as { name?: string; code?: number; shortMessage?: string; message?: string; cause?: unknown };
-  if (e?.name === 'UserRejectedRequestError' || e?.code === 4001) return true;
-  if (/user (rejected|denied)|rejected the request/i.test(e?.shortMessage ?? e?.message ?? '')) return true;
-  return e?.cause ? isUserRejection(e.cause) : false;
-}
 
 /**
  * Wallet signs and broadcasts the server-built swap. The order is marked SUBMITTED on hash —

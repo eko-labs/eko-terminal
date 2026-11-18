@@ -304,7 +304,7 @@
     aspect-ratio: auto;
     min-height: 680px;
     margin-top: 32px;
-    background: #000 url("/media/eko-signal-field.webp") center/cover;
+    background: #000 url("/site/media/eko-signal-field.webp") center/cover;
   }
   .sg-scene {
     min-width: 1545px;

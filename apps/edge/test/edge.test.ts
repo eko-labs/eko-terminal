@@ -145,6 +145,7 @@ describe('views match the web app\'s contracts', () => {
       expect(card.tradeability.honeypot).toBe(level === 'danger');
       expect(card.liquidity.lpStatus).toBe('locked');
       expect(card.identity).toMatchObject({ launchpad: 'montra', quoteAsset: 'HYPE' });
+      expect(BigInt(card.supply.circulating)).toBe(coin.supply / 10n ** 18n);
     }
     // Montra coins have no bonding curve, so no curve %; a Pons curve coin carries its way to graduation (coin page Venue row).
     expect(coinCard(coin, undefined, ctx).identity.curvePct).toBeUndefined();
@@ -219,6 +220,11 @@ describe('server', () => {
     expect(VerdictSchema.parse((await get(`/v1/coins/${token}/verdict`)).body).level).toBe('clear');
     expect((await get(`/v2/coins/${token}`)).body).toEqual({ version: 2, card: null });
     expect((await get(`/v1/coins/${token}/candles?tf=1m&from=0`)).body.bars.length).toBeGreaterThan(0);
+    // Share metadata for a coin page; an empty 204 for anything else (no 404 noise in the browser console).
+    const share = await app.inject({ method: 'GET', url: `/v1/share-meta?path=${encodeURIComponent(`/coin/${token}`)}`, headers: { host: 'ekoterminal.test' } });
+    expect(share.statusCode).toBe(200);
+    expect(share.json()).toMatchObject({ title: expect.stringMatching(/^\$.+ · No flags · EKO$/), url: `http://ekoterminal.test/coin/${token}` });
+    expect((await app.inject({ method: 'GET', url: '/v1/share-meta?path=/scan/x' })).statusCode).toBe(204);
     // The RFC 9116 contact file: plain text, pointing at the public repository's private reporting.
     const sec = await app.inject({ method: 'GET', url: '/.well-known/security.txt' });
     expect(sec.statusCode).toBe(200);
@@ -405,6 +411,38 @@ describe('graduation columns across a restart', () => {
     expect(after.restored).toBe(1);
     expect(rebase).toHaveBeenCalledOnce();
     expect(rebase.mock.calls[0]![1]).toBe(after.head - 400n);
+  });
+  it('keeps a coin for a day after it graduates, however long ago it launched', async () => {
+    const t = new Tracker(fakeChain(launchBlock + 500), registry, { backfillBlocks: 600, chunk: 100, now });
+    await t.start();
+    const coin = t.coin(token)!; const old = { ...structuredClone(coin), ts: now() - 5 * 86_400 };
+    expect(t.restore([{ ...old }])).toBe(0);
+    const t2 = new Tracker(fakeChain(launchBlock + 500), registry, { backfillBlocks: 400, chunk: 100, now });
+    t2.seed([{ ...old, token: '0x2222222222222222222222222222222222222222' as never, block: 1, graduated: true, graduatedTs: now() - 3600 }]);
+    await t2.start();
+    expect(t2.restored).toBe(1);
+  });
+  it('keeps a graduate past the window while it still trades (activeQuote24h), and lets a dead one go', async () => {
+    const t = new Tracker(fakeChain(launchBlock + 500), registry, { backfillBlocks: 600, chunk: 100, now });
+    await t.start();
+    const coin = t.coin(token)!, longAgo = now() - 5 * 86_400;
+    const trade = (ts: number, hype: number) => ({ ...coin.trades[0]!, ts, block: 1, hype });
+    const graduate = (address: string, trades: ReturnType<typeof trade>[]) =>
+      ({ ...structuredClone(coin), token: address as never, block: 1, ts: longAgo, graduated: true, graduatedTs: longAgo + 60, trades });
+    const busy = graduate('0x3333333333333333333333333333333333333333', [trade(now() - 7200, 2), trade(now() - 600, 1.5)]);
+    const dead = graduate('0x4444444444444444444444444444444444444444', [trade(now() - 3 * 86_400, 50), trade(now() - 600, 0.2)]);
+    const curve = { ...busy, token: '0x5555555555555555555555555555555555555555' as never, graduated: false, graduatedTs: undefined };
+    const keeper = new Tracker(fakeChain(launchBlock + 500), registry, { backfillBlocks: 400, chunk: 100, now, activeQuote24h: 2.5 });
+    keeper.seed([busy, dead, curve]);
+    await keeper.start();
+    expect(keeper.coin(busy.token)).toBeDefined();
+    expect(keeper.coin(dead.token)).toBeUndefined();
+    expect(keeper.coin(curve.token)).toBeUndefined();
+    // Off (0, Elysium's profile): the memory window alone decides.
+    const off = new Tracker(fakeChain(launchBlock + 500), registry, { backfillBlocks: 400, chunk: 100, now, activeQuote24h: 0 });
+    off.seed([structuredClone(busy)]);
+    await off.start();
+    expect(off.coin(busy.token)).toBeUndefined();
   });
   it('leaves a coin launched inside the replay to the backfill, and skips an unreadable file', async () => {
     const { ColumnSnapshot } = await import('../src/snapshot.js');

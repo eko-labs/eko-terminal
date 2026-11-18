@@ -2,10 +2,11 @@ import { NOT_CHECKED_LABEL, NOT_TRACKED_LABEL } from '../../copy/availability';
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from 'react';
 import type { Level, Untrusted, Verdict, WalletLabel } from '@eko/shared';
-import { SCANNING, SCAN_DELAYED, SCAN_DELAYED_DETAIL, NOT_FULLY_CHECKED, NO_FLAGS, missingChecks } from '../../copy/availability';
+import { SCANNING, SCAN_DELAYED, SCAN_DELAYED_DETAIL, NOT_FULLY_CHECKED, NO_FLAGS, missingChecks, runUpTitle } from '../../copy/availability';
 import { projectGuardLevelToV1, guardInertText, type CoinCardMeta, type PlaybookId, type GuardAssessmentV2 } from '@eko/shared';
 import { GUARD_LABELS, GUARD_SHADOW, GUARD_CANDIDATE, guardGapText } from '../../copy/guard';
 import { IconAlert, IconCheck, IconChevron, IconFlame, IconInfo, IconOct, IconEye } from '../icons';
+import { VerdictExplanation } from './VerdictExplanation';
 
 const VERDICTS = {
   clear: { label: NO_FLAGS, Icon: IconCheck },
@@ -15,7 +16,12 @@ const VERDICTS = {
   pending: { label: NOT_FULLY_CHECKED, Icon: IconEye },
 } as const satisfies Record<Level | 'pending', { label: string; Icon: typeof IconCheck }>;
 export type VerdictLevel = Verdict['level'] | Extract<Level, 'info'> | 'pending';
-export function VerdictChip({ level, size, detail, detailTitle, verdictPending = false, scanDelayed = false, evaluatedPlaybooks, meta, missing, guard, showGaps = true }: { level: VerdictLevel; size?: 'lg'; detail?: string; detailTitle?: string; verdictPending?: boolean; scanDelayed?: boolean; evaluatedPlaybooks?: PlaybookId[]; meta?: CoinCardMeta; missing?: string[]; guard?: GuardAssessmentV2; showGaps?: boolean }) {
+const VERDICT_EXPLANATION = {
+  clear: 'The checks that ran found no flags. Trading activity describes the current snapshot and can change.',
+  monitor: 'Monitor means the guard found warning signs. Review the evidence before trading.',
+  danger: 'Danger means the guard found a high-risk condition. Review the evidence before trading.',
+};
+export function VerdictChip({ level, size, detail, runUp, stateLabel, verdictPending = false, scanDelayed = false, evaluatedPlaybooks, meta, missing, guard, showGaps = true }: { level: VerdictLevel; size?: 'lg'; detail?: string; runUp?: number; stateLabel?: string; verdictPending?: boolean; scanDelayed?: boolean; evaluatedPlaybooks?: PlaybookId[]; meta?: CoinCardMeta; missing?: string[]; guard?: GuardAssessmentV2; showGaps?: boolean }) {
   if (guard) {
     const projected = projectGuardLevelToV1(guard.level), Icon = VERDICTS[projected].Icon;
     const gap = guardGapText(guard), shadow = guard.mode !== 'active';
@@ -27,8 +33,16 @@ export function VerdictChip({ level, size, detail, detailTitle, verdictPending =
   }
   const { label, Icon } = VERDICTS[level];
   const checking = verdictPending, delayed = checking && scanDelayed;
-  return <span className={`verdict ${level}${checking ? ' scanning' : ''}${delayed ? ' delayed' : ''}${size === 'lg' ? ' lg' : ''}`} aria-busy={checking} title={delayed ? SCAN_DELAYED_DETAIL : level === 'pending' && !checking ? missingChecks(evaluatedPlaybooks, meta, missing) : undefined} tabIndex={delayed || (level === 'pending' && !checking) ? 0 : undefined}>
-    <Icon />{delayed ? SCAN_DELAYED : checking ? SCANNING : label}{detail && <span className="verdict-detail" title={detailTitle}>· {detail}</span>}
+  const context = !checking && level === 'clear' ? stateLabel : undefined;
+  const className = `verdict ${context ? 'neutral' : level}${checking ? ' scanning' : ''}${delayed ? ' delayed' : ''}${size === 'lg' ? ' lg' : ''}`;
+  const content = <>{!context && <Icon />}{context ? <span className="verdict-state">{context}</span> : delayed ? SCAN_DELAYED : checking ? SCANNING : label}{detail && <span className="verdict-detail">· {detail}</span>}</>;
+  if (runUp !== undefined && !checking && level !== 'pending' && level !== 'info') {
+    return <VerdictExplanation className={className} description={`${runUpTitle(runUp)} ${context ? `${context}. ` : ''}${VERDICT_EXPLANATION[level]}`}>
+      {content}<span className="verdict-detail verdict-run-up"><span aria-hidden="true">· </span>Run-up {runUp}</span>
+    </VerdictExplanation>;
+  }
+  return <span className={className} aria-busy={checking} title={delayed ? SCAN_DELAYED_DETAIL : level === 'pending' && !checking ? missingChecks(evaluatedPlaybooks, meta, missing) : context} tabIndex={delayed || (level === 'pending' && !checking) ? 0 : undefined}>
+    {content}
   </span>;
 }
 

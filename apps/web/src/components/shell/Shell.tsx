@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { ScanResultSchema } from '@eko/shared';
+import ekoMark from '../../../../landing/src/assets/eko-mark.svg';
+import '../../../../landing/src/header-brand.css';
 import { BUILT_ON, DYOR, NON_AFFILIATION } from '../../copy';
 import { APP_NAME, SHELL_COPY as C, RISK_OPTIONS } from '../../copy/shell';
-import { CHAIN_NAME, CHAIN_TITLE } from '../../copy/chain';
+import type { WsState } from '../../lib/ws';
 import { fetchParsed, MOCKS } from '../../lib/api';
 import { Link } from '../../lib/Link';
 import { navigate, usePath } from '../../lib/router';
@@ -12,7 +14,6 @@ import { useApp } from '../../store/app';
 import { useShell } from '../../store/shell';
 import { useUi } from '../../store/ui';
 import { WalletButton } from '../Header';
-import { LogoMark } from '../brand';
 import { useNow } from '../hooks';
 import { Seg } from '../ui';
 import { PolicyLinks } from '../PolicyLinks';
@@ -20,7 +21,9 @@ import { IconRadar, IconPairs, IconSearch, IconAgent, IconMenu } from '../icons'
 import { navGroups, breadcrumbTrail } from './navigation';
 
 // A real link, not a router Link: "/" is the landing, served by the host (and by vite.config.ts in dev), not the SPA.
-export function BrandLink() { return <a href="/" className="apphdr-brand" aria-label={`${APP_NAME}: back to the site`}><LogoMark />{APP_NAME}</a>; }
+export function BrandLink({ compact = false }: { compact?: boolean }) {
+  return <a href="/" className={`apphdr-brand eko-header-brand${compact ? ' eko-header-brand--compact' : ''}`} aria-label={`${APP_NAME}: back to the site`}><img src={ekoMark} alt="" /><span className="eko-brand-text">{APP_NAME}</span></a>;
+}
 export function ScanBox({ focus = false, onDone }: { focus?: boolean; onDone?: () => void }) {
   const [query, setQuery] = useState(''); const [busy, setBusy] = useState(false);
   const input = useRef<HTMLInputElement>(null);
@@ -80,13 +83,27 @@ export function Sidebar() {
   const risk = useUi((s) => s.riskMode), setUi = useUi((s) => s.set), path = usePath();
   return <aside className="side"><ScanBox /><Navigation /><div className="side-foot"><PlanChip /><div data-tour="mode" className="side-risk"><span className="side-label">{C.risk}</span><Seg options={RISK_OPTIONS.map((o, i) => ({ value: o.value, label: <><RiskLevel level={i + 1} />{o.label}</> }))} value={risk} onChange={(value) => setUi({ riskMode: value as typeof risk })} label={C.risk} /></div><button className="btn" onClick={() => window.dispatchEvent(new Event('eko:open-alerts'))}>Alerts</button><WalletButton /><LegalLine pageHasAnalysis={path.startsWith('/coin/')} /></div></aside>;
 }
-export function Header() {
-  const path = usePath(), config = useShell((s) => s.config), state = useShell((s) => s.wsState), block = useShell((s) => s.headBlock), delay = useShell((s) => s.delayedSec), now = useNow();
-  const trail = breadcrumbTrail(path, config?.flags);
-  const status = state === 'open' ? delay ? `Delayed ~${delay} s` : C.live : state === 'closed' ? C.offline : state === 'connecting' ? C.connecting : C.reconnecting;
-  return <header className="apphdr" onClick={onHeaderBackgroundClick}><BrandLink /><nav className="apphdr-crumb" aria-label="Breadcrumb">{trail.map((label, i) => <span key={`${i}-${label}`} aria-current={i === trail.length - 1 ? 'page' : undefined}>{label}</span>)}</nav><span className="apphdr-live" data-testid="stream-status"><span className="apphdr-chain" title={CHAIN_TITLE}>{CHAIN_NAME}</span><span className="apphdr-sep" /><span className="apphdr-status"><i className={`live-dot ${state}`} />{status}</span><span className="apphdr-sep" />{C.block} <span className="num apphdr-block">{block?.toLocaleString() ?? '—'}</span><span className="apphdr-sep" /><span className="num" aria-hidden="true">{new Date(now).toISOString().slice(11, 19)} UTC</span></span></header>;
+/** A first connection gets this long before the header admits it is still connecting, so a normal load shows nothing. */
+export const CONNECT_GRACE_MS = 5000;
+/**
+ * What the header's badge says, or null when the stream is healthy and the header shows only the clock. Delayed data,
+ * a dropped or closed stream, and a first connection that outlasts the grace period each earn a visible badge.
+ */
+export function streamNotice(state: WsState, delayedSec: number, waitedMs: number): string | null {
+  if (state === 'open') return delayedSec ? `Delayed ~${delayedSec} s` : null;
+  if (state === 'connecting') return waitedMs < CONNECT_GRACE_MS ? null : C.connecting;
+  return state === 'closed' ? C.offline : C.reconnecting;
 }
-export function MobileBar() { return <header className="mbar" onClick={onHeaderBackgroundClick}><BrandLink /><div className="mbar-r"><PlanChip compact /><WalletButton /></div></header>; }
+export function Header() {
+  const path = usePath(), config = useShell((s) => s.config), state = useShell((s) => s.wsState), delay = useShell((s) => s.delayedSec), now = useNow();
+  const [mounted] = useState(() => Date.now());
+  const trail = breadcrumbTrail(path, config?.flags);
+  const notice = streamNotice(state, delay, Date.now() - mounted);
+  // Healthy: the status stays readable to assistive tech (and to the e2e checks) but is not drawn; the clock stands alone.
+  const status = notice ?? (state === 'open' ? C.live : C.connecting);
+  return <header className="apphdr" onClick={onHeaderBackgroundClick}><BrandLink /><nav className="apphdr-crumb" aria-label="Breadcrumb">{trail.map((label, i) => <span key={`${i}-${label}`} aria-current={i === trail.length - 1 ? 'page' : undefined}>{label}</span>)}</nav><span className="apphdr-end"><span role="status" data-testid="stream-status" data-state={state} className={notice ? `apphdr-badge${state === 'open' ? ' delayed' : ''}` : 'sr'}>{notice && <i aria-hidden="true" />}{status}</span><span className="num apphdr-clock" aria-hidden="true">{new Date(now).toISOString().slice(11, 19)} UTC</span></span></header>;
+}
+export function MobileBar() { return <header className="mbar" onClick={onHeaderBackgroundClick}><BrandLink compact /><div className="mbar-r"><PlanChip compact /><WalletButton /></div></header>; }
 function Sheet({ title, children, close }: { title: string; children: ReactNode; close: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => { const dialog = ref.current!; dialog.showModal(); return () => dialog.close(); }, []);

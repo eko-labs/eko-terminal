@@ -1,8 +1,15 @@
 .eko-marketing {
+  /* The terminal's palette (apps/web/src/styles/tokens.css): the light accent is for marks and controls; large
+     surfaces (dither fields, glows) use its deep blues, as the terminal's dot fields and page glows do. */
   --eko-ink: #e8f2f8;
   --eko-muted: #94a9b8;
   --eko-accent: #8fcaf0;
+  --eko-lit: #d6ecfa;
   --eko-rule: #223341;
+  --eko-dot-lo: #0c2233;
+  --eko-dot-mid: #2c5673;
+  --eko-dot-hi: #5d9fd3;
+  --eko-glow: #2f95ff;
   color: var(--eko-ink);
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   background: #000;
@@ -26,7 +33,7 @@
 .hero-radar .eko-dashboard,.hero-radar .ed-side { background: #061017; }
 .hero-radar .ed-top { background: #07131c; }
 .hero-window-dots > span { opacity: .48; }
-.eko-wordmark,.eko-lockup { font-family:var(--font-heading)!important; font-weight:100!important; }
+.eko-lockup { font-family:var(--font-heading)!important; font-weight:100!important; }
 .eko-hero-mobile::after { height: 12%; }
 .eko-hero-mobile .hero-radar { mask-image: linear-gradient(#000 0%,#000 83%,transparent 100%); }
 html {
