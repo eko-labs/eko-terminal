@@ -1,6 +1,7 @@
 import { getAddress } from 'viem';
 import type { CoinCard, FlowActivity, FlowTrade, FlowWallet } from '@eko/shared';
 import type { CoinState } from './tracker.js';
+import { BURN_SINKS } from './burn.js';
 
 /**
  * Buy and sell flow per window, measured from what the edge keeps for every coin: its trades (side, native amount,
@@ -17,7 +18,7 @@ export type FlowWindow = CoinCard['flow']['window'];
 export const FLOW_WINDOWS: readonly FlowWindow[] = ['5m', '1h', '24h'];
 export const WINDOW_SEC: Record<FlowWindow, number> = { '5m': 300, '1h': 3600, '24h': 86_400 };
 
-const NOT_TRADERS = ['0x0000000000000000000000000000000000000000', '0x000000000000000000000000000000000000dead', '0x0000000000000000000000000000000000000001'];
+const NOT_TRADERS = BURN_SINKS;
 /** How many of the largest buyers and of the largest sellers, and how many recent trades, the flow endpoint lists. */
 export const LARGEST_PER_SIDE = 5, RECENT_TRADES = 50;
 

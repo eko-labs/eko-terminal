@@ -185,12 +185,14 @@ describe('shared guarded panel contract states', () => {
 });
 
 describe('visible quote lifecycle with fixture backend', () => {
-  it('renders request-scoped offline API fixtures while keeping execution and checks unavailable', async () => {
+  it('renders request-scoped offline quotes that read like real ones but can never execute', async () => {
     const api = createApi('/v1', createMockTransport()), g = gate();
     for (const side of ['buy', 'sell'] as const) {
       const input = { ...g.input, side, amountUsd: 25 };
       const q = await api.parse('/trade/quote', TradeQuoteSchema, { body: input });
-      expect(q).toMatchObject({ coin: input.coin, side, amountUsd: 25, account, binding: false, fee: { bps: 0, destination: null }, route: { executable: false }, approvals: [], guard: { decision: 'refuse' } });
+      expect(q).toMatchObject({ coin: input.coin, side, amountUsd: 25, account, binding: false, fee: { bps: 0, destination: null }, route: { executable: false }, approvals: [] });
+      // Never executable and never binding; and no placeholder text on screen (the update films show this panel).
+      expect(JSON.stringify(q)).not.toMatch(/fixture/i); expect(BigInt(q.expectedOut)).toBeGreaterThan(0n);
       expect(Date.parse(q.expiresAt)).toBeGreaterThan(Date.now());
     }
     await expect(api.parse('/trade/quote', TradeQuoteSchema, { body: { ...g.input, amountUsd: 0 } })).rejects.toMatchObject({ status: 400 });

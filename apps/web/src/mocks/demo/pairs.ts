@@ -3,12 +3,13 @@ import profiles from './pairs-profiles.json';
 import { createRadarRows, createRadarCard } from './radar';
 import { createCoinCard } from '../fixtures';
 import { MOCK_HEAD_BLOCK } from '../head';
+import { quotedPairFields } from './launchpads';
 
 /** Frozen seedPairs(8804) plus the approved prototype's COINS, without UI-only fields. */
 export function createPairRows(): PairRow[] {
   return [...profiles.map((r) => PairRowSchema.parse(r)), ...createRadarRows().sort((a, b) => a.ageSec - b.ageSec).map((row) => PairRowSchema.parse({ ...row,
     column: row.stage === 'graduated' ? 'migrated' : (row.curvePct ?? 0) >= 80 ? 'near_grad' : 'new',
-    buyers: 0, exitCost100Pct: createRadarCard(row.address)!.tradeability.exitCostPct.usd100, verdictPending: false,
+    buyers: 0, exitCost100Pct: createRadarCard(row.address)!.tradeability.exitCostPct.usd100, verdictPending: false, ...quotedPairFields(row.address),
   }))];
 }
 export function createPairCard(row: PairRow) {

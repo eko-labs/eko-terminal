@@ -138,8 +138,11 @@ export async function probeRobinhoodCoin(coin: RobinhoodCoinState, block: bigint
   const taxPct = pons ? { buy: pons.feePct + pons.creatorTaxPct, sell: pons.feePct + pons.creatorTaxPct } : undefined;
   // readTips reads only the coin's launch, trades and transaction fields, which a Robinhood coin has as on Elysium.
   const tips = await readTips(rpc, coin as unknown as CoinState, priorTips);
+  // A pool quoted in a token the chain converts (more_launchpads only) can never take the probe: named, not waited for.
+  // Pons and Pangea coins, quoted in native ETH, never carry quoteConverted.
+  const unavailable = !route && coin.quoteConverted && key && key.currency0 !== zeroAddress ? { sellCheckUnavailable: 'token_quoted_pool' as const } : {};
   return { block: Number(block), at: new Date(nowSec * 1000).toISOString(), name, symbol, key, config: null, currentBuyFeePips: null, probe,
-    probeUsd: ethUsd ? 1000 : 0, tips, ...(taxPct ? { taxPct } : {}), pons, lock };
+    probeUsd: ethUsd ? 1000 : 0, tips, ...(taxPct ? { taxPct } : {}), pons, lock, ...unavailable };
 }
 
 /**

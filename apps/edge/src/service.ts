@@ -1,5 +1,5 @@
 import type { ElysiumRegistry } from '@eko/chain';
-import { judge, readNames, type Assessment, type Probed } from './assess.js';
+import { judge, readNames, sellCheckOutstanding, type Assessment, type Probed } from './assess.js';
 import { chainOf } from './chains/elysium/index.js';
 import type { ChainAdapter } from './chains/types.js';
 import type { NativeUsd } from './hype.js';
@@ -83,7 +83,7 @@ export class Edge {
     if (!p) return true;
     if (this.opts.now() / 1000 - Date.parse(p.at) / 1000 > this.opts.recheckSec) return true;
     // A probe that could not run, or one taken inside Montra's early-buy window, is retried once it can say more.
-    return !p.probe || p.probe.status === 'unavailable' || earlyEnded(p, this.opts.now());
+    return sellCheckOutstanding(p) || earlyEnded(p, this.opts.now());
   }
 
   /**
@@ -96,7 +96,7 @@ export class Edge {
     if (f && f.until > nowMs) return false;
     if (!this.stale(k)) return false;
     const p = this.probes.get(k), coin = this.tracker.coins.get(k);
-    if (!p || !p.probe || p.probe.status === 'unavailable') return true;
+    if (!p || sellCheckOutstanding(p)) return true;
     if (earlyEnded(p, nowMs)) return true;
     return !!coin && coin.trades.length !== (this.probedTrades.get(k) ?? 0);
   }
@@ -148,8 +148,9 @@ export class Edge {
         if (coin.firstScanSec === undefined) { const at = Date.parse(probed.at) / 1000; coin.firstScanSec = at - coin.ts <= 3600 ? at : -1; }
         this.probedTrades.set(key, coin.trades.length);
         // A check whose sell test could not run is due again at once (stale), so it waits out the failure backoff
-        // instead: retrying it every tick spent the paid RPC budget on the same unanswerable coins.
-        if (!probed.probe || probed.probe.status === 'unavailable') this.backOff(key, this.opts.now());
+        // instead: retrying it every tick spent the paid RPC budget on the same unanswerable coins. A pool the test can
+        // never run on is not a failure: it is rechecked on the usual schedule.
+        if (sellCheckOutstanding(probed)) this.backOff(key, this.opts.now());
         else this.failed.delete(key);
         const a = this.assessment(key)!;
         this.remember(coin, a);

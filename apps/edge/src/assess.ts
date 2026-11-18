@@ -23,6 +23,8 @@ export interface Assessment {
   /** Tax launchpad coins: the hook's current buy and sell tax (%). */
   taxPct?: { buy: number; sell: number } | null;
   probe: SellProbe | null; probeUsd: number;
+  /** The sell check can never run on this pool (Probed.sellCheckUnavailable): named on the card, not waited for. */
+  sellCheckUnavailable?: 'token_quoted_pool';
   /** Holders, early buyers and the deployer's trading, from the coin's transfers. */
   stats: FlowStats;
   matches: PlaybookMatch[]; verdict: Verdict;
@@ -62,7 +64,15 @@ export interface Probed {
   taxPct?: { buy: number; sell: number } | null;
   /** When the launch's early-buy window ends (unix s), where it is not in `config`: a probe taken before then is redone. */
   earlyUntil?: number;
+  /**
+   * The sell check can never run on this coin's pool, so it is not waited for: a pool quoted in a token (the probe pays
+   * in native currency), which EKO checks but does not trade. Set only by a chain that knows it (Robinhood's
+   * more_launchpads pools); a coin whose probe merely failed or has not run leaves it unset and stays Pending.
+   */
+  sellCheckUnavailable?: 'token_quoted_pool';
 }
+/** Whether a check still owes its sell test: none ran, or it could not answer, and the pool is not one it can never run on. */
+export const sellCheckOutstanding = (p: Pick<Probed, 'probe' | 'sellCheckUnavailable'>) => p.probe ? p.probe.status === 'unavailable' : !p.sellCheckUnavailable;
 
 /**
  * Priority fees of the coin's early buys (first SNIPER_BLOCKS blocks, launch transaction excluded): one receipt per
@@ -136,17 +146,21 @@ export function judge(coin: CoinState, p: Probed, ctx: JudgeContext): Assessment
   const receiptId = `pending:${coin.token.toLowerCase()}:${asOfBlock}`;
   const assembled = assembleVerdict(matches, { coin: coin.token, asOfBlock, receipt: { id: receiptId, hash: keccak256(stringToHex(receiptId)), status: 'pending' } });
   const probeRan = simulations.length > 0;
+  // A pool the sell check can never run on is graded by the checks that do run (an unreviewed hook already makes such a
+  // coin Monitor); with no finding at all it stays Pending, since Clear needs the honeypot check.
+  const graded = probeRan || (!!p.sellCheckUnavailable && assembled.level !== 'clear');
   const at = new Date(nowSec * 1000).toISOString();
   const verdict: Verdict = {
     ...assembled,
     // Without a probe the required honeypot check has not run: pending, never Clear (antiSnipe is its own reason).
     // Inside an early-buy window the honeypot rule is skipped (the fee is not a trap), so Clear would be unearned.
-    level: (!probeRan || antiSnipeActive) && assembled.level !== 'danger' ? 'pending' : assembled.level,
+    level: (!graded || antiSnipeActive) && assembled.level !== 'danger' ? 'pending' : assembled.level,
     evaluatedPlaybooks: probeRan ? undefined : ['agent_bait', 'malicious_hook', 'fee_trap_pool', 'removable_liquidity'],
     lastChecked: { block: asOfBlock, at },
   };
   if (!verdict.evaluatedPlaybooks) delete verdict.evaluatedPlaybooks;
-  return { coin: coin.token, block: asOfBlock, at, name, symbol, key, config, currentBuyFeePips, antiSnipe, ...(p.taxPct !== undefined ? { taxPct: p.taxPct } : {}), probe, probeUsd: p.probeUsd, stats, matches, verdict, ...(locked ? { lp: locked.status } : {}) };
+  return { coin: coin.token, block: asOfBlock, at, name, symbol, key, config, currentBuyFeePips, antiSnipe, ...(p.taxPct !== undefined ? { taxPct: p.taxPct } : {}), probe, probeUsd: p.probeUsd, stats, matches, verdict, ...(locked ? { lp: locked.status } : {}),
+    ...(p.sellCheckUnavailable ? { sellCheckUnavailable: p.sellCheckUnavailable } : {}) };
 }
 
 /** A full check now: probe, then judge. */

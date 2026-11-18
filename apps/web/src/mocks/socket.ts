@@ -64,6 +64,14 @@ export class MockChannelSocket implements ChannelTransport {
     if (m.op === 'unsub') { m.ch.forEach((ch) => { this.channels.delete(ch); this.stopFeatures(ch); const timer = this.marketTimers.get(ch); if (timer) clearInterval(timer); this.marketTimers.delete(ch); }); if (m.ch.includes('radar')) this.stopRadar(); return; }
     const map = createWsEventMap();
     map.feed.item.block = MOCK_HEAD_BLOCK;
+    // The shared sample alert is a shape placeholder ('fixture' text, no time): in the drawer it read as one. Give it a
+    // real demo coin and wording, as the edge sends a verdict change (the update films show this drawer).
+    {
+      const coin = createRadarRows()[0]!;
+      map.alerts.alert = { ...map.alerts.alert, id: 'al_3f81c09d', ts: new Date(Date.now() - 4 * 60_000).toISOString(), kind: 'verdict_change', level: 'monitor',
+        coin: coin.address, symbol: coin.symbol, agentId: undefined, wallet: undefined, crewId: undefined, sizeUsd: undefined,
+        title: `$${coin.symbol.text} moved to Monitor`, body: 'Holder concentration: the top 10 wallets now hold 34% of supply.', url: `/coin/${coin.address}`, read: false } as typeof map.alerts.alert;
+    }
     for (const ch of m.ch) {
       this.channels.add(ch);
       const seq = this.seq.get(ch) ?? 0;

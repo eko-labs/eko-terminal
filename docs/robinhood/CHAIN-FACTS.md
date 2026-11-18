@@ -240,7 +240,12 @@ read. A stock with no factory pool holding $10,000 (FIG, UBER and SLV at the tim
   the pool's quote address; the web reads "Stock token · TTWO", "WETH" or "USDG", and "long.xyz in TTWO" beside the
   launchpad on Radar, New pairs and the coin header.
 - Holders, snipers, dev dump and `fake_mcap` (backing in ETH-equivalent) run as for native long.xyz coins. The sell check
-  is not run (it spends ETH) and is named missing. Trading stays refused: the long.xyz hook is not reviewed (the quote
+  cannot run on such a pool (it spends ETH), so it is named not available (`Probed.sellCheckUnavailable`, tradeability
+  flag `sell_check_not_available`) rather than waited for: the verdict comes from the checks that do run (the unreviewed
+  hook makes it at least Monitor; Danger findings win; with no finding it would stay Pending, as Clear needs the honeypot
+  check), and the coin is rechecked on the usual schedule instead of retried as a failure. Without that mark (Pons,
+  Pangea, or any coin whose probe has merely not run yet) a coin with no sell check still waits as Pending. Agent
+  preflight refuses buys of such a coin. Trading stays refused: the long.xyz hook is not reviewed (the quote
   answers 409 `not_traded`, and the trade panel says the coin is checked but not traded here).
 - Coin amounts stay in 18-decimal units and `CoinState.decimals` scales displays only, as for Pangea's 9-decimal coins.
 

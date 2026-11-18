@@ -7,7 +7,7 @@ import { missionDemo } from './demo/mission';
 
 export const createConfig = (preset = import.meta.env.VITE_FLAGS): s.PublicConfig => {
   const config = f.createPublicConfig();
-  config.trading = { liveEnabled: false, maxTradeUsd: 25, routers: [], spenders: [] };
+  config.trading = { liveEnabled: false, maxTradeUsd: 250, routers: [], spenders: [] };
   config.contracts = { receiptsRegistry: f.createAddress() };
   config.wallets.dev = '0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd';
   config.tiers = ['listener', 'reader', 'oracle', 'source'].map((tier) => ({

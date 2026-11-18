@@ -4,7 +4,7 @@ import profiles from './coin-profiles.json';
 import { createRadarCard, createRadarRows } from './radar';
 import { MOCK_HEAD_BLOCK } from '../head';
 import { hashedAddress } from './addresses';
-import { quotedCandles } from './launchpads';
+import { quotedCandles, quotedFlow } from './launchpads';
 export const UNKNOWN_COIN='0x1111111111111111111111111111111111111111';
 export const COIN_EPOCH=Math.floor(Date.now()/1000);
 const liveTicks=new Map<string,Tick[]>();
@@ -36,6 +36,6 @@ export function coinResponse(address:string,child:string|undefined,query:URLSear
  if(child==='verdict')return card.verdict;
  if(child==='candles'){const tf=(query.get('tf')??'5m') as CoinTimeframe;let bars=coinCandles(address,tf);for(const tick of liveTicks.get(address.toLowerCase())??[])if(tick.ts<=Number(query.get('to')??Infinity))bars=aggregateTick(bars,tick,tf);return {tf,bars:bars.filter(b=>b.ts>=Number(query.get('from')??0)&&b.ts<=Number(query.get('to')??Infinity)),asOfBlock:MOCK_HEAD_BLOCK};}
  if(child==='markers')return {markers:coinMarkers(address,Number(query.get('from')??COIN_EPOCH-72*300),Number(query.get('to')??COIN_EPOCH))};
- if(child==='flow'){const window=(query.get('window')??'1h') as '5m'|'1h'|'24h';return {...card.flow,window};}
+ if(child==='flow'){const window=(query.get('window')??'1h') as '5m'|'1h'|'24h';return quotedFlow(address,window)??{...card.flow,window};}
 }
 export const coinAddresses=()=>createRadarRows().map(c=>c.address);

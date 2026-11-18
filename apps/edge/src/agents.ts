@@ -259,6 +259,8 @@ export async function preflight(d: PreflightDeps, agent: AgentRow, clientOrderRe
     const rank = { clear: 0, info: 1, pending: 1, monitor: 2, danger: 3 } as const;
     if (buy && p.blockPlaybookLevel && rank[a.verdict.level] >= rank[p.blockPlaybookLevel]) deny(`EKO rates this coin ${a.verdict.level}; the policy blocks ${p.blockPlaybookLevel} and above.`);
     if (buy && a.verdict.level === 'pending' && p.mode === 'safe') deny('EKO has not finished checking this coin; the Safe policy waits.');
+    // Graded without a sell check (it cannot run on this pool): EKO checks the coin but does not trade it.
+    if (buy && a.sellCheckUnavailable) deny('EKO checks this coin but does not trade it: its sell check cannot run on this pool.');
     const exit = a.probe?.exitCostPct;
     if (buy && p.maxRoundTripCostPct !== undefined && typeof exit === 'number' && exit > p.maxRoundTripCostPct) deny(`A round trip costs ${exit.toFixed(1)}%; the policy allows ${p.maxRoundTripCostPct}%.`);
     for (const r of a.verdict.reasons.slice(0, 3)) reasons.push(r);

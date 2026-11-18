@@ -20,20 +20,23 @@ needs a change to shared code, make that change generic (nothing that names the 
 ## Shipping an update
 
 1. Branch from `main`: `git switch -c update/<flag>`.
-2. Build it in its folders. To try it locally, set `EKO_FLAGS=<flag>` when starting the edge.
+2. Build it in its folders. To try it locally, set `EKO_FLAGS=<flag>` when starting the edge. Write its release notes
+   in `docs/features/<flag>/UPDATE.md`: `# Title` on the first line, then a plain description of what users get. They
+   sit in the flag's features folder, so they stay out of the mirror with the code until the flag is on.
 3. Open a pull request into `main` for review. After approval, prepare the reviewed commit locally.
 4. Run `npx pnpm@11.5.1 ship` from a clean private checkout. It runs local CI before pushing to private `main`,
    then publishes the mirror, where GitHub runs CI. Railway deploys from private `main`. Use
    `node scripts/verify-edge.mjs --commit <sha>` to check the live commit and trading config. The feature's code stays
    out of the mirror while its flag is off.
-5. Double-click **`Turn EKO features on or off.command`**, tick the feature and press Save. The site restarts with it on
-   in about a minute. When asked, press **Publish**: the public repo gets one commit, "Update: <feature>", whose diff is
-   that feature's code.
+5. Double-click **`Turn EKO features on or off.command`**, tick the feature and press Save. The live site
+   (`eko-edge-robinhood`) restarts with it on in about a minute, and the feature is published by itself: the public repo
+   gets one commit, "Update: <title>" with the release notes as its message, whose diff is that feature's code and notes
+   (`scripts/public/release-notes.mjs` writes the message).
 
 To roll back, untick it: no deploy needed. Code that is already public stays public.
 
-Without the pop-up: `railway variables --service eko-edge --set "EKO_FLAGS=leaderboards,referrals"` (`none` for none),
-then `node scripts/public/publish.mjs --push --message "Update: Leaderboards"`.
+Without the pop-up: `railway variables --service eko-edge-robinhood --set "EKO_FLAGS=leaderboards,referrals"` (`none` for
+none), then `node scripts/public/publish.mjs --push --flags leaderboards,referrals --message "$(node scripts/public/release-notes.mjs leaderboards)"`.
 
 ## The post-launch updates
 

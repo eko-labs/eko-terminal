@@ -7,7 +7,10 @@ import {
   robinhoodChain, robinhoodLogQueries, ROBINHOOD_STOCK_TOKEN, v3TokenPrice, type RawRobinhoodLog, type RobinhoodCoinState, type RobinhoodProbed,
 } from '../src/chains/robinhood/index.js';
 import { loadChain } from '../src/chains/index.js';
-import { judge } from '../src/assess.js';
+import { judge, sellCheckOutstanding } from '../src/assess.js';
+import { BURN_SINKS } from '../src/burn.js';
+import { findSnipers } from '../src/snipers.js';
+import { flowStats } from '../src/holders.js';
 import { swapAbi } from '../src/chains/logs.js';
 import { coinCard, coinSummary } from '../src/views.js';
 import { Tracker, type CoinState, type RawLog, type Rpc } from '../src/tracker.js';
@@ -309,6 +312,49 @@ describe('long.xyz launches quoted in a token (more_launchpads)', () => {
     expect(p.key).toEqual(coin!.key);
     expect(p.probe).toBeNull();
     expect(overrides).toHaveLength(0);
+    // Named as a pool the check can never run on, so it is not waited for or retried as a failure.
+    expect(p.sellCheckUnavailable).toBe('token_quoted_pool');
+    expect(sellCheckOutstanding(p)).toBe(false);
+    // Gated: a coin without a converted quote (Pons, Pangea: native ETH) is never marked, so a missing probe still waits.
+    const native = await probeRobinhoodCoin({ ...coin!, quoteConverted: undefined } as unknown as RobinhoodCoinState, BigInt(ttwo.launchBlock + 10), { rpc, addrs, ethUsd: () => ETH_USD });
+    expect(native.sellCheckUnavailable).toBeUndefined();
+    expect(sellCheckOutstanding(native)).toBe(true);
+  });
+
+  it('grades a pool the sell check can never run on from the checks that do run: Monitor, not an endless Pending', () => {
+    const { coin, chain } = track(usdg);
+    const last = coin!.trades.at(-1)!, now = last.ts + 5, head = last.block;
+    const ctx = { nowSec: now, head, hypeUsd: ETH_USD, native: 'ETH' as const };
+    const probed: RobinhoodProbed = { block: head, at: new Date(now * 1000).toISOString(), name: 'Sample', symbol: 'SMPL', key: coin!.key, config: null, currentBuyFeePips: null,
+      probeUsd: 1000, tips: {}, pons: null, lock: null, probe: null };
+    // Without the mark (a probe that has not run yet) the verdict waits, as before.
+    expect(judge(coin!, probed, { chain, hypeUsd: ETH_USD, nowSec: now, head }).verdict.level).toBe('pending');
+    const a = judge(coin!, { ...probed, sellCheckUnavailable: 'token_quoted_pool' }, { chain, hypeUsd: ETH_USD, nowSec: now, head });
+    expect(a.verdict.level).toBe('monitor');
+    expect(a.verdict.playbooks.map(m => m.id)).toContain('malicious_hook');
+    // The honeypot check still did not run, and the card says why rather than waiting.
+    expect(a.verdict.evaluatedPlaybooks).not.toContain('honeypot');
+    const summary = coinSummary(coin!, a, ctx), card = coinCard(coin!, a, ctx);
+    expect(summary).toMatchObject({ verdict: 'monitor', verdictPending: false });
+    expect(summary.sellCheck).toBeUndefined();
+    expect(card.meta?.tradeability).toMatchObject({ unavailable: true, missing: ['exitCostPct'] });
+    expect(card.meta?.tradeability?.flags).toContain('sell_check_not_available');
+    // Danger findings still win (the TTWO coin's unbacked market cap).
+    const t = track(ttwo), tl = t.coin!.trades.at(-1)!;
+    expect(judge(t.coin!, { ...probed, key: t.coin!.key, block: tl.block, sellCheckUnavailable: 'token_quoted_pool' }, { chain: t.chain, hypeUsd: ETH_USD, nowSec: tl.ts + 5, head: tl.block }).verdict.level).toBe('danger');
+  });
+
+  it('never counts a burn address as a sniper, holder or trader (real USDG launch: a buy that also sent coins to 0x…dEaD)', () => {
+    const { coin, chain } = track(usdg);
+    const dead = '0x000000000000000000000000000000000000dead';
+    // The launch transaction moved coins to 0x…dEaD: before the fix it was read as a third launch sniper.
+    expect(coin!.flows.some(f => f.to === dead)).toBe(true);
+    const snipers = findSnipers(coin!, chain.excluded(coin!), {}, chain.profile.sniperBlocks);
+    expect(snipers.length).toBeGreaterThan(0);
+    expect(snipers.map(s => s.wallet.toLowerCase()).filter(w => BURN_SINKS.includes(w))).toEqual([]);
+    const stats = flowStats(coin!, { excluded: chain.excluded(coin!), hypeUsd: ETH_USD });
+    const roles = [...stats.earlyBuyers.map(b => b.wallet), ...(stats.holders.largest ? [stats.holders.largest] : [])].map(w => w.toLowerCase());
+    expect(roles.filter(w => BURN_SINKS.includes(w))).toEqual([]);
   });
 
   it('converts a swap by hand the same way (quotedSwapTrade)', () => {

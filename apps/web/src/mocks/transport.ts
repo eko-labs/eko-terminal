@@ -3,7 +3,7 @@ import { demoWalletTags } from './demo/walletTags';
 import { createAlertSettings, createAddress } from './fixtures';
 import { MOCK_HEAD_BLOCK } from './head';
 import { coinResponse } from './demo/coin';
-import { createRadarCard } from './demo/radar';
+import { createRadarCard, createRadarRows } from './demo/radar';
 import { createPairCard } from './demo/pairs';
 import { isQuotedDemoCoin } from './demo/launchpads';
 import { feedSnapshot, pairSnapshot } from './demo/market';
@@ -114,8 +114,17 @@ export function createMockTransport(opts: { flags?: Partial<Flags> } = {}) {
       // A pool with an unreviewed hook (long.xyz): checked, never traded, as the edge answers (robinhood-venue.ts precheck).
       if (isQuotedDemoCoin(parsed.data.coin)) return json({ error: 'not_traded', message: 'EKO checks this coin but does not trade it: its pool\'s hook has not been reviewed.' }, 409);
       // Synthetic, request-scoped display only. No executable route or accepted checks.
-      return json(TradeQuoteSchema.parse({ ...createQuote(), coin: parsed.data.coin, side: parsed.data.side, amountUsd: parsed.data.amountUsd, account: parsed.data.account,
-        expiresAt: new Date(Date.now() + 15000).toISOString(), guard: { decision: 'refuse', checks: [{ code: 'sim_unavailable', status: 'refuse', label: 'Execution checks unavailable in this fixture.' }] } }));
+      // Amounts that read like a real quote (no placeholder text on screen: the update films show this panel), from an
+      // ETH price near the demo's and a coin price near the demo coins'. Display only: the route is never executable.
+      const q = createQuote(), usd = parsed.data.amountUsd, buy = parsed.data.side === 'buy', ethUsd = 3150;
+      const coinUsd = createRadarRows().find(r => r.address.toLowerCase() === parsed.data.coin.toLowerCase())?.priceUsd || 0.0000462;
+      const units = (amount: number) => BigInt(Math.round(amount * 1e6)) * 10n ** 12n;
+      const amountIn = buy ? units(usd / ethUsd) : units(usd / coinUsd), out = buy ? units(usd / coinUsd) : units(usd / ethUsd);
+      return json(TradeQuoteSchema.parse({ ...q, id: 'q_7c41e09a5d2b', coin: parsed.data.coin, side: parsed.data.side, amountUsd: usd, account: parsed.data.account,
+        amountIn: amountIn.toString(), valueWei: (buy ? amountIn : 0n).toString(), expectedOut: out.toString(), minOut: (out * 995n / 1000n).toString(),
+        route: { ...q.route, venue: 'uniswap_v4', poolId: '0x6f3a91c2d84b07e5a1c9f2e83d4b6a0c7e1f9d2a5b8c3e6f0a4d7b1c9e2f5a83', linkOut: undefined },
+        asOfBlock: MOCK_HEAD_BLOCK,
+        approvals: [], expiresAt: new Date(Date.now() + 15000).toISOString(), guard: { decision: 'allow', checks: [] } }));
     }
     if(route==='/watch'){if(method==='GET')return json({items:[...watches.values()]});const item=body();if(!['coin','wallet','crew'].includes(item.kind)||typeof item.target!=='string')return json({error:'bad_request',message:'Invalid watch target.'},400);const key=`${item.kind}:${item.target}`;if(method==='POST'){watches.set(key,item);return json(item);}if(method==='DELETE'){watches.delete(key);return json({ok:true});}}
     if (route === '/agents' && method === 'GET') return json({ agents: mission.agents });

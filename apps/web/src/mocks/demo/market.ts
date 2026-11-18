@@ -2,6 +2,7 @@ import type { PairRow } from '@eko/shared';
 import { createPairRows, newDemoPair } from './pairs';
 import { createFeedRows, nextDemoFeed } from './feed';
 import { applyPairEvents, feedRing } from '../../pages/terminal/pairsFeedModel';
+import { isQuotedDemoCoin } from './launchpads';
 
 let started = Date.now(), pairs = createPairRows(), feed = createFeedRows(started), step = 0, feedStep = 0;
 const received = new Map(pairs.map((r) => [r.address, started]));
@@ -13,7 +14,8 @@ export function pairSnapshot(now = Date.now()) {
 export const feedSnapshot = () => structuredClone(feed);
 export function advancePairs(now = Date.now()): PairRow[] {
   const rows = pairSnapshot(now), next = newDemoPair(step++);
-  const updates: PairRow[] = rows.filter((r) => r.verdictPending).map((r) => ({ ...r, verdictPending: false, verdict: r.symbol.text === 'MOTE' ? 'monitor' : 'clear' }));
+  // A long.xyz coin quoted in a token gets no sell check, so it stays Pending (launchpads.ts).
+  const updates: PairRow[] = rows.filter((r) => r.verdictPending && !isQuotedDemoCoin(r.address)).map((r) => ({ ...r, verdictPending: false, verdict: r.symbol.text === 'MOTE' ? 'monitor' : 'clear' }));
   const near = rows.find((r) => r.column === 'near_grad');
   if (near) updates.push({ ...near, column: 'migrated', stage: 'graduated', curvePct: 100 });
   const previous = rows.find((r) => r.column === 'new' && BigInt(r.address) >= 8804000n && BigInt(r.address) < BigInt(8804000 + step - 1));

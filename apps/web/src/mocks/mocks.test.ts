@@ -62,7 +62,7 @@ describe('FACTS §7 responses and CA transport', () => {
     const settings = { ...createAlertSettings(), telegram: true, agentTradeAboveUsd: 250 };
     await api.parse('/alerts/settings', shared.AlertSettingsSchema, { method: 'PUT', body: settings });
     const input = { ...createTradeQuoteRequest(), amountUsd: 25 };
-    expect(await api.parse('/trade/quote', shared.TradeQuoteSchema, { body: input })).toMatchObject({ coin: input.coin, side: input.side, amountUsd: 25, guard: { decision: 'refuse' } });
+    expect(await api.parse('/trade/quote', shared.TradeQuoteSchema, { body: input })).toMatchObject({ coin: input.coin, side: input.side, amountUsd: 25, binding: false, route: { executable: false } });
     expect(await api.parse('/alerts/settings', shared.AlertSettingsSchema)).toEqual(settings);
     expect(await api.request('/alerts')).toEqual({ rows: [], cursor: null, seq: 0 });
     expect(await api.request('/telegram/link', { method: 'POST' })).toMatchObject({ url: 'https://t.me/demo_bot?start=demo-link-code', expiresAt: expect.any(String) });

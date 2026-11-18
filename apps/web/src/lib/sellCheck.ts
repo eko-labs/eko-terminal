@@ -12,5 +12,7 @@ export function sellCheckOf(card: CoinCard): 'sellable' | 'refused' | undefined 
   const flags = card.meta?.tradeability?.flags ?? [];
   return flags.includes('sell_check_refused') ? 'refused' : flags.includes('sell_check_sellable') ? 'sellable' : undefined;
 }
+/** The sell check can never run on this coin's pool (a pool quoted in a token): it is not pending, it is not available. */
+export const sellCheckNotAvailable = (card: Pick<CoinCard, 'meta'>) => !!card.meta?.tradeability?.flags?.includes('sell_check_not_available');
 /** True when the card names any of these tradeability fields as not measured. */
 export const tradeabilityGap = (card: CoinCard, ...fields: string[]) => !!card.meta?.tradeability?.missing?.some(m => fields.includes(m));

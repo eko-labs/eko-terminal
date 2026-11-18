@@ -1,6 +1,7 @@
 import { getAddress, type Address } from 'viem';
 import type { CardSources } from '@eko/playbooks';
 import type { CoinState } from './tracker.js';
+import { BURN_SINKS } from './burn.js';
 
 /**
  * Holder, early-buyer and deployer figures for one coin, from its transfers and its pool's swaps. Pure.
@@ -19,7 +20,7 @@ export interface FlowStats {
   holderCount: number;
 }
 
-const DEAD = ['0x0000000000000000000000000000000000000000', '0x000000000000000000000000000000000000dead', '0x0000000000000000000000000000000000000001'];
+const DEAD = BURN_SINKS;
 
 /** A wallet's traced funder (not a hub), when known. */
 export type FunderLookup = (wallet: string) => { funder: Address | null; fundedTs: number | null } | undefined;

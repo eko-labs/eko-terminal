@@ -173,7 +173,7 @@ export function coinCard(c: CoinState, a: Assessment | undefined, ctx: ViewConte
     playbooks: verdict.playbooks, verdict,
     meta: {
       tradeability: { confidence: cost === null ? 0 : 1, asOfBlock: block, ...(cost === null ? { unavailable: true, missing: ['exitCostPct'] } : { missing: ['exitCostPct.usd100', 'exitCostPct.usd10k'] }),
-        flags: [`probe_usd_${Math.round(a?.probeUsd ?? 1000)}`] },
+        flags: [`probe_usd_${Math.round(a?.probeUsd ?? 1000)}`, ...(a?.sellCheckUnavailable ? ['sell_check_not_available'] : [])] },
       liquidity: { confidence: a?.config ? 1 : 0, asOfBlock: block, missing: c.launchpad === 'flaunch' || (robinhoodPoolLaunch(c) && a?.lp !== 'removable') || unprovenPonsLock(c, a) ? ['depthUsd', 'lpStatus'] : ['depthUsd'] },
       // bundlesHeldPct here is what the first minute's buyers still hold (funding is not traced, so no same-funder bundles).
       supply: a ? { confidence: 1, asOfBlock: block, missing: ['freshWalletsPct', 'exemptWalletsHeldPct'], flags: ['early_cohort_not_funder_bundles'] } : meta(['top10Pct', 'devPct', 'bundlesHeldPct', 'freshWalletsPct']),
