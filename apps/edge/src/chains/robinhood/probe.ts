@@ -1,5 +1,5 @@
 import { decodeFunctionResult, encodeFunctionData, getAddress, keccak256, parseAbi, zeroAddress, type Address, type Hex } from 'viem';
-import { ponsCurveAbi, readPonsProfile, runSellProbe, v4PoolId, type PonsProfileClient, type SellProbe, type SellRoute } from '@eko/chain';
+import { ponsCurveAbi, readPonsProfile, runSellProbe, v4PoolId, type PonsProfileClient, type SellPair, type SellProbe, type SellRoute } from '@eko/chain';
 import { readTips, type Probed } from '../../assess.js';
 import type { CoinState, Rpc } from '../../tracker.js';
 import type { RobinhoodAddresses } from './addresses.js';
@@ -59,6 +59,9 @@ export interface RobinhoodProbeDeps {
   now?: () => number;
   /** Reviewed code hashes of the locker and PositionManager (tests pass their own). */
   pins?: { locker: Hex; positionManager: Hex };
+  /** A pool quoted in a token (long.xyz in a stock token, WETH or USDG; more_launchpads): the token, where it keeps
+   *  balances, and the probe's size in its base units (about $1,000), or null while either is unknown. */
+  quoteProbe?: (coin: RobinhoodCoinState) => Promise<{ pair: SellPair; amount: bigint } | null>;
 }
 /** The probe without a price: 0.25 ETH (about $450 in November 2026). */
 export const FALLBACK_PROBE_WEI = 25n * 10n ** 16n;
@@ -128,11 +131,15 @@ export async function probeRobinhoodCoin(coin: RobinhoodCoinState, block: bigint
   // pools tried, 2026-11-18).
   const ethUsd = deps.ethUsd();
   const sizeWei = ethUsd ? BigInt(Math.round(1000 / ethUsd * 1e6)) * 10n ** 12n : FALLBACK_PROBE_WEI;
-  // The probe spends native ETH: a pool quoted in a token (long.xyz's stock-token, WETH and USDG pools) gets none, and its
-  // sell check is named missing rather than read as a failed sell.
+  // A pool quoted in a token (long.xyz's stock-token, WETH and USDG pools) is probed with about $1,000 of that token, held
+  // through a storage override of its balance; while its price or balance slot is unknown its sell check is named
+  // missing rather than read as a failed sell.
+  const tokenQuoted = !!key && key.currency0 !== zeroAddress && !!coin.quoteConverted;
+  const quoted = tokenQuoted && deps.quoteProbe ? await deps.quoteProbe(coin).catch(() => null) : null;
   const route: SellRoute | null = pons && !pons.graduated && !pons.readyToGraduate ? { venue: 'pons_curve', coin: coin.token, curve: pons.curve }
-    : key && key.currency0 === zeroAddress ? { venue: 'uniswap_v4', coin: coin.token, poolId: coin.poolId, manager: coin.manager, quoter: addrs.v4Quoter, key, hookData: '0x' } : null;
-  const probe: SellProbe | null = route ? await runSellProbe(rpc, route, sizeWei, block) : null;
+    : key && key.currency0 === zeroAddress ? { venue: 'uniswap_v4', coin: coin.token, poolId: coin.poolId, manager: coin.manager, quoter: addrs.v4Quoter, key, hookData: '0x' }
+    : key && quoted ? { venue: 'uniswap_v4', coin: coin.token, poolId: coin.poolId, manager: coin.manager, quoter: addrs.v4Quoter, key, hookData: '0x', quote: quoted.pair } : null;
+  const probe: SellProbe | null = route ? await runSellProbe(rpc, route, quoted && route.venue === 'uniswap_v4' && route.quote ? quoted.amount : sizeWei, block) : null;
 
   // Fee and creator tax are charged on both legs of a curve trade; after graduation the pool's terms are the hook's.
   const taxPct = pons ? { buy: pons.feePct + pons.creatorTaxPct, sell: pons.feePct + pons.creatorTaxPct } : undefined;

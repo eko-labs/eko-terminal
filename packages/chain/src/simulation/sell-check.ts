@@ -4,6 +4,7 @@ import { rpcStopReason } from '../rpc/metered.js';
 import { EKO_PAIR_PROBE_RUNTIME } from './pair-probe-runtime.js';
 import { EKO_PROBE_RUNTIME } from './probe-runtime.js';
 import { EKO_V4_PROBE_RUNTIME } from './v4-probe-runtime.js';
+import { EKO_V4_TOKEN_PROBE_RUNTIME } from './v4-token-probe-runtime.js';
 import { percent, probeAbi } from './reference.js';
 import { v3Legs, type ProbeLeg, type ReferenceRoute } from './v3.js';
 import { v4PoolId, v4ProbeAbi, type V4PoolKey } from './v4.js';
@@ -28,7 +29,11 @@ export interface SellPair { token: Address; balance?: BalanceSlot }
 export type SellRoute =
   | { venue: 'uniswap_v3'; coin: Address; pool: Address; router: Address; quoter: Address; weth: Address; fee: 100 | 500 | 3000 | 10000 }
   | { venue: 'pons_curve'; coin: Address; curve: Address; pair?: SellPair }
-  | { venue: 'uniswap_v4'; coin: Address; poolId: Hex; manager: Address; quoter: Address; key: V4PoolKey; hookData: Hex };
+  | { venue: 'uniswap_v4'; coin: Address; poolId: Hex; manager: Address; quoter: Address; key: V4PoolKey; hookData: Hex;
+      /** A pool quoted in an ERC-20 (a long.xyz pool in a stock token, WETH or USDG): the probe holds it through a storage
+       *  override of its balance, and the size and amounts are in its base units. Without a known balance slot the route
+       *  cannot be probed. */
+      quote?: SellPair };
 export type SellProbeStatus = 'sellable' | 'sell_failed' | 'buy_failed' | 'unavailable';
 export interface SellProbe {
   method: typeof SELL_CHECK_METHOD; venue: SellRoute['venue']; routeId: string; block: string; sizeWei: string;
@@ -60,6 +65,10 @@ export function sellRouteId(route: SellRoute) {
 const pairProbeAbi = parseAbi([
   'struct Trip { address pair; address token; address curve; uint256 amountIn; bytes buyData; bytes sellData; }',
   'function roundTrip(Trip trip) returns (uint256 tokensOut, uint256 quotedBack, uint256 pairBack, uint256 spent, bool buyOk, bool sellOk, bytes err)',
+]);
+const v4TokenProbeAbi = parseAbi([
+  'struct Key { address currency0; address currency1; uint24 fee; int24 tickSpacing; address hooks; }',
+  'function roundTrip(address m, address quoter, Key key, bytes hookData, bool coinIs1, uint128 amount) returns (uint256 tokens, uint256 quotedSell, uint256 returned, uint256 spent, bool buyOk, bool sellOk, bytes err)',
 ]);
 const balanceOfAbi = parseAbi(['function balanceOf(address) view returns (uint256)']);
 /** OpenZeppelin ERC20Upgradeable (v5) storage: keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.ERC20")) - 1)) & ~0xff. */
@@ -104,6 +113,14 @@ export async function balanceSlot(rpc: SellRpc, token: Address, block: bigint, o
 }
 /** Probe calldata and runtime for one route. The probe address is both buyer and seller. */
 export function sellProbeCall(route: SellRoute, probe: Address, sizeWei: bigint, deadlineSec: bigint): { code: Hex; data: Hex } {
+  if (route.venue === 'uniswap_v4' && route.quote) {
+    const { key } = route, coin = route.coin.toLowerCase(), quote = route.quote.token.toLowerCase();
+    const coinIs1 = key.currency1.toLowerCase() === coin;
+    if (key.currency0 === zeroAddress || key.currency1 === zeroAddress || (coinIs1 ? key.currency0 : key.currency1).toLowerCase() !== quote
+      || (!coinIs1 && key.currency0.toLowerCase() !== coin) || v4PoolId(key).toLowerCase() !== route.poolId.toLowerCase())
+      throw new Error('Unsupported v4 token sell-check route');
+    return { code: EKO_V4_TOKEN_PROBE_RUNTIME, data: encodeFunctionData({ abi: v4TokenProbeAbi, functionName: 'roundTrip', args: [route.manager, route.quoter, key, route.hookData, coinIs1, sizeWei] }) };
+  }
   if (route.venue === 'uniswap_v4') {
     if (route.key.currency0 !== zeroAddress || route.key.currency1.toLowerCase() !== route.coin.toLowerCase() || v4PoolId(route.key).toLowerCase() !== route.poolId.toLowerCase())
       throw new Error('Unsupported v4 sell-check route');
@@ -144,7 +161,8 @@ export async function runSellProbe(rpc: SellRpc, route: SellRoute, sizeWei: bigi
   // The router deadline only has to cover the pinned block; one hour past the local clock always does.
   const { code, data } = sellProbeCall(route, probe, sizeWei, BigInt(Math.floor(options.nowSec?.() ?? Date.now() / 1000)) + 3600n);
   // On a token-paired curve the probe also holds twice the size in the pair token (its balance storage overridden).
-  const pair = route.venue === 'pons_curve' ? route.pair : undefined;
+  // So does the probe on a v4 pool quoted in a token.
+  const pair = route.venue === 'pons_curve' ? route.pair : route.venue === 'uniswap_v4' ? route.quote : undefined;
   if (pair && !pair.balance) return unavailable('pair_balance_unknown');
   const overrides: Record<string, unknown> = { [probe]: { code, balance: toHex(sizeWei + 10n ** 18n) } };
   if (pair?.balance) overrides[pair.token] = { stateDiff: { [balanceKey(pair.balance, probe)]: pad(toHex(sizeWei * 2n)) } };

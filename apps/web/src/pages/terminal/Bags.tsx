@@ -10,7 +10,7 @@ import { bagCounts, bagPreview, pollBags, rowComplete, shareBags, type BagRow, t
 import { Link } from '../../lib/Link';
 import { useOnboarding } from '../../store/onboarding';
 import { useApp } from '../../store/app';
-import { PLAYBOOK_NAMES, usd } from './radarModel';
+import { playbookName, usd } from './radarModel';
 import './bags.css';
 
 const hidden: ShareOptions = { includeValues: false, includeWallet: false };
@@ -55,7 +55,7 @@ export function BagHolding({ row, retry, busy, watching, watchAvailable, toggleW
     <dl className="bag-card-kv"><div><dt>Balance</dt><dd className="num">{row.balanceStatus && row.balanceStatus !== 'observed' ? 'Not checked yet' : row.balance ?? 'Not checked yet'}</dd></div>
       <div><dt>Value</dt><dd className="num">{row.valueUsd === undefined || row.unavailable?.includes('value') ? 'Not checked yet' : usd(row.valueUsd)}</dd></div>
       <div><dt>Exit cost at $1,000</dt><dd>{row.exitCost1kPct === null || row.unavailable?.includes('exitCost') ? 'Not checked yet' : `${row.exitCost1kPct.toFixed(1)}%`}</dd></div>
-      <div><dt>Top playbook</dt><dd>{!complete ? 'Not fully checked' : row.playbooks[0] ? PLAYBOOK_NAMES[row.playbooks[0]] : 'None matched'}</dd></div></dl>
+      <div><dt>Top playbook</dt><dd>{!complete ? 'Not fully checked' : row.playbooks[0] ? playbookName(row.playbooks[0], row.coin.verdict) : 'None matched'}</dd></div></dl>
     <details><summary>Evidence and limits</summary><p>{!complete ? 'Some required checks have not run. Review the coin evidence before considering a trade.' : 'Open the coin to review playbook evidence and history.'}</p><p>Exit cost is the measured $1,000 reference size, not a quote for your full balance. Fees and actual-size simulation belong to the guarded sell panel.</p><Link to={`/coin/${row.coin.address}`}>Open coin evidence</Link></details>
     <div className="bag-actions">
       {/* TODO(spec): Task 077's shared guarded sell panel is absent on this branch. Keep sells unavailable until its existing-position handoff is integrated. */}
@@ -72,7 +72,7 @@ export function BagTable({ report, busy, watch, watchAvailable, retry, toggleWat
     <td className="num">{row.balanceStatus && row.balanceStatus !== 'observed' ? 'Not checked yet' : row.balance ?? 'Not checked yet'}</td>
     <td className="num">{row.valueUsd === undefined || row.unavailable?.includes('value') ? 'Not checked yet' : usd(row.valueUsd)}</td>
     <td>{row.exitCost1kPct === null || row.unavailable?.includes('exitCost') ? 'Not checked yet' : `${row.exitCost1kPct.toFixed(1)}%`}</td>
-    <td>{!rowComplete(row) ? 'Not fully checked' : row.playbooks[0] ? PLAYBOOK_NAMES[row.playbooks[0]] : 'None matched'}</td>
+    <td>{!rowComplete(row) ? 'Not fully checked' : row.playbooks[0] ? playbookName(row.playbooks[0], row.coin.verdict) : 'None matched'}</td>
     <td><div className="bag-actions"><button className="btn btn-sm" disabled title="The shared guarded sell panel is not available yet">Sell through the guard</button><button className="btn btn-sm" disabled={!watchAvailable || busy} aria-pressed={watch.has(row.coin.address)} onClick={() => toggleWatch(row.coin.address)}>{watch.has(row.coin.address) ? 'Watching' : 'Watch'}</button><Link className="btn btn-sm" to={`/coin/${row.coin.address}`}>Open</Link></div><details><summary>Evidence and limits</summary><p>Exit cost is a $1,000 reference, not your full-balance quote. Sells await the shared guarded sell panel.</p><Link to={`/coin/${row.coin.address}`}>Open coin evidence</Link></details></td>
   </tr>)}</tbody></table></div>;
 }

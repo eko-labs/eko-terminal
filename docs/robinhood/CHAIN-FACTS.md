@@ -137,7 +137,7 @@ asset.
 | Launch record | `Create(address asset, address indexed numeraire, address initializer, address poolOrHook)` from the Airlock, topic `0x68ff1cfc…79ab` | 881 in the window, the last log of each launch transaction. It names no creator, and launches come through bundlers and routers, so EKO identifies no deployer (the coin's own address stands in, as the API contract says) |
 | Pool | v4 keyed numeraire / coin, fee `0x800000` (dynamic, set by the hook), the hook above | 873 of the hook's pools in the window: tick spacing 8 on 799, 200 on 73, 30 on 1. Not constant, so EKO takes the key from the pool's `Initialize` in the same transaction (its id is checked by hash) |
 | Liquidity | one-sided: the whole supply in three positions below the opening tick | launch `0xf4c780c2eb2e174dc485102ab90ce6ce0eaba7d91c23a2093d03501a09895091`: positions to tick 202,000 at the opening tick 202,000. Any ETH in a native pool was paid in by buyers |
-| Hook permissions | flags `0x2544`, including an after-swap return delta | not reviewed: EKO shows the coins and their verdict, and refuses to trade them |
+| Hook permissions | flags `0x2544`, including an after-swap return delta | **reviewed 2026-11-19** (Doppler `DopplerHookInitializer` at `bda077cf`, Sourcify full match): it takes the fee its pool's fee module sets, fixed at launch, the same on buys and sells (measured 0.5–2.0% on 699 swaps in 59 pools; up to 100% in the first 10–14 seconds). Counted as reviewed only on pools whose module has matching public source (`LONGXYZ.reviewedModules`); the module `0xe2ae…78b6` has none and stays unreviewed. Trading stays refused either way |
 | Native-ETH launches | 2 in the window | `0x87261a20ecf71cb6de75c3e9a39e34e9814418a8f80aed600a305d581914ea70`, `0x796a712d7621a6d0764ed6388ff8ddd0b8d21ca105928b8da3db41554698bc0a` (the test fixture) |
 
 ### The unbranded hookless launcher
@@ -157,8 +157,8 @@ asset.
   holds it, and Danger once at least half of it has been taken out (its pull rule), with the pulling transaction as
   evidence. Their pools have no hook, so EKO's trade route (the reviewed Universal Router) is offered, behind the guard's
   checks; a pulled pool is a hard Danger the guard refuses in every risk mode.
-- long.xyz coins (native ETH only): labelled long.xyz; the hook shows as unreviewed (a `malicious_hook` Monitor); trading
-  refused.
+- long.xyz coins: labelled long.xyz; the hook counts as reviewed on pools with a verified fee module (no hook flag), and
+  as unreviewed otherwise (a `malicious_hook` Monitor, shown as "Unreviewed hook"); trading refused.
 - For every pool-launched coin: the sell check runs on its pool (v4 route, empty `hookData`), holders, snipers and the
   dev checks read its transfers, and `fake_mcap` compares price × supply with the ETH the pool holds (the seed plus what
   buyers paid in, less what was pulled).
@@ -240,7 +240,9 @@ read. A stock with no factory pool holding $10,000 (FIG, UBER and SLV at the tim
   the pool's quote address; the web reads "Stock token · TTWO", "WETH" or "USDG", and "long.xyz in TTWO" beside the
   launchpad on Radar, New pairs and the coin header.
 - Holders, snipers, dev dump and `fake_mcap` (backing in ETH-equivalent) run as for native long.xyz coins. The sell check
-  cannot run on such a pool (it spends ETH), so it is named not available (`Probed.sellCheckUnavailable`, tradeability
+  runs on such a pool with about $1,000 of its quote token (`V4TokenProbe`, the token's balance held through a storage
+  override; measured 2026-11-19 on pools in TTWO, GME, AMC, USDG, NVDA, AAPL, SPCX and ANT: all sellable, 3.0–4.0% round
+  trip). While the quote's price or balance slot is unknown it is named not available (`Probed.sellCheckUnavailable`, tradeability
   flag `sell_check_not_available`) rather than waited for: the verdict comes from the checks that do run (the unreviewed
   hook makes it at least Monitor; Danger findings win; with no finding it would stay Pending, as Clear needs the honeypot
   check), and the coin is rechecked on the usual schedule instead of retried as a failure. Without that mark (Pons,

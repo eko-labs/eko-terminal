@@ -106,6 +106,12 @@ export function applyRadarEvents(rows: readonly RadarRow[], events: readonly Cha
   return next;
 }
 export const PLAYBOOK_NAMES: Record<string, string> = { honeypot: 'Honeypot', tax_trap: 'Tax trap', removable_liquidity: 'Removable liquidity', fee_trap_pool: 'Fee-trap pool', stuck_at_bonding: 'Stuck at bonding', wash_to_trend: 'Wash to trend', clone_swarm: 'Clone', exempt_insiders: 'Exempt insiders', bundle_dump: 'Bundle dump', migration_dump: 'Migration dump', malicious_hook: 'Malicious hook', agent_bait: 'Agent bait', serial_deployer: 'Serial deployer', holder_concentration: 'Holder concentration', dev_dump: 'Deployer holdings', run_up: 'Run-up', launch_snipers: 'Launch snipers', fake_mcap: 'Fake market cap' };
+/** A playbook's display name at the level it matched. `malicious_hook` at Monitor means only that the pool's hook may
+ *  change swap amounts and EKO has not reviewed it (no measured anomaly: those are Danger), so it reads "Unreviewed hook". */
+export function playbookName(id: string, level?: string): string {
+  if (id === 'malicious_hook' && level === 'monitor') return 'Unreviewed hook';
+  return PLAYBOOK_NAMES[id] ?? id;
+}
 export const pct = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`;
 export const usd = (v: number) => v >= 1e6 ? `$${(v / 1e6).toFixed(2)}M` : v >= 1000 ? `$${Math.round(v / 1000)}K` : `$${Math.round(v).toLocaleString('en-US')}`;
 export const price = (v: number) => `$${v.toFixed(v < .01 ? 7 : 2)}`;

@@ -1,5 +1,5 @@
 import { getAddress, toFunctionSelector, zeroAddress, type Address, type Hex } from 'viem';
-import { loadRegistry, v4PoolId, type AddressRegistry } from '@eko/chain';
+import { balanceSlot, loadRegistry, v4PoolId, type AddressRegistry, type BalanceSlot } from '@eko/chain';
 import type { CoinState, RawLog, Rpc } from '../../tracker.js';
 import { SWAP_TOPIC, TRANSFER_TOPIC } from '../logs.js';
 import { ROBINHOOD_PROFILE } from '../profiles.js';
@@ -10,7 +10,7 @@ import { applyRobinhoodEvent, CURVE_BUY_TOPIC, CURVE_SELL_TOPIC, decodeRobinhood
 import { EthUsd, QuotePrices } from './price.js';
 import type { NativeUsd } from '../../hype.js';
 import { probeRobinhoodCoin, robinhoodExcluded, type RobinhoodProbed } from './probe.js';
-import { PONS_LOCK, PONS_TERMS } from './profile.js';
+import { LONGXYZ, PONS_LOCK, PONS_TERMS } from './profile.js';
 import { loadRobinhoodTradeAddresses, ponsPoolKey } from './trade.js';
 
 /**
@@ -198,6 +198,8 @@ export function robinhoodChain(registry: AddressRegistry = loadRegistry(), optio
   const decodeOpts: DecodeOptions = options.moreLaunchpads ? { quotedPools: true } : {};
   // Set by `price(rpc)` (the edge builds it before the tracker starts) or by the caller.
   let quotes: QuotePrices | null = options.moreLaunchpads ? options.quotes ?? null : null;
+  /** Where each quote token keeps balances, for the sell check on pools quoted in it (null: none found). */
+  const balanceSlots = new Map<string, BalanceSlot | null>();
   const quoteOf = (token: Address) => {
     const q = quotes?.asset(token) ?? null;
     // A numeraire not checked yet is queued: the next price refresh checks it (a launch in it is not followed until then).
@@ -402,7 +404,33 @@ export function robinhoodChain(registry: AddressRegistry = loadRegistry(), optio
         }
         catch { /* displays keep 18 until the next check reads it */ }
       }
-      const p = await probeRobinhoodCoin(rh(coin), block, { rpc: deps.rpc, addrs, ethUsd: deps.hypeUsd, ...(deps.now ? { now: deps.now } : {}) }, priorTips);
+      // long.xyz: which fee module the pool's hook calls (fixed at launch), read once; it decides whether the hook is reviewed.
+      if (coin.launchpad === 'longxyz' && !coin.longModule) {
+        try {
+          const state = await deps.rpc.request({ method: 'eth_call', params: [{ to: LONGXYZ.hook, data: `0x1bab58f5${coin.token.slice(2).toLowerCase().padStart(64, '0')}` }, 'latest'] }) as Hex;
+          // getState(asset): numeraire, totalTokensOnBondingCurve, dopplerHook, ... (the struct's arrays are left out).
+          if (state.length >= 2 + 64 * 3) coin.longModule = `0x${state.slice(2 + 64 * 2 + 24, 2 + 64 * 3)}`.toLowerCase();
+        }
+        catch { /* read again on the next check; until then the hook counts as not reviewed */ }
+      }
+      // A pool quoted in a token is probed with about $1,000 of it: its price now (QuotePrices) and where it keeps
+      // balances (found once per token; a failed search is tried again on a later check).
+      const quoteProbe = async (c: RobinhoodCoinState) => {
+        const ethUsd = deps.hypeUsd(), ethPer = quotes?.ethPer(c.quote) ?? null, decimals = c.quoteConverted?.decimals;
+        if (!ethUsd || !ethPer || decimals === undefined || c.quote === zeroAddress) return null;
+        const k = c.quote.toLowerCase();
+        let slot = balanceSlots.get(k);
+        if (slot === undefined) {
+          const found = await balanceSlot(deps.rpc, c.quote, block);
+          if (found.failed) return null;
+          balanceSlots.set(k, slot = found.balance);
+        }
+        if (!slot) return null;
+        const whole = 1000 / ethUsd / ethPer;
+        if (!Number.isFinite(whole) || whole <= 0) return null;
+        return { pair: { token: c.quote, balance: slot }, amount: BigInt(Math.round(whole * 1e6)) * 10n ** BigInt(decimals) / 10n ** 6n };
+      };
+      const p = await probeRobinhoodCoin(rh(coin), block, { rpc: deps.rpc, addrs, ethUsd: deps.hypeUsd, quoteProbe, ...(deps.now ? { now: deps.now } : {}) }, priorTips);
       // A probe inside the snipe window paid up to 99% going in: it is redone once the window ends (service.ts).
       return coin.curve && !coin.graduated ? { ...p, earlyUntil: coin.ts + PONS_SNIPE_SEC } : p;
     },
@@ -410,6 +438,7 @@ export function robinhoodChain(registry: AddressRegistry = loadRegistry(), optio
       const { pons, lock } = p as RobinhoodProbed, key = p.key;
       const elapsed = nowSec - coin.ts, antiSnipeActive = !!coin.curve && !coin.graduated && elapsed < PONS_SNIPE_SEC;
       const ponsHook = !!key && same(key.hooks, addrs.hook), pangeaHook = !!key && same(key.hooks, addrs.pangeaHook), longHook = !!key && same(key.hooks, addrs.longHook);
+      const longReviewed = longHook && !!coin.longModule && LONGXYZ.reviewedModules.some(m => same(m, coin.longModule!));
       const position = coin.launchPosition;
       return {
         antiSnipeActive,
@@ -433,8 +462,9 @@ export function robinhoodChain(registry: AddressRegistry = loadRegistry(), optio
           // Pangea pools.
           label: ponsHook ? 'Pons hook (registry-listed; takes its fee after the swap)'
             : pangeaHook ? 'Pangea hook (not reviewed; can change swap amounts before and after each swap)'
-            : longHook ? 'long.xyz (Doppler) hook (not reviewed; sets the fee and can change what a swap returns)' : 'v4 hook',
-          reviewed: ponsHook, sourceVerified: false,
+            : longReviewed ? 'long.xyz (Doppler) hook (source verified; takes a fixed fee after the swap, the same on buys and sells; higher in the first seconds after launch)'
+            : longHook ? 'long.xyz (Doppler) hook (its fee module is not reviewed; sets the fee and can change what a swap returns)' : 'v4 hook',
+          reviewed: ponsHook || longReviewed, sourceVerified: longReviewed,
           buyFeePct: null, sellFeePct: null,
         },
         ...(coin.curve && !coin.graduated && coin.supply > 0n ? { runUp: curveRunUp(coin as CoinState & { curve: NonNullable<CoinState['curve']> }, nowSec) } : {}),

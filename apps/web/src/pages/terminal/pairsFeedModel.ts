@@ -2,8 +2,8 @@ import { formatGuardReason, GUARD_REASON_LABELS, GuardReasonV2Schema, GuardReaso
 import { z } from 'zod';
 import { FeedItemSchema, PairRowSchema, type FeedItem, type PairRow, type Untrusted } from '@eko/shared';
 import type { ChannelEvent } from '../../lib/realtime';
-import { launchedAt, PLAYBOOK_NAMES, receivedAt, refused, type ReceivedAt, type RiskMode } from './radarModel';
-import { PLAYBOOK_DESCRIPTIONS } from '../../copy/playbooks';
+import { launchedAt, playbookName, receivedAt, refused, type ReceivedAt, type RiskMode } from './radarModel';
+import { PLAYBOOK_DESCRIPTIONS, UNREVIEWED_HOOK_DESCRIPTION } from '../../copy/playbooks';
 import { WALLET_LABEL_WORD } from '../../components/ui';
 
 export const COLUMNS = ['new', 'near_grad', 'migrated'] as const;
@@ -97,13 +97,13 @@ export function feedDescriptionParts(item: FeedItem): DescriptionPart[] {
       text(item.firstVerdictMs === undefined ? 'First verdict' : item.firstVerdictMs <= FIRST_VERDICT_MAX_MS ? `First verdict in ${(item.firstVerdictMs / 1000).toFixed(1)} s` : 'Grade updated');
       // A verdict row names no playbook of its own: "no playbook matched" is said only of a grade without one, never
       // beside Monitor or Danger (the row's grade chip and the alert rows carry the finding).
-      if (item.playbookId) { separator(); text(PLAYBOOK_NAMES[item.playbookId], 'muted'); }
+      if (item.playbookId) { separator(); text(playbookName(item.playbookId, item.level), 'muted'); }
       else if (item.level === undefined || item.level === 'clear') { separator(); text('no playbook matched', 'muted'); }
       break;
     case 'playbook':
-      if (item.playbookId) text(PLAYBOOK_NAMES[item.playbookId], 'name');
+      if (item.playbookId) text(playbookName(item.playbookId, item.level), 'name');
       text(item.matchPct === undefined ? 'matched' : `matched at ${Math.round(item.matchPct)}%`, 'muted');
-      if (item.playbookId) { separator(); text(PLAYBOOK_DESCRIPTIONS[item.playbookId]); }
+      if (item.playbookId) { separator(); text(item.playbookId === 'malicious_hook' && item.level === 'monitor' ? UNREVIEWED_HOOK_DESCRIPTION : PLAYBOOK_DESCRIPTIONS[item.playbookId]); }
       break;
     case 'clone':
       text('Ghost Report', 'ghost');

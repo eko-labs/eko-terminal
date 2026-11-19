@@ -5,6 +5,7 @@ import { probeAbi } from '../src/simulation/reference.js';
 import { EKO_PAIR_PROBE_RUNTIME } from '../src/simulation/pair-probe-runtime.js';
 import { EKO_PROBE_RUNTIME } from '../src/simulation/probe-runtime.js';
 import { EKO_V4_PROBE_RUNTIME } from '../src/simulation/v4-probe-runtime.js';
+import { EKO_V4_TOKEN_PROBE_RUNTIME } from '../src/simulation/v4-token-probe-runtime.js';
 import { BALANCE_SLOTS, balanceKey, balanceSlot, ponsCurveSellCheckAbi, runSellProbe, sellRouteId, type SellRoute } from '../src/simulation/sell-check.js';
 import { v4PoolId, v4ProbeAbi } from '../src/simulation/v4.js';
 
@@ -92,6 +93,28 @@ describe('live sell check (eth_call with the probe injected by state override)',
     expect(Object.values(params[2] as Record<string, { code: Hex }>)[0]!.code).toBe(EKO_V4_PROBE_RUNTIME);
     expect(decodeFunctionData({ abi: v4ProbeAbi, data: tx.data }).args).toEqual([v4.manager, v4.quoter, key, '0x', 1000n]);
     await expect(runSellProbe(rpc(), { ...v4, poolId: `0x${'1'.repeat(64)}` }, 1000n, 3n)).rejects.toThrow('Unsupported v4');
+  });
+  it('runs the token probe on a v4 pool quoted in an ERC-20, either currency order, funded through its balance slot', async () => {
+    const quote = address(50), slot = { layout: 'erc7201' } as const;
+    const abi = parseAbi(['struct Key { address currency0; address currency1; uint24 fee; int24 tickSpacing; address hooks; }',
+      'function roundTrip(address m, address quoter, Key key, bytes hookData, bool coinIs1, uint128 amount)']);
+    for (const [coin, k] of [[address(60), { currency0: quote, currency1: address(60), fee: 0x800000, tickSpacing: 8, hooks: address(31) }],
+      [address(40), { currency0: address(40), currency1: quote, fee: 0x800000, tickSpacing: 8, hooks: address(31) }]] as const) {
+      const route: SellRoute = { venue: 'uniswap_v4', coin, poolId: v4PoolId(k), manager: address(32), quoter: address(33), key: k, hookData: '0x', quote: { token: quote, balance: slot } };
+      const t = rpc(output(4000n, 970n, 1000n));
+      expect(await runSellProbe(t, route, 1000n, 3n)).toMatchObject({ status: 'sellable', exitCostPct: 3, venue: 'uniswap_v4' });
+      const [tx, , overrides] = t.request.mock.calls[0]![0].params as [{ to: Address; data: Hex }, Hex, Record<string, { code?: Hex }>];
+      expect(overrides[tx.to]!.code).toBe(EKO_V4_TOKEN_PROBE_RUNTIME);
+      expect(overrides[quote]).toEqual({ stateDiff: { [balanceKey(slot, tx.to)]: pad(toHex(2000n)) } });
+      expect(decodeFunctionData({ abi, data: tx.data }).args).toEqual([route.manager, route.quoter, k, '0x', k.currency1 === coin, 1000n]);
+    }
+    // A key that does not pair the coin with that quote, or no known balance slot: nothing is sent.
+    const k = { currency0: quote, currency1: address(60), fee: 0x800000, tickSpacing: 8, hooks: address(31) };
+    const base: SellRoute = { venue: 'uniswap_v4', coin: address(60), poolId: v4PoolId(k), manager: address(32), quoter: address(33), key: k, hookData: '0x', quote: { token: address(51), balance: slot } };
+    await expect(runSellProbe(rpc(), base, 1000n, 3n)).rejects.toThrow('Unsupported v4 token');
+    const none = rpc();
+    expect(await runSellProbe(none, { ...base, quote: { token: quote } }, 1000n, 3n)).toMatchObject({ status: 'unavailable', reason: 'pair_balance_unknown' });
+    expect(none.request).not.toHaveBeenCalled();
   });
   it('drives a token-paired Pons curve with the pair probe, funding the probe through the pair token\'s balance slot', async () => {
     const pairToken = address(40), paired: SellRoute = { ...pons, pair: { token: pairToken, balance: { layout: 'solidity', slot: 1 } } };

@@ -1,6 +1,9 @@
 import type { PlaybookId } from '@eko/shared';
 
 /** First-party one-line copy; never use token descriptions or free-text event details. */
+/** `malicious_hook` at Monitor: the hook's permissions alone, nothing measured. */
+export const UNREVIEWED_HOOK_DESCRIPTION = 'The pool\'s hook may change what a swap pays or receives, and EKO has not reviewed it.';
+
 export const PLAYBOOK_DESCRIPTIONS: Record<PlaybookId, string> = {
   honeypot: 'Buys go through; sells revert or return almost nothing.',
   tax_trap: 'The owner can raise the sell tax after you buy.',

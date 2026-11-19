@@ -29,7 +29,7 @@ import { serverNow } from '../../lib/clock';
 import { TradePanel } from '../../components/trade/TradePanel';
 import { CoinFlowTab, CoinTrades } from './CoinFlow';
 import { Decode, Roll } from './radarMotion';
-import { age, pct, coinVerdictActivity, noMatchLabel, PLAYBOOK_NAMES, usd } from './radarModel';
+import { age, pct, coinVerdictActivity, noMatchLabel, playbookName, usd } from './radarModel';
 import { launchpadLabel, quotedIn } from '../../copy/chain';
 /** Robinhood Chain launchpads whose coins trade in a Uniswap pool from launch (no curve to show progress on). */
 const POOL_LAUNCHPADS: ReadonlySet<string> = new Set(['pangea', 'longxyz', 'unbranded']);
@@ -75,7 +75,7 @@ function CoinPage({address}:{address:string}){
  const showEvidence=()=>{useOnboarding.getState().markStep('open_evidence');setTab('Overview');setEvidence(true);const id=headerGuard&&headerGuard.mode!=='active'?'guard-shadow-evidence':'coin-evidence';requestAnimationFrame(()=>{document.getElementById(id)?.scrollIntoView({block:'nearest'});document.getElementById(id)?.focus();});};
  const verdictActivity=card?coinVerdictActivity(card,serverNow()):row;
  const stateLabel=verdict?noMatchLabel({...verdictActivity,verdict:verdict.level,guardV2:primaryGuard}):undefined;
- const verdictChip=headerGuard?<button data-tour="verdict" className="coin-verdict-button" aria-label="Open verdict evidence" onClick={showEvidence}><VerdictChip level="pending" guard={headerGuard} showGaps={false}/></button>:verdict?<button data-tour="verdict" className="coin-verdict-button" aria-label="Open verdict evidence" onClick={showEvidence}><VerdictChip level={verdict.level} guard={primaryGuard} showGaps={false} evaluatedPlaybooks={verdict.evaluatedPlaybooks} meta={card?.meta} stateLabel={stateLabel} detail={top?PLAYBOOK_NAMES[top.id]:undefined}/></button>:<VerdictChip level="pending" verdictPending/>;
+ const verdictChip=headerGuard?<button data-tour="verdict" className="coin-verdict-button" aria-label="Open verdict evidence" onClick={showEvidence}><VerdictChip level="pending" guard={headerGuard} showGaps={false}/></button>:verdict?<button data-tour="verdict" className="coin-verdict-button" aria-label="Open verdict evidence" onClick={showEvidence}><VerdictChip level={verdict.level} guard={primaryGuard} showGaps={false} evaluatedPlaybooks={verdict.evaluatedPlaybooks} meta={card?.meta} stateLabel={stateLabel} detail={top?playbookName(top.id,top.level):undefined}/></button>:<VerdictChip level="pending" verdictPending/>;
  const elsewhere=coinElsewhere(address,identity?.stage);
  const changeText=(v:number)=>row?.unavailable?.includes('change') ? NOT_CHECKED : pct(v);
  const labelsOff=data.labelsUnavailable || card?.meta?.flow?.unavailable;

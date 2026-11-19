@@ -22,7 +22,7 @@ import { CoinInspector, FlowBar, HeatLegend } from './RadarParts';
 import { FLOW_SHARE_TITLE, buyShare } from './FlowBar';
 import { Decode, Roll } from './radarMotion';
 import { formatAge } from '../../lib/format';
-import { retainCompactGuard, exitText, isLifeless, pct, PLAYBOOK_NAMES, noMatchLabel, scanDelayed } from './radarModel';
+import { retainCompactGuard, exitText, isLifeless, pct, playbookName, noMatchLabel, scanDelayed } from './radarModel';
 import { antiSnipeLeft, antiSnipeTax, applyPairEvents, COLUMNS, firstScanText, pairColumns, PairResponseSchema, pairTradeDisabled, receivedAt, type PairsToday } from './pairsFeedModel';
 import { serverNow } from '../../lib/clock';
 import { useTerminalWindow } from './terminalWindow';
@@ -66,7 +66,7 @@ export function PairView({ row, now, at, select, trade, stale }: { row: PairRow;
   const score = pending ? undefined : runUpScore(row), change = un('change') ? undefined : row.change1hPct;
   return <li className={`prow tone ${tone}${heat === 'hot' ? ' lit' : ''} ${markClass(marking(row, { pending }))}${hasGuardLabels(row) ? ' guard-labels' : ''}`} data-address={row.address} data-pending={pending} onClick={(e) => select(row, e.currentTarget)}>
     <div className="pr-top"><div className="pr-id"><button className="pr-sym tone-sym" title={`$${row.symbol.text}`} data-pick aria-label={`Inspect $${row.symbol.text}`} onClick={(e) => { e.stopPropagation(); select(row, e.currentTarget); }}><Decode text={`$${row.symbol.text}`}><span>$<UntrustedText value={row.symbol} /></span></Decode></button><span className="pr-age num">{formatAge(ageNow)}</span></div><span className="pr-verdict"><BlueChipBadge value={row.blueChip} /><HeatTag heat={heat} /><CompactVerdictChip priceMove={row.priceMove} level={row.verdict} guard={row.guardV2} failed={row.guardRefreshFailed} pending={row.verdictPending} scanDelayed={delayed} evaluatedPlaybooks={row.evaluatedPlaybooks} missing={row.missingChecks} stateLabel={noMatchLabel({ ...row, ageSec: ageNow })} runUp={score} /></span></div>
-    <div className="pr-sub"><span className="pr-name"><UntrustedText value={row.name} /></span><span>·</span><span>{launchpadLabel(row.launchpad, row.column === 'migrated')}</span>{row.quoteSymbol && <span title={`Quoted in ${row.quoteSymbol}`}>{quotedIn(row.quoteSymbol)}</span>}{!pending && row.topPlaybook && <span className={`pr-play${row.verdict === 'danger' ? ' bad' : ''}`}>· {PLAYBOOK_NAMES[row.topPlaybook]}</span>}{left > 0 && <span className="pr-snipe num pr-end">{tax}% buy tax → 0 in {left} s</span>}</div>
+    <div className="pr-sub"><span className="pr-name"><UntrustedText value={row.name} /></span><span>·</span><span>{launchpadLabel(row.launchpad, row.column === 'migrated')}</span>{row.quoteSymbol && <span title={`Quoted in ${row.quoteSymbol}`}>{quotedIn(row.quoteSymbol)}</span>}{!pending && row.topPlaybook && <span className={`pr-play${row.verdict === 'danger' ? ' bad' : ''}`}>· {playbookName(row.topPlaybook, row.verdict)}</span>}{left > 0 && <span className="pr-snipe num pr-end">{tax}% buy tax → 0 in {left} s</span>}</div>
     <div className="pr-metrics">
       <Metric label="Mkt cap">{row.marketCapUsd === undefined || un('marketCap') ? <UnavailableValue /> : <Roll value={cardUsd(row.marketCapUsd)} />}</Metric>
       <Metric label={row.launchpad !== 'pons' ? 'In pool' : row.column === 'migrated' ? 'Liquidity' : 'In curve'} title={row.launchpad !== 'pons' ? IN_POOL_TITLE : undefined}>{un('liquidity') ? <UnavailableValue /> : <Roll value={cardUsd(row.liquidityUsd)} />}</Metric>

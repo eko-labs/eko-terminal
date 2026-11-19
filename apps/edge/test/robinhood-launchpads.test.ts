@@ -160,6 +160,20 @@ describe('long.xyz (Doppler Airlock, Robinhood Chain)', () => {
     expect(a.matches.find(m => m.id === 'malicious_hook')?.level).toBe('monitor');
     expect(() => robinhoodChain().trade.precheck!(coin)).toThrow(/hook has not been reviewed/);
   });
+
+  it('counts the hook as reviewed only when the pool\'s fee module is one with verified source; trading stays refused', () => {
+    const tracker = track(lx.launchTx, lx.launchBlock, lx.launchTs), coin = tracker.coin(lxToken)!;
+    const judgeAt = () => judge(coin, probed(coin, lx.launchBlock, lx.launchTs), { chain: robinhoodChain(), hypeUsd: ETH_USD, nowSec: lx.launchTs + 5, head: lx.launchBlock });
+    coin.longModule = '0x6f02324d20cc679d0e585290caa6b16bacbc0f77';
+    expect(robinhoodChain().facts(coin, probed(coin, lx.launchBlock, lx.launchTs), lx.launchTs + 5).hook)
+      .toMatchObject({ reviewed: true, sourceVerified: true, label: expect.stringContaining('source verified') });
+    expect(judgeAt().matches.find(m => m.id === 'malicious_hook')).toBeUndefined();
+    expect(() => robinhoodChain().trade.precheck!(coin)).toThrow(/hook has not been reviewed/);
+    // The enabled module with no matching public source keeps the flag.
+    coin.longModule = '0xe2aebc987592593b667ec29178d0a83929db78b6';
+    expect(robinhoodChain().facts(coin, probed(coin, lx.launchBlock, lx.launchTs), lx.launchTs + 5).hook).toMatchObject({ reviewed: false });
+    expect(judgeAt().matches.find(m => m.id === 'malicious_hook')?.level).toBe('monitor');
+  });
 });
 
 describe('Robinhood log queries', () => {

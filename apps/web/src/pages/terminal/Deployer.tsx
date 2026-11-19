@@ -3,7 +3,7 @@ import { DeployerHistorySchema, type DeployerHistory, type DeployerLaunch } from
 import { fetchParsed } from '../../lib/api';
 import { Link } from '../../lib/Link';
 import { UntrustedText, VerdictChip } from '../../components/ui';
-import { PLAYBOOK_NAMES } from './radarModel';
+import { playbookName } from './radarModel';
 import { CHAIN_COPY } from '../../copy/chain';
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -47,7 +47,7 @@ function LaunchRow({ l }: { l: DeployerLaunch }) {
     <td>{l.relation === 'crew' ? <Link to={`/deployer/${l.deployer}`} className="addr">crew {short(l.deployer)}</Link> : 'this wallet'}</td>
     <td className="num">{l.swaps ?? '—'}</td>
     <td>{l.firstLevel ? <VerdictChip level={l.firstLevel} /> : <span className="muted">{l.source === null ? 'not checked' : '—'}</span>}{l.source === 'replay' && <span className="muted"> replayed</span>}</td>
-    <td>{l.flags.length ? l.flags.slice(0, 3).map(f => <span key={f.id} className={f.level === 'danger' ? 'bad' : undefined}>{PLAYBOOK_NAMES[f.id] ?? f.id} </span>) : <span className="muted">none</span>}</td>
+    <td>{l.flags.length ? l.flags.slice(0, 3).map(f => <span key={f.id} className={f.level === 'danger' ? 'bad' : undefined}>{playbookName(f.id, f.level)} </span>) : <span className="muted">none</span>}</td>
     <td>{l.outcome1h ? OUTCOME_TEXT[l.outcome1h] : '—'}</td>
     <td className={l.outcome24h && l.outcome24h !== 'survived' ? 'bad' : undefined}>{l.outcome24h ? OUTCOME_TEXT[l.outcome24h] : '—'}</td>
   </tr>;

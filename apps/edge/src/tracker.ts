@@ -24,6 +24,8 @@ export interface CoinState {
   /** The coin's ERC-20 decimals when not 18 (Pangea coins have 9), read on its first check. Internal amounts stay in
    *  18-decimal units throughout (price per 1e18 base units, supply in base units), so only displays scale by it. */
   decimals?: number;
+  /** long.xyz coins: the pool's fee module (the hook's getState(asset).dopplerHook), read once; '' if it could not be. */
+  longModule?: string;
   /** When EKO first checked the coin (unix seconds), kept across restarts by the snapshot; -1 when EKO first saw it
    *  more than an hour after its launch (restored, recovered or found late), so it is left out of the scan-time median. */
   firstScanSec?: number;

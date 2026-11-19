@@ -26,7 +26,7 @@ import { expandTo } from '../../lib/expand';
 import { Link } from '../../lib/Link';
 import { featureLink } from '../../features';
 import { Decode, Roll } from './radarMotion';
-import { age, exitText, hotMetrics, isLifeless, marketCapOf, noMatchLabel, pct, PLAYBOOK_NAMES, price, refused, usd, type HotWindow } from './radarModel';
+import { age, exitText, hotMetrics, isLifeless, marketCapOf, noMatchLabel, pct, playbookName, price, refused, usd, type HotWindow } from './radarModel';
 import { formatAge, formatCoinPrice } from '../../lib/format';
 import { launchpadLabel, quotedIn } from '../../copy/chain';
 import { FlowBar, FLOW_SHARE_TITLE, buyShare, flowFigure } from './FlowBar';
@@ -50,7 +50,7 @@ export const RadarRowView = memo(function RadarRowView({ c, selected, select, tr
   return <tr ref={el} data-address={c.address} className={`h-${heatOf(c)} ${markClass(marking(c))}${selected ? ' sel' : ''}`} onClick={(e) => select(c, e.currentTarget.querySelector<HTMLButtonElement>('[data-pick]')!)}>
     <td className="c-coin"><button data-pick className="rt-pick" aria-pressed={selected} aria-controls={selected ? 'radar-inspector' : undefined} onClick={(e) => { e.stopPropagation(); select(c, e.currentTarget); }}><span className="rt-top"><span className="rt-sym" title={`$${c.symbol.text}`}><Decode text={`$${c.symbol.text}`}><span>$<UntrustedText value={c.symbol} /></span></Decode></span><BlueChipBadge value={c.blueChip} /><HeatTag heat={displayHeat(c)} /></span><span className="rt-name"><UntrustedText value={c.name} /> · <span className="rt-pad">{launchpadLabel(c.launchpad, c.stage === 'graduated')}{c.quoteSymbol ? ` ${quotedIn(c.quoteSymbol)}` : ''}</span> · {age(c.ageSec)}</span></button></td>
     <td className="c-guard"><CompactVerdictChip priceMove={c.priceMove} level={c.verdict} guard={c.guardV2} failed={c.guardRefreshFailed} pending={c.verdictPending} scanDelayed={scanDelayed} evaluatedPlaybooks={c.evaluatedPlaybooks} missing={c.missingChecks} stateLabel={stateLabel} runUp={score} /></td>
-    <td className="c-watch">{c.topPlaybook ? <><span className="rt-play">{PLAYBOOK_NAMES[c.topPlaybook]}</span>{confidence !== undefined && <span className="rt-conf">{Math.round(confidence * 100)}% confidence</span>}</> : null}</td>
+    <td className="c-watch">{c.topPlaybook ? <><span className="rt-play">{playbookName(c.topPlaybook, c.verdict)}</span>{confidence !== undefined && <span className="rt-conf">{Math.round(confidence * 100)}% confidence</span>}</> : null}</td>
     <td className="c-sig r">{c.unavailable?.includes('signal') ? <UnavailableValue /> : c.signal && <SignalBars signal={c.signal} />}</td>
     <td className="c-beta r">{c.beta && <span className="rt-sig"><span className="tag">Beta</span>{c.beta.apeScore !== undefined && <b className="num">{c.beta.apeScore}</b>}{c.beta.setupGrade && <span>{c.beta.setupGrade}</span>}</span>}</td>
     <td className="c-price r num">{c.priceUnavailable ? <UnavailableValue /> : <Roll value={formatCoinPrice(c.priceUsd)} />}</td>
@@ -102,7 +102,7 @@ export function HotStrip({ coins, window, onWindowChange, selected, select, load
 function Section({ title, figure, children }: { title: string; figure?: ReactNode; children: ReactNode }) { return <section className="insp-sec"><h3>{title}{figure}</h3>{children}</section>; }
 export function InspectorGuard({ card, href, mark = '' }: { card: CoinCard; href: string; mark?: string }) {
   const top = card.playbooks.find(p => p.level === 'danger') ?? card.playbooks.find(p => p.level === 'monitor');
-  return <div className={`insp-box insp-guard${card.verdict.level === 'danger' ? ' danger' : ''} ${mark}`}><div className="insp-guard-top"><b>{card.verdict.level === 'pending' ? NOT_FULLY_CHECKED : top ? `Watch for: ${PLAYBOOK_NAMES[top.id]}` : 'No scam playbooks matched'}</b><Link to={href} className="insp-link">Evidence</Link></div><p>{card.verdict.reasons.join(' ')}{top?.history && ` Deployer: ${top.history.deployerRuns} prior flagged runs.`}</p><AnalysisPolicyNotice /></div>;
+  return <div className={`insp-box insp-guard${card.verdict.level === 'danger' ? ' danger' : ''} ${mark}`}><div className="insp-guard-top"><b>{card.verdict.level === 'pending' ? NOT_FULLY_CHECKED : top ? `Watch for: ${playbookName(top.id, top.level)}` : 'No scam playbooks matched'}</b><Link to={href} className="insp-link">Evidence</Link></div><p>{card.verdict.reasons.join(' ')}{top?.history && ` Deployer: ${top.history.deployerRuns} prior flagged runs.`}</p><AnalysisPolicyNotice /></div>;
 }
 export function CoinInspector({ row, close, onCard, formatRowAge = age, stale = false, tradeVisible = true }: { row: HeatRow; close: () => void; onCard: (card: CoinCard) => void; formatRowAge?: typeof formatAge; stale?: boolean; tradeVisible?: boolean }) {
   const guard = useGuardCoin(row.address),rt=useRealtime();

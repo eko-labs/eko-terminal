@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createRadarRows } from '../../mocks/demo/radar';
-import { applyRadarEvents, currentAgeSec, filterRows, hottest, noMatchLabel, refused, scanDelayed, SORTS, sortRows } from './radarModel';
+import { applyRadarEvents, currentAgeSec, filterRows, hottest, noMatchLabel, playbookName, refused, scanDelayed, SORTS, sortRows } from './radarModel';
 import { pick } from '../../lib/chain';
 import type { ChannelEvent } from '../../lib/realtime';
 const event = (kind: string, data: unknown) => ({t:'ev',ch:'radar',seq:1,ts:1,kind,data}) as ChannelEvent<'radar'>;
@@ -164,5 +164,13 @@ describe('Verdict context when no playbook matched', () => {
   it('leaves risk flags and incomplete assessments in control of the chip', () => {
     for (const verdict of ['monitor', 'danger', 'pending'] as const) expect(noMatchLabel({ ...quiet, verdict })).toBeUndefined();
     expect(noMatchLabel({ ...quiet, verdictPending: true })).toBeUndefined();
+  });
+});
+describe('playbook names', () => {
+  it('names a hook flagged on permissions alone "Unreviewed hook", and a measured one "Malicious hook"', () => {
+    expect(playbookName('malicious_hook', 'monitor')).toBe('Unreviewed hook');
+    expect(playbookName('malicious_hook', 'danger')).toBe('Malicious hook');
+    expect(playbookName('honeypot', 'monitor')).toBe('Honeypot');
+    expect(playbookName('not_a_playbook')).toBe('not_a_playbook');
   });
 });

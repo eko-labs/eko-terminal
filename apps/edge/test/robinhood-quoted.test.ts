@@ -321,6 +321,30 @@ describe('long.xyz launches quoted in a token (more_launchpads)', () => {
     expect(sellCheckOutstanding(native)).toBe(true);
   });
 
+  it('probes a token-quoted pool with about $1,000 of its quote token when its price and balance slot are known', async () => {
+    const { coin } = track(ttwo);
+    const mc = parseAbi(['struct Call3 { address target; bool allowFailure; bytes callData; }', 'function aggregate3(Call3[] calls) payable returns ((bool success, bytes returnData)[])']);
+    const probes: { overrides: Record<string, unknown> }[] = [];
+    const rpc: Rpc = { request: async ({ method, params }) => {
+      if (method !== 'eth_call') throw new Error(`unexpected ${method}`);
+      const [tx, , o] = params as [{ data: Hex }, string, Record<string, unknown> | undefined];
+      if (o) { probes.push({ overrides: o }); return encodeAbiParameters([{ type: 'uint256' }, { type: 'uint256' }, { type: 'uint256' }, { type: 'uint256' }, { type: 'bool' }, { type: 'bool' }, { type: 'bytes' }], [5000n, 97n * 10n ** 17n, 97n * 10n ** 17n, 10n ** 19n, true, true, '0x']); }
+      const { args: [calls] } = decodeFunctionData({ abi: mc, data: tx.data });
+      return encodeFunctionResult({ abi: mc, functionName: 'aggregate3', result: calls.map(() => ({ success: true, returnData: encodeAbiParameters([{ type: 'string' }], ['X']) })) });
+    } };
+    const c = coin as unknown as RobinhoodCoinState;
+    const quoteProbe = async (q: RobinhoodCoinState) => ({ pair: { token: q.quote, balance: { layout: 'erc7201' as const } }, amount: 10n ** 19n });
+    const p = await probeRobinhoodCoin(c, BigInt(ttwo.launchBlock + 10), { rpc, addrs, ethUsd: () => ETH_USD, quoteProbe });
+    expect(p.probe).toMatchObject({ status: 'sellable', venue: 'uniswap_v4', exitCostPct: 3, sizeWei: String(10n ** 19n) });
+    expect(p.sellCheckUnavailable).toBeUndefined();
+    expect(probes).toHaveLength(1);
+    expect(Object.keys(probes[0]!.overrides).map(k => k.toLowerCase())).toContain(c.quote.toLowerCase());
+    // No price or balance slot yet: named missing, as before.
+    const unknown = await probeRobinhoodCoin(c, BigInt(ttwo.launchBlock + 10), { rpc, addrs, ethUsd: () => ETH_USD, quoteProbe: async () => null });
+    expect(unknown.probe).toBeNull();
+    expect(unknown.sellCheckUnavailable).toBe('token_quoted_pool');
+  });
+
   it('grades a pool the sell check can never run on from the checks that do run: Monitor, not an endless Pending', () => {
     const { coin, chain } = track(usdg);
     const last = coin!.trades.at(-1)!, now = last.ts + 5, head = last.block;

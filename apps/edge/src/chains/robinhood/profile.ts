@@ -123,6 +123,17 @@ export const LONGXYZ = {
   airlock: '0xeb7C034704eF8Dcd2D32324c1545f62fB4aD0862' as Address,
   /** Doppler's initializer hook on every long.xyz pool (permission flags 0x2544, an after-swap return delta). */
   hook: '0x4e3468951D49f2EEa976eD0D6e75fFCb44a9a544' as Address,
+  /**
+   * Reviewed 2026-11-19: the hook is Doppler's DopplerHookInitializer (whetstoneresearch/doppler at bda077cf; Sourcify full
+   * match; no proxy, DELEGATECALL or SELFDESTRUCT). After each swap it takes the fee its pool's fee module (Doppler's
+   * "dopplerHook", fixed per pool at launch: the asset's timelock is 0xdead or 0x0) sets, the same on buys and sells, and
+   * has no blacklist. Measured on 699 swaps across 59 pools: buys and sells both 0.5% to 2.0%, equal on every pool with
+   * both; the fee starts high (up to 100% of the output) and decays to that within 10 to 14 seconds of launch.
+   * The hook counts as reviewed only on pools whose module's code matches public source: Rehype at bda077cf (rebuilt
+   * byte for byte) and two Sourcify-verified modules. A fourth enabled module (0xe2ae…78b6) has no matching source.
+   */
+  reviewedModules: ['0x6f02324d20cc679d0e585290caa6b16bacbc0f77', '0x9982538f41f2ae29ddb9d3d9307010052984fdbb',
+    '0x5f9eb5f6726fe88d5e39867967f5b833d2fa3215'] as readonly Address[],
 } as const;
 /**
  * A hookless launcher with no public brand (DexScreener lists its pools as plain Uniswap v4), read 2026-11-18 (§8): 62
