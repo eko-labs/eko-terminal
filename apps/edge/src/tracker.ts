@@ -5,6 +5,7 @@ import { DEFAULT_OPEN_MCAP_HYPE } from './graduation.js';
 import type { LaunchpadId } from './chains/elysium/launchpads.js';
 import { chainOf } from './chains/elysium/index.js';
 import { swapAbi, SWAP_TOPIC, TRANSFER_TOPIC } from './chains/logs.js';
+import { BURN_SINKS } from './burn.js';
 import type { ChainAdapter, LogFilter, TrackerCore } from './chains/types.js';
 
 export interface Rpc { request(input: { method: string; params: readonly unknown[] }): Promise<unknown> }
@@ -67,6 +68,44 @@ export interface CoinState {
    */
   launchPosition?: { owner: Address; salt: Hex; seed: bigint; liquidity: bigint; removed: bigint; removedTx: Hex | null };
 }
+/** Where a coin's history read page by page goes (chain.active): each page is applied as it arrives, with the per-coin
+ *  caps, so memory stays bounded however old the coin is; `end` hands the finished coin over, and a sink never ended
+ *  is dropped. */
+export interface HistorySink { add(logs: RawLog[]): void; end(): void }
+
+/** The marker transaction of transfers folded together (compactFlows): it is no swap's, so they read as plain transfers. */
+export const FOLDED_TX = `0x${'f01d'.padStart(64, '0')}` as Hex;
+/** The other side of each folded transfer: a burn sink, so it is never a holder or any wallet role. */
+const FOLD_PARTY = '0x0000000000000000000000000000000000000001';
+/** A coin's first seconds: its transfers stay as they are when the rest is folded (early buyers and snipers read them). */
+const LAUNCH_SPAN_SEC = 600;
+
+/**
+ * Keep a coin's transfers under `max` without losing balances: the oldest transfers past the launch span are folded
+ * into one transfer per wallet carrying its net change over them (FOLDED_TX), and the newest half stay as they are.
+ * Balances summed over the flows (holders, snipers, wallet tags) come out the same; a wallet's individual transfers in
+ * the folded span are gone. When more wallets moved than a quarter of `max`, the smallest net changes are dropped.
+ * Mutates `coin.flows`; the launch span keeps at most a fifth of `max`.
+ */
+export function compactFlows(coin: Pick<CoinState, 'flows' | 'ts'>, max: number): void {
+  const flows = coin.flows;
+  if (flows.length <= max) return;
+  let head = 0;
+  while (head < flows.length && head < Math.floor(max / 5) && flows[head]!.ts < coin.ts + LAUNCH_SPAN_SEC && flows[head]!.tx !== FOLDED_TX) head++;
+  const end = flows.length - Math.floor(max / 2);
+  if (end <= head) { flows.splice(0, flows.length - max); return; }
+  const delta = new Map<string, bigint>();
+  const add = (k: string, v: bigint) => delta.set(k, (delta.get(k) ?? 0n) + v);
+  for (let i = head; i < end; i++) { const f = flows[i]!; add(f.from, -f.value); add(f.to, f.value); }
+  for (const sink of BURN_SINKS) delta.delete(sink);
+  let rows = [...delta].filter(([, d]) => d !== 0n);
+  const room = Math.floor(max / 4);
+  if (rows.length > room) rows = rows.sort((a, b) => { const x = a[1] < 0n ? -a[1] : a[1], y = b[1] < 0n ? -b[1] : b[1]; return x > y ? -1 : x < y ? 1 : 0; }).slice(0, room);
+  const last = flows[end - 1]!;
+  const folded = rows.map(([w, d]) => ({ tx: FOLDED_TX, block: last.block, ts: last.ts, from: d > 0n ? FOLD_PARTY : w, to: d > 0n ? w : FOLD_PARTY, value: d > 0n ? d : -d }));
+  flows.splice(head, end - head, ...folded);
+}
+
 export interface FeedEvent { id: string; kind: 'new_pair' | 'graduation' | 'trade'; coin: Address; ts: number; block: number; side?: 'buy' | 'sell'; hype?: number; wallet?: Address }
 
 
@@ -180,34 +219,55 @@ export class Tracker implements TrackerCore {
     await this.syncTo(this.head);
   }
 
-  /** A coin stays while it is inside the memory window, or graduated and still trading (activeQuote24h). */
+  /** A coin stays while it is inside the memory window, or graduated (or trading in its own pool from launch: chain.pooled)
+   *  and still trading (activeQuote24h). */
   private kept(c: CoinState, cutoff: number, nowSec: number): boolean {
-    return alive(c) >= cutoff || (c.graduated && this.opts.activeQuote24h > 0 && quote24h(c, nowSec) >= this.opts.activeQuote24h);
+    return alive(c) >= cutoff || (this.settled(c) && this.opts.activeQuote24h > 0 && quote24h(c, nowSec) >= this.opts.activeQuote24h);
   }
+  private settled(c: CoinState): boolean { return c.graduated || !!this.chain.pooled?.(c); }
 
   private activeAt = 0;
   private activeRun: Promise<void> | null = null;
-  private activeFound: { logs: RawLog[]; to: bigint }[] = [];
+  private activeFound: { coins: CoinState[]; feed: FeedEvent[]; to: bigint }[] = [];
   /** Look for graduates still trading that EKO does not follow (chain.active), in the background: the lookup reads each
-   *  one's whole history and can take many minutes, so the tracker keeps syncing and applies each coin on the tick after
-   *  its history is read (a restart midway keeps the coins already applied: the snapshot saves them). */
+   *  one's whole history and can take many minutes, so the tracker keeps syncing and takes each coin over on the tick
+   *  after its history is read (a restart midway keeps the coins already taken: the snapshot saves them). Each history is
+   *  built page by page in a scratch tracker with the same caps (historySink), never held whole. */
   private findActive(to: bigint): void {
     if (!this.chain.active || this.opts.activeQuote24h <= 0 || to === 0n || this.activeRun) return;
     this.activeAt = this.opts.now();
     const span = BigInt(Math.round(86_400 / this.opts.blockTimeSec)), from = to > span ? to - span : 0n;
-    this.activeRun = this.chain.active(this.archive, from, to, { token: (t) => this.coins.has(t.toLowerCase()), pool: (id) => this.byPool.has(id.toLowerCase()) }, this.opts.activeQuote24h, (logs) => { this.activeFound.push({ logs, to }); })
+    this.activeRun = this.chain.active(this.archive, from, to, { token: (t) => this.coins.has(t.toLowerCase()), pool: (id) => this.byPool.has(id.toLowerCase()) }, this.opts.activeQuote24h, () => this.historySink(to))
       .catch(() => { /* tried again on the next round; the column only misses the older active graduates meanwhile */ })
       .finally(() => { this.activeRun = null; });
   }
-  /** Apply each coin the lookup has read so far (its logs end at `to`), then its swaps and transfers since `to`. */
+  /** A scratch tracker with this one's caps: a history's pages are applied to it as they arrive and dropped, and the coin
+   *  it builds is handed over (with its feed events) when the history ends. */
+  historySink(to: bigint): HistorySink {
+    const scratch = new Tracker(this.rpc, this.chain, { maxTradesPerCoin: this.opts.maxTradesPerCoin, maxFlowsPerCoin: this.opts.maxFlowsPerCoin,
+      blockTimeSec: this.opts.blockTimeSec, keepSec: this.opts.keepSec, activeQuote24h: this.opts.activeQuote24h, now: this.opts.now });
+    const stamp = (l: RawLog) => l.blockTimestamp && big(l.blockTimestamp) > 0n ? Number(big(l.blockTimestamp)) : Math.round(this.headTs - Number(this.cursor - big(l.blockNumber)) * this.opts.blockTimeSec);
+    return {
+      add: (logs) => scratch.applyAll(logs, stamp),
+      end: () => { if (scratch.coins.size) this.activeFound.push({ coins: [...scratch.coins.values()], feed: scratch.feed.slice(), to }); },
+    };
+  }
+  /** Take over each coin the lookup has built so far (its history ends at `to`), then apply its swaps and transfers since. */
   private async applyActive(): Promise<void> {
     for (const found of this.activeFound.splice(0)) await this.applyOneActive(found);
   }
-  private async applyOneActive(found: { logs: RawLog[]; to: bigint }): Promise<void> {
-    const before = new Set(this.coins.keys()), refTs = this.headTs, cursor = this.cursor;
+  private async applyOneActive(found: { coins: CoinState[]; feed: FeedEvent[]; to: bigint }): Promise<void> {
+    const refTs = this.headTs, cursor = this.cursor;
     const stamp = (l: RawLog) => l.blockTimestamp && big(l.blockTimestamp) > 0n ? Number(big(l.blockTimestamp)) : Math.round(refTs - Number(cursor - big(l.blockNumber)) * this.opts.blockTimeSec);
-    this.applyAll(found.logs, stamp);
-    const fresh = [...this.coins.values()].filter(c => !before.has(c.token.toLowerCase()) && c.graduated);
+    const taken: CoinState[] = [];
+    for (const coin of found.coins) {
+      const k = coin.token.toLowerCase();
+      if (this.coins.has(k)) continue;
+      this.coins.set(k, coin); this.index(coin); this.onLaunch?.(coin); taken.push(coin);
+    }
+    const tokens = new Set(taken.map(c => c.token.toLowerCase()));
+    for (const e of found.feed) if (tokens.has(e.coin.toLowerCase())) this.push(e);
+    const fresh = taken.filter(c => this.settled(c));
     if (!fresh.length || cursor <= found.to) return;
     try {
       const [swaps, transfers] = await Promise.all([
@@ -315,7 +375,7 @@ export class Tracker implements TrackerCore {
       const flow = { tx: log.transactionHash, block, ts, from: `0x${log.topics[1]!.slice(26)}`.toLowerCase(), to: `0x${log.topics[2]!.slice(26)}`.toLowerCase(), value: BigInt(log.data.slice(0, 66)) };
       coin.flows.push(flow);
       if (coin.supplyFromMints && flow.from === '0x0000000000000000000000000000000000000000') coin.supply += flow.value;
-      if (coin.flows.length > this.opts.maxFlowsPerCoin) coin.flows.splice(0, coin.flows.length - this.opts.maxFlowsPerCoin);
+      if (coin.flows.length > this.opts.maxFlowsPerCoin) compactFlows(coin, this.opts.maxFlowsPerCoin);
       return;
     }
     if (topic === SWAP_TOPIC) {

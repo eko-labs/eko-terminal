@@ -270,6 +270,93 @@ launcher from somewhere else (possibly Uniswap's own front end; not checked). **
 LaunchProof would be wrong, and following its one marked coin needs a `metadata()` read per launch for 0.34 ETH a day. A
 later update could follow every Liquidity Launcher instant pool under a neutral label: native ETH, no hook, 45.7 ETH a day.
 
+## 10. Coins still trading that launched before EKO's memory (added Nov 18, 2026; flag `more_launchpads`)
+
+EKO keeps about 25 hours of launches in memory. Before this change, the lookup for older coins that still trade (`active`,
+every 30 minutes) only found native-ETH Pons graduates. It found them from the Pons hook's own per-swap event.
+
+**DacityCoin (DCTY, `0x9790FF07aeEA328Cde9dABD5128B045ccA8D1E18`)**, read on chain:
+- Its pool `0x5669df33…62d9cfd5` has long.xyz's (Doppler) hook `0x4e34…a544`, keyed TTWO / DCTY with the dynamic-fee flag.
+- Its contract appeared at block 91,517,621 (2026-10-18), in the same transaction as the Airlock's `Create` and the pool's
+  `Initialize`.
+- So it is a long.xyz coin quoted in a stock token. EKO did not follow it because it launched a month before EKO's memory,
+  and the lookup only read the Pons hook's event.
+
+**Per-swap hook events** (each one names the pool, so busy pools can be found without reading the PoolManager's ~500,000
+swaps a day):
+- **long.xyz hook:** `LONG_HOOK_SWAP_TOPIC` `0x1d9f7b5e…`. Topic 1 is the swapper; topics 2 and 3 both hold the pool id.
+  - There is one per swap: 135 of 135 PoolManager swaps on its pools in 3,000 blocks, in the same transactions.
+  - In the 24 hours to block 117,718,880 it fired on 453 pools, 137 of them with 10 or more swaps.
+- **Pangea hook:** `PANGEA_HOOK_SWAP_TOPIC` `0x7edb7767…`, with topic 1 the pool id. It fired on 94 of 97 swaps.
+- **The unbranded launcher:** its pools have no hook, so they have no such event.
+
+**What `active` does now, with the flag on:**
+1. **Find.** It reads the three hooks' events over the last 24 hours. A pool not followed, with 10 or more events, is a
+   candidate.
+2. **Resolve.** Each candidate is resolved to its coin from one swap's receipt.
+   - The pool key is rebuilt from the currencies that swap moved, and its id must match.
+   - The coin is the side that is not the quote. The quote is native ETH, or a token EKO prices (WETH, USDG or a stock
+     token, §9).
+   - A quote not checked yet is queued and the pool waits a round.
+   - A pool EKO cannot price is not asked about again.
+   - A resolved pool is remembered, so it needs no receipt in later rounds.
+3. **Rank.** The candidates' swaps are summed in ETH: amount0 on a native pool, otherwise the quote's amount at its current
+   price. Pons graduates and pool coins are ranked together, by the same floor as before (`activeQuote24h`, 2.5 ETH, about
+   $4,400 at $1,763), and at most 12 are added per round (`ACTIVE_PER_ROUND`).
+4. **Check the size.** Before any page is read, the history is estimated: the pool's swaps in the last 24 hours, times 4
+   logs each with their transfers, times the coin's age in days. A coin estimated over 12 million logs is never read (and
+   not looked at again); one that would take the round past 12 million waits for a later round. Both are logged under
+   `skipped`. A read that passes 12 million logs anyway is stopped and dropped. Memory does not grow with a history, so
+   these bound only the calls and the time. The estimate is rough both ways: DCTY was estimated at 5.0 million and read
+   146,306 logs (558 calls); AI (NVDA-quoted long.xyz) was estimated at 74,024 and read 10,986,981 (2,250 calls, about 20
+   minutes). Measured with a 1 GB heap: peak heap 335 MB, peak RSS 899 MB; the version before ran out at 1 GB within five
+   minutes on DCTY.
+5. **Read history, page by page.** The archive RPC is read one 100,000-block page at a time, in chain order, with at most
+   two pages read ahead (`pagesOf`). Each page is applied as it arrives to a scratch tracker with the live tracker's caps
+   (`Tracker.historySink`), then dropped; the finished coin is handed over on the next tick. Nothing holds a whole history.
+   One `active_graduates` log line gives each coin's calls, logs read and estimate. A pool coin's history is:
+   - the block its contract appeared (a binary search over `eth_getCode`);
+   - the launch record (the Airlock's `Create`, or Pangea's launch log) and the pool's `Initialize` in the 2,000 blocks
+     after that;
+   - every transfer and every swap since. Every swap counts toward the net paid in (the pool's backing); the coin keeps its
+     latest 5,000 trades.
+   - Transfers past the cap of 20,000 are folded (`compactFlows`, live coins too): the oldest ones past the coin's first
+     10 minutes become one transfer per wallet carrying its net change (marker transaction `FOLDED_TX`, other side the
+     burn sink `0x…01`), and the newest 10,000 stay as they are. Balances, so holders, snipers' holdings and wallet tags,
+     come out the same; when more than 5,000 wallets moved in the folded span, the smallest net changes are dropped.
+     Before this, the oldest transfers were simply dropped, and a busy coin's balances lost its mint.
+
+   The first version (2026-11-18, merged as 4aa745c) read each history whole into one array and ran production out of
+   memory (a 4.2 GB heap about 7 minutes after each start) once the flag was on.
+6. **Keep.** A coin trading in its own pool from launch never graduates. It is kept past the memory window while it trades
+   at the floor, like a graduate (`ChainAdapter.pooled`).
+
+With the flag off, nothing changes: the lookup reads only the Pons hook's events, and pool coins leave with their launch's
+day.
+
+**Cost in dRPC calls, measured live on 2026-11-18 over 24 hours:**
+
+| Step | Calls | When |
+| --- | --- | --- |
+| Find | 27 | Every round: 9 pages of 100,000 blocks for each of the 3 hooks |
+| Rank: receipts | 120 | First round only; later rounds need one per new busy pool |
+| Rank: swap pages | 18 | Every round |
+| History, per coin added | about 31 + 2 per 100,000 blocks of age | Once per coin; a page over 10,000 logs is halved, which adds calls |
+
+For DCTY at one month old, the history is 557 calls: 29 code reads, 2 for its record and pool opening, and 263 pages each
+for transfers and swaps.
+
+**The ranking that round** (USD at $1,763/ETH): DCTY ($2.09M), NOVAAI (Pons, $436K), AI ($184K), a second DCTY coin ($163K),
+then ACAT, WIF, OBSYN, MEOW, and others. Of the coins the owner named:
+- **Found:** DCTY, AI, APOCRYCOIN and LUCIA.
+- **Not found:** ORBIO, DARK and microduck are Pons coins launched on NVDA-quoted curves, now in Pons-hook pools keyed
+  NVDA / coin. urmom is a Pons coin on an SPCX-quoted curve. EKO does not decode token-quoted Pons launches at all, curve
+  or pool, so they are not covered here.
+
+**Not looked for:** the unbranded launcher's pools. Listing its launches since it appeared (block 19,367,688, 116 days) is
+about 980 log pages, and their swaps could then only be read pool by pool. Its creators took the liquidity out of 61 of 62
+pools within the day (§8).
+
 ## Blocks trading / safe to ship / unknown
 
 ### Blocks trading until handled

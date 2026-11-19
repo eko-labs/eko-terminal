@@ -6,7 +6,7 @@ import type { Assessment, Probed } from '../assess.js';
 import type { Explorer } from '../explorer.js';
 import type { NativeUsd } from '../hype.js';
 import type { Trade } from '../market.js';
-import type { CoinState, RawLog, Rpc } from '../tracker.js';
+import type { CoinState, HistorySink, RawLog, Rpc } from '../tracker.js';
 
 /**
  * One chain per deployment (EKO_CHAIN, chains/index.ts). The profile is what the rest of the edge needs to know about
@@ -158,6 +158,9 @@ export interface ChainAdapter {
   quotedTrade?(coin: CoinState, swap: { amount0: bigint; amount1: bigint; sqrtPriceX96: bigint; sender: Address; tx: Hex; block: number; ts: number }): Trade | null;
   /** A coin with no graduation event of its own graduates on this trade. */
   graduatesOnTrade(coin: CoinState, openMcapHype: number): boolean;
+  /** A coin that trades in its own pool from launch and never graduates (Robinhood Chain's pool launchpads, with flag
+   *  more_launchpads): kept past the memory window while it still trades, like a graduate, and found again by `active`. */
+  pooled?(coin: CoinState): boolean;
   // Checks.
   /** Contracts that hold or route a coin without being holders. */
   excluded(coin?: Pick<CoinState, 'launcher' | 'curve'>): Address[];
@@ -176,10 +179,11 @@ export interface ChainAdapter {
   graduates?(rpc: Rpc, from: bigint, to: bigint, known: (token: string) => boolean, opts?: { coins?: boolean }): Promise<RawLog[]>;
   /** After each tick: the history of coins that graduated in it without being followed (launched before the memory). */
   missing?(rpc: Rpc, to: bigint, known: (token: string) => boolean): Promise<RawLog[]>;
-  /** Graduates still trading that EKO does not follow (they left its memory, or graduated before it started): the
-   *  pools that swapped at least `minQuote` native currency between `from` and `to`, and each one's history (ending at
-   *  `to`). */
-  /** Each coin's logs go to `found` as soon as they are read (a first lookup can take many minutes, and a restart in
-   *  the middle should not lose the coins already read). */
-  active?(rpc: Rpc, from: bigint, to: bigint, known: { token(token: string): boolean; pool(id: string): boolean }, minQuote: number, found: (logs: RawLog[]) => void): Promise<void>;
+  /** Graduates (and, with `pooled`, pool-launched coins) still trading that EKO does not follow (they left its memory, or
+   *  launched before it started): the pools that swapped at least `minQuote` native currency between `from` and `to`,
+   *  and each one's history (ending at `to`). */
+  /** Each coin's history goes to a sink of its own (`history()`), page by page in chain order as it is read, and is
+   *  ended when complete: a first lookup can take many minutes, a restart midway should not lose the coins already
+   *  read, and an old coin's history (hundreds of thousands of logs) must never be held whole. */
+  active?(rpc: Rpc, from: bigint, to: bigint, known: { token(token: string): boolean; pool(id: string): boolean }, minQuote: number, history: () => HistorySink): Promise<void>;
 }
