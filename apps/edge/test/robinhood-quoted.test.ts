@@ -282,7 +282,7 @@ describe('long.xyz launches quoted in a token (more_launchpads)', () => {
     expect(a.stats.holders).toBeDefined();
     expect(chain.facts(coin!, probed, now).backing).toBeDefined();
     expect(a.matches.find(m => m.id === 'malicious_hook')?.level).toBe('monitor');
-    expect(() => chain.trade.precheck!(coin!)).toThrow(/hook has not been reviewed/);
+    expect(() => chain.trade.precheck!(coin!)).toThrow(/runs a hook EKO does not trade through/);
     try { chain.trade.precheck!(coin!); } catch (error) { expect(error).toMatchObject({ code: 'not_traded', status: 409 }); }
     expect(() => chain.trade.route({ ...coin!, key: { ...coin!.key!, hooks: zeroAddress } }, undefined)).toThrow();
   });

@@ -33,12 +33,15 @@ describe('Every launchpad demo (flag more_launchpads)', () => {
     for (const row of quoted) {
       expect(RadarRowSchema.parse(row)).toEqual(row);
       expect(row.launchpad).toBe('longxyz');
-      expect(row.unavailable).toContain('exitCost');
+      // As live: the sell check runs in the pool's own quote, except where EKO has no balance reading for it (WETH).
+      const weth = row.quoteSymbol === 'WETH';
+      if (weth) expect(row.unavailable).toContain('exitCost'); else expect(row.unavailable).not.toContain('exitCost');
       const card = createRadarCard(row.address)!;
       expect(CoinCardSchema.parse(card)).toEqual(card);
       expect(card.identity.pools[0]).toMatchObject({ venue: 'uniswap_v4', executable: false });
-      expect(card.playbooks.some(m => m.id === 'malicious_hook')).toBe(true);
-      expect(card.meta?.tradeability?.missing).toContain('exitCostPct');
+      // Only the pool on the fee module EKO has not reviewed keeps the hook finding.
+      expect(card.playbooks.some(m => m.id === 'malicious_hook')).toBe(row.quoteSymbol === 'USDG');
+      expect(card.meta?.tradeability?.missing).toContain(weth ? 'exitCostPct' : 'exitCostPct.usd100');
       labels.push(quoteLabel(card.identity.quoteAsset, card.identity.quoteSymbol));
       const bars = coinCandles(row.address, '5m');
       expect(bars).toHaveLength(72);
@@ -79,18 +82,19 @@ describe('Every launchpad demo (flag more_launchpads)', () => {
   it('shows what production measures and leaves unchecked only what it does not run', async () => {
     vi.stubEnv('VITE_FLAGS', 'more_launchpads');
     const rows = quotedRows();
-    // The sell check cannot run on these pools: graded from the checks that do (assess.ts judge), never Pending or Scanning.
+    // Graded from the checks that ran (assess.ts judge), never Pending or Scanning while something was found.
     expect(rows.map(r => [r.symbol.text, r.verdict, r.verdictPending, r.topPlaybook])).toEqual([
-      ['HRBR', 'monitor', false, 'malicious_hook'], ['COPR', 'danger', false, 'holder_concentration'], ['QMNT', 'monitor', false, 'malicious_hook']]);
+      ['HRBR', 'monitor', false, 'holder_concentration'], ['COPR', 'danger', false, 'holder_concentration'], ['QMNT', 'monitor', false, 'malicious_hook']]);
+    expect(rows.map(r => [r.exitCost1kPct, r.sellCheck?.status])).toEqual([[2.99, 'sellable'], [0, undefined], [3.98, 'sellable']]);
     for (const row of rows) {
-      const card = createRadarCard(row.address)!;
-      expect(card.verdict.evaluatedPlaybooks).toEqual(['agent_bait', 'malicious_hook', 'fee_trap_pool', 'removable_liquidity']);
-      expect(sellCheckNotAvailable(card)).toBe(true);
+      const card = createRadarCard(row.address)!, weth = row.quoteSymbol === 'WETH';
+      expect(card.verdict.evaluatedPlaybooks).toEqual(weth ? ['agent_bait', 'malicious_hook', 'fee_trap_pool', 'removable_liquidity'] : undefined);
+      expect(sellCheckNotAvailable(card)).toBe(weth);
       expect(card.verdict.reasons).toHaveLength(card.playbooks.length);
       // Measured: flow per window, volume, holders. Not run, as on the edge: sell check, depth and LP status, owner powers, fresh wallets, labels.
       expect(row.volume24hUsd).toBeGreaterThan(0);
       expect(row.trades24h).toBeGreaterThan(0);
-      expect(card.meta?.tradeability).toMatchObject({ unavailable: true, missing: ['exitCostPct'] });
+      expect(card.meta?.tradeability).toMatchObject(weth ? { unavailable: true, missing: ['exitCostPct'] } : { confidence: 1, missing: ['exitCostPct.usd100', 'exitCostPct.usd10k'], flags: ['probe_usd_1000'] });
       expect(card.meta?.liquidity).toMatchObject({ missing: ['depthUsd', 'lpStatus'] });
       expect(card.meta?.liquidity?.unavailable).toBeUndefined();
       expect(card.meta?.control?.unavailable).toBe(true);

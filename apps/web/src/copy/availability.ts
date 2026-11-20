@@ -44,7 +44,7 @@ export const GUARD_LEGEND='Grades come from EKO’s rule set 1.0.x. Unscanned co
 export const SELL_FAILS='Sell fails';
 // A pool the sell check can never run on (tradeability flag sell_check_not_available): named, never waited for.
 export const SELL_CHECK_NOT_AVAILABLE='Not available for this pool';
-export const sellCheckNotAvailableNote=(quote?:string)=>`The sell check buys and sells with ETH, and this pool is quoted in ${quote ?? 'another token'}, so it cannot run here. The grade comes from the checks that did run. EKO checks this coin but does not trade it.`;
+export const sellCheckNotAvailableNote=(quote?:string)=>`The sell check buys and sells in this pool's own quote, and EKO has no price or balance reading for ${quote ?? 'it'} yet, so it has not run. The grade comes from the checks that did run.`;
 export const SELL_CHECK_TEXT={sellable:'Sold back in a buy-then-sell simulation',refused:'Sell failed in simulation · buys refused'} as const;
 export const SELL_FAILS_TITLE='A buy went through and the sell reverted or returned under 5% in simulation at the checked block, so the guard refuses buys.';
 export const NOT_CHECKED_LABEL='Not checked yet';

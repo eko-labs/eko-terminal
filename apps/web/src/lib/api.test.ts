@@ -5,7 +5,7 @@ import { createConfig } from '../mocks/responses';
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status });
 describe('typed API boundary', () => {
   it('keeps the server\'s trade error code on a 409 (a pool EKO checks but does not trade)', async () => {
-    const api = createApi('/v1', async () => json({ error: 'not_traded', message: 'EKO checks this coin but does not trade it: its pool\'s hook has not been reviewed.' }, 409));
+    const api = createApi('/v1', async () => json({ error: 'not_traded', message: 'EKO checks this coin but does not trade it: its pool runs a hook EKO does not trade through.' }, 409));
     await expect(api.request('/trade/quote', { body: {} })).rejects.toMatchObject({ status: 409, code: 'not_traded' });
     const transient = createApi('/v1', async () => json({ error: 'route_unavailable', message: 'This coin\'s pool could not be read; try again shortly.' }, 409));
     await expect(transient.request('/trade/quote', { body: {} })).rejects.toMatchObject({ code: 'route_unavailable' });

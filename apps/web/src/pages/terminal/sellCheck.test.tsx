@@ -17,12 +17,12 @@ function checkedCard(flag: 'sell_check_sellable' | 'sell_check_refused', missing
   return card;
 }
 describe('live sell check readings on the web', () => {
-  it('names a sell check that cannot run on a token-quoted pool as not available, with why, never as waiting', () => {
+  it('names a sell check that has not run on a token-quoted pool as not available, with why, never as waiting', () => {
     vi.stubEnv('VITE_FLAGS', 'more_launchpads');
     try {
-      const row = createRadarRows().find(r => r.quoteSymbol === 'TTWO')!, card = createRadarCard(row.address)!;
+      const row = createRadarRows().find(r => r.quoteSymbol === 'WETH')!, card = createRadarCard(row.address)!;
       const verdict = render(<CoinVerdict verdict={card.verdict} meta={card.meta} identity={card.identity} />);
-      expect(verdict).toContain('this pool is quoted in TTWO, so it cannot run here');
+      expect(verdict).toContain('EKO has no price or balance reading for WETH yet, so it has not run');
       expect(verdict).not.toContain('Waiting on a sell check');
       const overview = render(<CoinOverview card={card} verdict={card.verdict} flows={[card.flow]} evidenceOpen={false} />);
       expect(overview).toContain('<dt>Sell check</dt><dd>Not available for this pool</dd>');

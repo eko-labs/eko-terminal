@@ -8,11 +8,15 @@ import { hashedAddress, hashedTx } from './addresses';
  * WETH and USDG, shaped field by field like the edge's own card for such a coin (apps/edge/src/views.ts with the
  * Robinhood adapter, checked against real TTWO-, USDG- and WETH-quoted launches):
  * - measured: price, market cap, volume, liquidity paid into the pool, buy and sell flow per window with the largest
- *   wallets and latest trades, holders (top 10, dev, early buyers), and the findings those run (hook, holders, snipers);
- * - not run, named missing exactly as the edge does: the sell check (it spends ETH), exit cost, taxes, depth, LP status,
- *   owner powers, fresh and exempt wallets, and who the wallets are (labels);
- * - the verdict: the sell check can never run on such a pool, so the edge names it not available (tradeability flag
- *   sell_check_not_available) and grades from the checks that do run: the unreviewed hook makes it Monitor, Danger wins.
+ *   wallets and latest trades, holders (top 10, dev, early buyers), and the findings those run (holders, snipers);
+ * - the sell check: a round trip of about $1,000 in the pool's own quote (V4TokenProbe), so exit cost at $1K is
+ *   measured, as live on stock-token and USDG pools (3.0-4.0%). Where EKO has no balance reading for the quote yet
+ *   (WETH, live), it is named not available (tradeability flag sell_check_not_available) and the verdict is graded
+ *   from the checks that did run;
+ * - the hook: Doppler's, counted reviewed when the pool's fee module is one of the three with verified source; a pool
+ *   on the fourth keeps the "unreviewed hook" Monitor (malicious_hook), as live;
+ * - not run, named missing exactly as the edge does: exit cost at $100 and $10K, depth, LP status, owner powers, fresh
+ *   and exempt wallets, and who the wallets are (labels). EKO checks these coins but does not trade them.
  * Invented coins and random addresses (no real contract). Update films show this data, so no visible text may read as
  * placeholder data. Shown only when VITE_FLAGS names the flag, like the offline config (responses.ts createConfig).
  */
@@ -43,15 +47,19 @@ interface DemoCoin {
   holders: { top10: number; largest: number; dev: number; early: number };
   /** Wallets that bought in the launch second, what they bought and what they still hold (launch_snipers). */
   snipers?: { wallets: number; bought: number; held: number };
+  /** Whether the pool's fee module is one EKO reviewed (no hook finding), and the sell check's round trip (null: not available). */
+  hookReviewed: boolean; roundTripPct: number | null;
+  /** The quote token in dollars, for Exit check's amounts. */
+  quoteUsd: number;
 }
 const COINS: DemoCoin[] = [
   { n: 1, symbol: 'HRBR', name: 'Harbor Lights', quote: { kind: 'stock_token', symbol: 'TTWO' }, priceUsd: 0.0000482, mcapUsd: 48_200, liquidityUsd: 6_100,
     change1h: 12.4, ageSec: 360, trades: 64, buyShare: 0.62, wallets: 31, holders: { top10: 0.27, largest: 0.064, dev: 0, early: 0.081 },
-    snipers: { wallets: 3, bought: 0.142, held: 0.116 } },
+    snipers: { wallets: 3, bought: 0.142, held: 0.116 }, hookReviewed: true, roundTripPct: 2.99, quoteUsd: 214.6 },
   { n: 2, symbol: 'COPR', name: 'Copper Kite', quote: { kind: 'ETH', symbol: 'WETH' }, priceUsd: 0.0000964, mcapUsd: 96_400, liquidityUsd: 7_900,
-    change1h: -3.1, ageSec: 180, trades: 27, buyShare: 0.7, wallets: 12, holders: { top10: 0.62, largest: 0.21, dev: 0.018, early: 0.024 } },
+    change1h: -3.1, ageSec: 180, trades: 27, buyShare: 0.7, wallets: 12, holders: { top10: 0.62, largest: 0.21, dev: 0.018, early: 0.024 }, hookReviewed: true, roundTripPct: null, quoteUsd: 3150 },
   { n: 3, symbol: 'QMNT', name: 'Quiet Mint', quote: { kind: 'USDG', symbol: 'USDG' }, priceUsd: 0.0000217, mcapUsd: 21_700, liquidityUsd: 4_850,
-    change1h: 5.2, ageSec: 50, trades: 13, buyShare: 0.7, wallets: 9, holders: { top10: 0.18, largest: 0.052, dev: 0, early: 0.043 } },
+    change1h: 5.2, ageSec: 50, trades: 13, buyShare: 0.7, wallets: 9, holders: { top10: 0.18, largest: 0.052, dev: 0, early: 0.043 }, hookReviewed: false, roundTripPct: 3.98, quoteUsd: 1 },
 ];
 
 const seeded = (seed: number) => () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -116,11 +124,11 @@ function findingsOf(c: DemoCoin, address: string, trades: Trade[]) {
   const pct = (n: number) => `${Math.round(n * 1000) / 10}%`;
   const found: { match: PlaybookMatch; reason: string }[] = [];
   // In the playbooks' own order (rules.ts): malicious_hook, holder_concentration, launch_snipers.
-  found.push({ match: { id: 'malicious_hook', level: 'monitor', confidence: 1, history: { deployerRuns: 0 }, evidence: [
+  if (!c.hookReviewed) found.push({ match: { id: 'malicious_hook', level: 'monitor', confidence: 1, history: { deployerRuns: 0 }, evidence: [
     { kind: 'address', ref: HOOK, label: 'v4 hook' }, stat('malicious_hook', 'bits', 'Hook permission bits', HOOK_BITS),
     stat('malicious_hook', 'deltaBits', 'Return-delta permission bits', HOOK_DELTA_BITS), stat('malicious_hook', 'gap', 'Quote versus simulation gap (%)', 'unavailable'),
     stat('malicious_hook', 'asymmetry', 'Sell minus buy fee (pp)', 'unavailable'),
-    { kind: 'address', ref: HOOK, label: 'long.xyz (Doppler) hook (not reviewed; sets the fee and can change what a swap returns)' }] },
+    { kind: 'address', ref: HOOK, label: 'long.xyz (Doppler) hook (its fee module is not reviewed; sets the fee and can change what a swap returns)' }] },
   reason: 'This coin trades in a pool whose hook may change what a swap pays or receives; EKO has not reviewed the hook.' });
   const h = c.holders;
   const top10 = h.top10 >= 0.5 ? 'danger' : h.top10 >= 0.2 || h.largest >= 0.1 ? 'monitor' : null;
@@ -148,13 +156,16 @@ const demo = COINS.map((c) => {
   const seed = createCoinCard(), address = COIN_ADDRESSES[c.n - 1]!, quote = QUOTE_ADDRESSES[c.n - 1]!, pool = POOL_IDS[c.n - 1]!, hash = RECEIPT_HASHES[c.n - 1]!;
   const name = untrusted(c.name), symbol = untrusted(c.symbol), trades = tradesOf(c), findings = findingsOf(c, address, trades);
   const playbooks = findings.map(f => f.match), checkedAt = new Date((NOW_SEC - 4) * 1000).toISOString();
-  // No sell check on a token-quoted pool (it spends ETH): graded from the checks that run (assess.ts judge), never Clear.
-  const level = playbooks.some(m => m.level === 'danger') ? 'danger' as const : 'monitor' as const;
+  // Graded from the checks that ran (assess.ts judge): Danger wins, then Monitor; with nothing found, Clear once the sell
+  // check ran, pending while it could not.
+  const sold = c.roundTripPct !== null;
+  const level = playbooks.some(m => m.level === 'danger') ? 'danger' as const : playbooks.length ? 'monitor' as const : sold ? 'clear' as const : 'pending' as const;
   const flow = { window: '1h' as const, agentPct: 0, crewPct: 0, humanPct: 0, washEstPct: 0, beta: true, confidence: 0, activity: activityOf(trades, '1h') };
   const verdict = { ...seed.verdict, coin: address, level, reasons: findings.map(f => f.reason), playbooks, asOfBlock: MOCK_HEAD_BLOCK, schemaVersion: 'verdict-1',
     receipt: { id: `rcpt_${hash.slice(2, 18)}`, hash, status: 'pending', block: MOCK_HEAD_BLOCK }, lastChecked: { block: MOCK_HEAD_BLOCK, at: checkedAt },
-    evaluatedPlaybooks: WITHOUT_SELL_CHECK };
+    ...(sold ? {} : { evaluatedPlaybooks: WITHOUT_SELL_CHECK }) };
   delete verdict.beta;
+  if (sold) delete (verdict as { evaluatedPlaybooks?: unknown }).evaluatedPlaybooks;
   const missing = (fields: string[], extra: object = {}) => ({ confidence: 0, asOfBlock: MOCK_HEAD_BLOCK, unavailable: true, missing: fields, ...extra });
   const pct = (share: number) => Math.round(share * 10_000) / 100;
   const card: CoinCard = CoinCardSchema.parse({ ...seed,
@@ -162,15 +173,16 @@ const demo = COINS.map((c) => {
       launchpad: 'longxyz', stage: 'curve', quoteAsset: c.quote.kind, quoteSymbol: c.quote.symbol,
       pools: [{ id: pool, venue: 'uniswap_v4', poolId: pool, hooks: HOOK, quote, feeBps: 0, liquidityUsd: c.liquidityUsd, executable: false }] },
     clone: { isClone: false },
-    // No sell check on a token-quoted pool (it spends ETH): exit cost and taxes are named missing, never claimed.
-    tradeability: { exitCostPct: { usd100: 0, usd1k: 0, usd10k: 0 }, buyTaxPct: 0, sellTaxPct: 0, honeypot: false },
+    // The sell check's round trip at about $1,000 (the $100 and $10K sizes are not run); without it, named missing.
+    tradeability: { exitCostPct: sold ? { usd100: c.roundTripPct!, usd1k: c.roundTripPct!, usd10k: c.roundTripPct! } : { usd100: 0, usd1k: 0, usd10k: 0 }, buyTaxPct: 0, sellTaxPct: 0, honeypot: false },
     // The launch position sits with long.xyz's unreviewed contracts: depth and LP status named missing; the dynamic fee has no tier.
     liquidity: { depthUsd: { pct2: 0, pct5: 0, pct10: 0 }, lpStatus: 'removable', feeTiers: [] },
     supply: { top10Pct: pct(c.holders.top10), devPct: pct(c.holders.dev), bundlesHeldPct: pct(c.holders.early), exemptWalletsHeldPct: 0, freshWalletsPct: 0, burnedPct: 0,
       circulating: '1000000000' },
     control: { canChangeTax: false, canBlacklist: false, canPause: false, canMint: false, upgradeable: false },
     flow, playbooks, verdict, freshness: { block: MOCK_HEAD_BLOCK, ageSec: 4 },
-    meta: { tradeability: missing(['exitCostPct'], { flags: ['probe_usd_1000', 'sell_check_not_available'] }), liquidity: { confidence: 0, asOfBlock: MOCK_HEAD_BLOCK, missing: ['depthUsd', 'lpStatus'] },
+    meta: { tradeability: sold ? { confidence: 1, asOfBlock: MOCK_HEAD_BLOCK, missing: ['exitCostPct.usd100', 'exitCostPct.usd10k'], flags: ['probe_usd_1000'] }
+      : missing(['exitCostPct'], { flags: ['probe_usd_1000', 'sell_check_not_available'] }), liquidity: { confidence: 0, asOfBlock: MOCK_HEAD_BLOCK, missing: ['depthUsd', 'lpStatus'] },
       supply: { confidence: 1, asOfBlock: MOCK_HEAD_BLOCK, missing: ['freshWalletsPct', 'exemptWalletsHeldPct'], flags: ['early_cohort_not_funder_bundles'] },
       control: missing(['canChangeTax', 'canBlacklist', 'canPause', 'canMint', 'upgradeable']),
       flow: missing(['agentPct', 'crewPct', 'humanPct', 'washEstPct'], { flags: ['activity_measured', 'wallet_labels_unavailable'] }) },
@@ -178,8 +190,9 @@ const demo = COINS.map((c) => {
   const volume = trades.reduce((n, t) => n + t.usd, 0);
   const row: RadarRow = RadarRowSchema.parse({ address, name, symbol, launchpad: 'longxyz', quoteSymbol: c.quote.symbol, stage: 'curve',
     priceUsd: c.priceUsd, change1hPct: c.change1h, change24hPct: c.change1h, liquidityUsd: c.liquidityUsd, marketCapUsd: c.mcapUsd,
-    verdict: level, verdictPending: false, lastChecked: verdict.lastChecked, ratingAgeSec: 4, topPlaybook: playbooks[0]!.id, ageSec: c.ageSec, rank: 30 + c.n,
-    flow, exitCost1kPct: 0, unavailable: ['flow', 'signal', 'exitCost'], spark8h: series(c),
+    verdict: level, verdictPending: level === 'pending', lastChecked: verdict.lastChecked, ratingAgeSec: 4, ...(playbooks[0] ? { topPlaybook: playbooks[0].id } : {}), ageSec: c.ageSec, rank: 30 + c.n,
+    flow, exitCost1kPct: c.roundTripPct ?? 0, unavailable: sold ? ['flow', 'signal'] : ['flow', 'signal', 'exitCost'], spark8h: series(c),
+    ...(sold ? { sellCheck: { status: 'sellable', asOfBlock: MOCK_HEAD_BLOCK, checkedAt } } : {}),
     volume1hUsd: volume, trades1h: trades.length, volume24hUsd: volume, trades24h: trades.length });
   // New pairs adds what the holder check measured (views.ts pairRow).
   const pair = { buyers: new Set(trades.flatMap(t => t.side === 'buy' && t.wallet ? [t.wallet] : [])).size, verdictPending: false,
@@ -205,6 +218,11 @@ export function quotedFlow(address: string, window: Window, on = moreLaunchpadsO
 }
 /** Whether a trade quote for this coin gets the edge's answer for a pool it checks but does not trade. */
 export const isQuotedDemoCoin = (address: string, on = moreLaunchpadsOn()) => !!find(address, on);
+/** What Exit check needs of one of these coins: whether its hook is reviewed, and its quote (symbol, kind, dollars per unit). */
+export function quotedExitFacts(address: string, on = moreLaunchpadsOn()) {
+  const d = find(address, on);
+  return d && { hookReviewed: d.coin.hookReviewed, quote: { symbol: d.coin.quote.symbol, kind: d.coin.quote.kind === 'ETH' ? 'ETH' as const : d.coin.quote.kind, usd: d.coin.quoteUsd } };
+}
 /** 72 deterministic bars ending at the coin's price, for its chart. */
 export function quotedCandles(address: string, step: number, end: number, on = moreLaunchpadsOn()): Bar[] {
   const d = find(address, on);

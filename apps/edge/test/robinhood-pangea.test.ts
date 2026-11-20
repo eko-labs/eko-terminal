@@ -154,7 +154,7 @@ describe('Pangea launches (Robinhood Chain)', () => {
     expect(p).toMatchObject({ name: 'Speedd', symbol: 'SPd', key: coin.key, pons: null, lock: null });
     expect(p.probe).toMatchObject({ venue: 'uniswap_v4', routeId: `uniswap_v4:${coin.poolId}`, status: 'sellable', exitCostPct: 1.99 });
     expect(routes).toHaveLength(1);
-    expect(() => robinhoodChain().trade.precheck!(coin)).toThrow(/does not trade it: its pool's hook has not been reviewed/);
+    expect(() => robinhoodChain().trade.precheck!(coin)).toThrow(/does not trade it: its pool runs a hook EKO does not trade through/);
   });
 });
 

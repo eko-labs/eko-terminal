@@ -112,7 +112,7 @@ export function createMockTransport(opts: { flags?: Partial<Flags> } = {}) {
       const parsed = TradeQuoteRequestSchema.extend({ amountUsd: TradeQuoteRequestSchema.shape.amountUsd.positive(), slippageBps: TradeQuoteRequestSchema.shape.slippageBps.int().min(0).max(9999) }).strict().safeParse(body());
       if (!parsed.success) return json({ error: 'bad_request', message: 'Invalid trade quote request.' }, 400);
       // A pool with an unreviewed hook (long.xyz): checked, never traded, as the edge answers (robinhood-venue.ts precheck).
-      if (isQuotedDemoCoin(parsed.data.coin)) return json({ error: 'not_traded', message: 'EKO checks this coin but does not trade it: its pool\'s hook has not been reviewed.' }, 409);
+      if (isQuotedDemoCoin(parsed.data.coin)) return json({ error: 'not_traded', message: 'EKO checks this coin but does not trade it: its pool runs a hook EKO does not trade through.' }, 409);
       // Synthetic, request-scoped display only. No executable route or accepted checks.
       // Amounts that read like a real quote (no placeholder text on screen: the update films show this panel), from an
       // ETH price near the demo's and a coin price near the demo coins'. Display only: the route is never executable.

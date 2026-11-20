@@ -17,12 +17,12 @@ export function robinhoodVenue(a: RobinhoodTradeAddresses & { ponsHook?: Address
   return {
     routers: [a.universalRouter], spenders: [a.permit2], permit2: a.permit2,
     precheck(coin) {
-      // A hook can change what a swap pays or returns. Only the Pons hook is reviewed (the registry's); EKO checks coins in
-      // other hooked pools (Pangea, long.xyz) but does not build trades into them. Hookless pools go through the reviewed
-      // Universal Router.
+      // A hook can change what a swap pays or returns. EKO builds trades only through the Pons hook (the registry's): it
+      // checks coins in other hooked pools (Pangea; long.xyz, even where the verdict counts the Doppler hook reviewed) but
+      // does not trade them. Hookless pools go through the reviewed Universal Router.
       const hook = coin.key?.hooks;
       if (hook && hook !== zeroAddress && !(a.ponsHook && hook.toLowerCase() === a.ponsHook.toLowerCase()))
-        throw fail('EKO checks this coin but does not trade it: its pool\'s hook has not been reviewed.', 'not_traded', 409);
+        throw fail('EKO checks this coin but does not trade it: its pool runs a hook EKO does not trade through.', 'not_traded', 409);
     },
     route(coin, check) {
       if (coin.curve && !coin.graduated) return { kind: 'curve', curve: coin.curve.address, token: coin.token };
