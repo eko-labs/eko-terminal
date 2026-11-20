@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import Fastify, { type FastifyInstance, type FastifyReply } from 'fastify';
 import fastifyStatic from '@fastify/static';
 import { brotliCompressSync, constants as zlib, gzipSync } from 'node:zlib';
-import { isAddress } from 'viem';
+import { isAddress, type Address } from 'viem';
 import type { ErrorCode, PairRow } from '@eko/shared';
 import { barsFromTrades, MAX_BARS, TIMEFRAMES, type Timeframe } from './market.js';
 import type { Edge } from './service.js';
@@ -49,7 +49,7 @@ export function pickEncoding(accept: string | undefined): 'br' | 'gzip' | null {
 /** Read methods the web app's wallet layer may relay (network badge, balances, token reads). Nothing that sends. */
 export const RELAY_METHODS = new Set(['eth_chainId', 'eth_blockNumber', 'eth_getBalance', 'eth_getTransactionCount', 'eth_getCode', 'eth_call', 'eth_gasPrice', 'eth_maxPriorityFeePerGas', 'eth_getBlockByNumber', 'eth_getTransactionReceipt', 'eth_estimateGas']);
 
-export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: string; logger?: boolean; rpc?: Rpc; store?: HistoryStore; historian?: Historian; funders?: FunderTracer; accounts?: AccountStore; trading?: Trading; maxTradeUsd?: number; flags?: ReadonlySet<string>; features?: readonly LoadedFeature[]; alerts?: AlertInbox; onApproval?: (accountId: string, a: Approval) => void; trustProxyHops?: number; build?: BuildInfo; relay?: RelayClient } = {}): FastifyInstance {
+export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: string; logger?: boolean; rpc?: Rpc; store?: HistoryStore; historian?: Historian; funders?: FunderTracer; accounts?: AccountStore; trading?: Trading; maxTradeUsd?: number; flags?: ReadonlySet<string>; token?: { address: Address; symbol?: string }; features?: readonly LoadedFeature[]; alerts?: AlertInbox; onApproval?: (accountId: string, a: Approval) => void; trustProxyHops?: number; build?: BuildInfo; relay?: RelayClient } = {}): FastifyInstance {
   // Trust exactly the proxies in front of us (Railway: one hop), so a client cannot pick its own req.ip with X-Forwarded-For.
   // JSON bodies are small everywhere; the routes that need more (SIWE contract-wallet signatures, MCP batches) say so.
   const hops = opts.trustProxyHops ?? 1;
@@ -92,7 +92,7 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
   };
 
   const tradingConfig = opts.trading ? { routers: opts.trading.routers, spenders: opts.trading.spenders, permit2: opts.trading.permit2, maxTradeUsd: opts.maxTradeUsd ?? 1000 } : undefined;
-  app.get('/v1/config', async () => publicConfig(tradingConfig, { accounts: !!opts.accounts, ...(opts.flags ? { flags: opts.flags } : {}) }, chain));
+  app.get('/v1/config', async () => publicConfig(tradingConfig, { accounts: !!opts.accounts, ...(opts.flags ? { flags: opts.flags } : {}), ...(opts.token ? { token: opts.token } : {}) }, chain));
   const agents = opts.accounts ? new AgentStore(opts.accounts.db) : undefined;
   let auth: ReturnType<typeof registerAccountRoutes> | undefined;
   if (opts.accounts && agents) {
@@ -212,7 +212,7 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
   });
 
   // Post-launch features that are on (features/index.ts): their routes come before the catch-all below.
-  for (const feature of opts.features ?? []) feature.register({ app, edge, ...(opts.store ? { store: opts.store } : {}), ...(opts.accounts ? { accounts: opts.accounts } : {}), ...(auth ? { auth } : {}), ...(opts.alerts ? { alerts: opts.alerts } : {}) });
+  for (const feature of opts.features ?? []) feature.register({ app, edge, ...(opts.store ? { store: opts.store } : {}), ...(opts.accounts ? { accounts: opts.accounts } : {}), ...(auth ? { auth } : {}), ...(opts.alerts ? { alerts: opts.alerts } : {}), ...(opts.rpc ? { rpc: opts.rpc } : {}) });
 
   // Everything else under the API is not served yet.
   app.all('/v1/*', async (_req, reply) => fail(reply, 404, 'not_found', `Not available on EKO for ${chain.name} yet.`));
@@ -226,7 +226,7 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
     // knows the features, plan and trading state: no sidebar item, plan chip or trade panel changes size when the
     // config request returns (layout shift). `<` is escaped so the JSON can never close the script element.
     const shellFile = readFileSync(resolve(web, 'index.html'), 'utf8');
-    const inlineConfig = () => `<script id="eko-config" type="application/json">${JSON.stringify(publicConfig(tradingConfig, { accounts: !!opts.accounts, ...(opts.flags ? { flags: opts.flags } : {}) }, chain)).replace(/</g, '\\u003c')}</script>`;
+    const inlineConfig = () => `<script id="eko-config" type="application/json">${JSON.stringify(publicConfig(tradingConfig, { accounts: !!opts.accounts, ...(opts.flags ? { flags: opts.flags } : {}), ...(opts.token ? { token: opts.token } : {}) }, chain)).replace(/</g, '\\u003c')}</script>`;
     const shell = { toString: () => shellFile.replace('<!--eko:head-->', `<!--eko:head-->${inlineConfig()}`) };
     const html = (doc: string | { toString(): string }) => (_req: unknown, reply: FastifyReply) => reply.header('cache-control', 'no-cache').type('text/html; charset=utf-8').send(String(doc));
     // Hashed bundles never change; fonts and landing media keep their names, so they get a month (and a day of

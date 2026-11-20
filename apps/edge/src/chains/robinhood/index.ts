@@ -354,6 +354,8 @@ export function robinhoodChain(registry: AddressRegistry = loadRegistry(), optio
     graduatesOnTrade: () => false,
     // With more_launchpads, a Pangea, long.xyz or unbranded coin still trading stays past EKO's memory, like a graduate.
     ...(options.moreLaunchpads ? { pooled: (coin: CoinState) => coin.launchpad !== 'pons' } : {}),
+    // The price of a quote token in ETH (more_launchpads: WETH, USDG and stock tokens), as QuotePrices last read it.
+    ...(options.moreLaunchpads ? { quoteNative: (token: Address) => quotes?.ethPer(token) ?? null } : {}),
     // A long.xyz coin quoted in WETH, USDG or a stock token (more_launchpads): each swap in ETH at the quote's price now.
     ...(options.moreLaunchpads ? { quotedTrade: (coin: CoinState, swap: Parameters<NonNullable<ChainAdapter['quotedTrade']>>[1]) => {
       const ethPer = quotes?.ethPer(coin.quote) ?? null;

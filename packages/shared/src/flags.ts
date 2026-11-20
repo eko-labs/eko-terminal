@@ -15,7 +15,8 @@ export const FLAG_STAGES = {
   'Drop 8': ['chain_base'],
   'Drop 9': ['institutional_pack', 'marketplace', 'eko_agent'],
   // TODO(spec): post-launch updates (docs/FLAGS.md) that §21.4 does not list; each ships from its feature folders.
-  Updates:  ['wallet_tags', 'dev_profile', 'more_launchpads', 'wallet_tracker'],
+  Updates:  ['wallet_tags', 'dev_profile', 'more_launchpads', 'wallet_tracker',
+             'exit_check', 'dev_sell_alerts', 'launch_alerts', 'linked_devs', 'price_alerts'],
 } as const;
 export type FlagName = (typeof FLAG_STAGES)[keyof typeof FLAG_STAGES][number];
 export const FLAG_NAMES = Object.values(FLAG_STAGES).flat() as [FlagName, ...FlagName[]];

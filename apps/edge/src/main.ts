@@ -1,3 +1,4 @@
+import { getAddress, isAddress } from 'viem';
 import { createMeteredClients } from '@eko/chain';
 import { chainKeyFrom, loadChain } from './chains/index.js';
 import { buildServer } from './server.js';
@@ -49,11 +50,16 @@ import { dirname, join } from 'node:path';
  *   STORE_MIN_FREE_MB  free space the database volume keeps: below it, new accounts, agents, keys, journal rows, approvals
  *                    and orders are refused (507) until space returns; chain memory keeps writing (default 512)
  *   EKO_FLAGS        features turned on, e.g. "leaderboards,referrals" (flags.ts; docs/FLAGS.md). Unset: none.
+ *   EKO_TOKEN_ADDRESS  the project's token once it is live: shown with a copy button on the landing page and the terminal
+ *                    header (/v1/config `token`). Unset or not an address: not shown. EKO_TOKEN_SYMBOL names it (optional).
  */
 const env = process.env;
 const log = (event: string, fields: Record<string, unknown> = {}) => console.log(JSON.stringify({ t: new Date().toISOString(), event, ...fields }));
 
 const flags = parseFlags(env.EKO_FLAGS);
+const tokenAddress = env.EKO_TOKEN_ADDRESS?.trim(), tokenSymbol = env.EKO_TOKEN_SYMBOL?.trim().replace(/^\$/, '').slice(0, 16);
+const token = tokenAddress && isAddress(tokenAddress) ? { address: getAddress(tokenAddress), ...(tokenSymbol ? { symbol: tokenSymbol } : {}) } : undefined;
+if (tokenAddress && !token) console.warn('EKO_TOKEN_ADDRESS is not an address: the token is not shown.');
 const chain = loadChain(chainKeyFrom(env.EKO_CHAIN), flags.on), profile = chain.profile;
 log('chain', { key: profile.key, id: profile.id });
 const clients = createMeteredClients({ ...env, RPC_PUBLIC_HTTP_URL: env.RPC_PUBLIC_HTTP_URL ?? profile.publicRpc,
@@ -94,7 +100,7 @@ if (flags.unknown.length) log('flags_unknown', { names: flags.unknown });
 const features = await loadFeatures(flags.on);
 const alerts = new AlertInbox();
 if (features.length) log('features_on', { flags: features.map(f => f.flag) });
-const app = buildServer(edge, { rpc, relay: relayClient(env.RPC_RELAY_URL ?? env.RPC_PUBLIC_HTTP_URL ?? profile.publicRpc), trustProxyHops: Number(env.TRUST_PROXY_HOPS ?? 1), build: loadBuild(), flags: flags.on, features, alerts, ...(accounts ? { accounts } : {}), ...(trading ? { trading } : {}), maxTradeUsd, onApproval: (accountId, a) => pushTo?.(accountId, 'approvals', 'approval', a), ...(store ? { store } : {}), ...(historian ? { historian } : {}), ...(funders ? { funders } : {}), webDist: env.WEB_DIST ?? new URL('../../web/dist', import.meta.url).pathname,
+const app = buildServer(edge, { rpc, relay: relayClient(env.RPC_RELAY_URL ?? env.RPC_PUBLIC_HTTP_URL ?? profile.publicRpc), trustProxyHops: Number(env.TRUST_PROXY_HOPS ?? 1), build: loadBuild(), flags: flags.on, ...(token ? { token } : {}), features, alerts, ...(accounts ? { accounts } : {}), ...(trading ? { trading } : {}), maxTradeUsd, onApproval: (accountId, a) => pushTo?.(accountId, 'approvals', 'approval', a), ...(store ? { store } : {}), ...(historian ? { historian } : {}), ...(funders ? { funders } : {}), webDist: env.WEB_DIST ?? new URL('../../web/dist', import.meta.url).pathname,
   landingDist: env.LANDING_DIST ?? new URL('../../landing/dist', import.meta.url).pathname });
 
 const realtime = await registerRealtime(app, edge, { ...(accounts ? { accounts } : {}) });

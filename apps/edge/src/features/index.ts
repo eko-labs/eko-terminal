@@ -6,6 +6,7 @@ import type { AccountStore } from '../accounts.js';
 import type { AlertInbox } from '../alerts.js';
 import type { HistoryStore } from '../history.js';
 import type { Edge } from '../service.js';
+import type { Rpc } from '../tracker.js';
 
 /**
  * Post-launch features, each in its own folder: src/features/<flag>/index.ts, where <flag> is the feature's flag name
@@ -21,6 +22,8 @@ export interface FeatureContext {
   auth?: ReturnType<typeof registerAccountRoutes>;
   /** In-site alerts for an account (alerts.ts), shown in the alerts drawer. */
   alerts?: AlertInbox;
+  /** The chain RPC the edge reads with (paid and metered): a feature that reads the chain keeps it to its own budget. */
+  rpc?: Rpc;
 }
 export interface Feature { register(ctx: FeatureContext): void }
 export interface LoadedFeature extends Feature { flag: FlagName }

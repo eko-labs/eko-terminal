@@ -1154,7 +1154,12 @@
       "eko_agent": false,
       "wallet_tags": false,
       "dev_profile": false,
-      "wallet_tracker": false
+      "wallet_tracker": false,
+      "exit_check": false,
+      "dev_sell_alerts": false,
+      "launch_alerts": false,
+      "linked_devs": false,
+      "price_alerts": false
     },
     "tiers": [
       {
@@ -2223,7 +2228,12 @@
     "eko_agent": false,
     "wallet_tags": false,
     "dev_profile": false,
-    "wallet_tracker": false
+    "wallet_tracker": false,
+    "exit_check": false,
+    "dev_sell_alerts": false,
+    "launch_alerts": false,
+    "linked_devs": false,
+    "price_alerts": false
   },
   "OpsSwitch": "trading_live",
   "WsEventMap": {

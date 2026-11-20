@@ -196,7 +196,7 @@ export function feedItem(e: FeedEvent, a: Assessment | undefined, c?: CoinState)
  * (routers) and approve (spenders) on this chain; a Pons curve is named per quote instead (its route's poolId), since
  * every coin has its own.
  */
-export function publicConfig(trading?: { routers: readonly Address[]; spenders: readonly Address[]; permit2: Address; maxTradeUsd: number }, features: { accounts?: boolean; flags?: ReadonlySet<string> } = {},
+export function publicConfig(trading?: { routers: readonly Address[]; spenders: readonly Address[]; permit2: Address; maxTradeUsd: number }, features: { accounts?: boolean; token?: { address: Address; symbol?: string }; flags?: ReadonlySet<string> } = {},
   chain: ChainProfile = ELYSIUM_PROFILE): PublicConfig {
   // With accounts open, Mission Control's approvals are served; other features are on when EKO_FLAGS names them (flags.ts).
   const on = new Set<string>([...(features.accounts ? ['approvals'] : []), ...(features.flags ?? [])]);
@@ -210,5 +210,6 @@ export function publicConfig(trading?: { routers: readonly Address[]; spenders: 
       : { liveEnabled: false, maxTradeUsd: 0, routers: [], spenders: [] },
     contracts: { receiptsRegistry: zeroAddress }, wallets: { burn: zeroAddress, dev: zeroAddress },
     burnBoard: { heroPctSupply: 0, heroUsd24h: 0 }, drops: [], loops: { maxBars: 10000, syncMaxBars: 2000 }, exampleScans: [] as Address[],
+    ...(features.token ? { token: features.token } : {}),
   };
 }

@@ -5,15 +5,24 @@ import { CHAIN_NAME } from '../../copy/chain';
 import type { WsState } from '../../lib/ws';
 
 // Server rendering reads a zustand store's initial state, so the header reads this stand-in instead.
-const shell: { wsState: WsState; delayedSec: number; headBlock: number | null; config: null } = { wsState: 'open', delayedSec: 0, headBlock: null, config: null };
+const shell: { wsState: WsState; delayedSec: number; headBlock: number | null; config: { token?: { address: string; symbol?: string } } | null } = { wsState: 'open', delayedSec: 0, headBlock: null, config: null };
 const set = (next: Partial<typeof shell>) => Object.assign(shell, next);
 vi.mock('../../store/shell', () => ({ useShell: (pick: (s: typeof shell) => unknown) => pick(shell) }));
 vi.mock('../../lib/router', async (original) => ({ ...(await original<typeof import('../../lib/router')>()), usePath: () => '/radar' }));
 const { Header, MobileBar, streamNotice, CONNECT_GRACE_MS } = await import('./Shell');
+const { TokenCa } = await import('./TokenCa');
 const status = (html: string) => html.match(/<span role="status"[^>]*>.*?<\/span>/)?.[0] ?? '';
 
 describe('terminal header', () => {
-  afterEach(() => set({ wsState: 'open', delayedSec: 0, headBlock: null }));
+  afterEach(() => set({ wsState: 'open', delayedSec: 0, headBlock: null, config: null }));
+  it('shows the token\'s contract address with a copy button once the config has one, and nothing before', () => {
+    expect(render(<Header />)).not.toContain('token-ca');
+    set({ config: { token: { address: '0xabababababababababababababababababababab', symbol: 'EKO' } } });
+    const html = render(<Header />);
+    expect(html).toContain('aria-label="Copy $EKO CA: 0xabababababababababababababababababababab"');
+    expect(html).toContain('0xabab…abab');
+    expect(render(<TokenCa compact />)).toMatch(/class="token-ca compact".*>CA</);
+  });
   it('links back to the landing page with its desktop and compact lockups', () => {
     const mark = render(<img src={ekoMark} alt="" />).match(/<img[^>]+>/)?.[0];
     const wordmark = '<span class="eko-brand-text">EKO</span>';

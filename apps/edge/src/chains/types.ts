@@ -156,6 +156,9 @@ export interface ChainAdapter {
   /** A swap of a coin quoted in a token the chain prices (CoinState.quoteConverted), as a trade in native currency; null
    *  when it cannot be read or priced now. Without it, token-quoted coins' swaps are not counted. */
   quotedTrade?(coin: CoinState, swap: { amount0: bigint; amount1: bigint; sqrtPriceX96: bigint; sender: Address; tx: Hex; block: number; ts: number }): Trade | null;
+  /** Native currency per whole unit of a quote token the chain prices (the price `quotedTrade` converts at), or null
+   *  while it is unknown. */
+  quoteNative?(token: Address): number | null;
   /** A coin with no graduation event of its own graduates on this trade. */
   graduatesOnTrade(coin: CoinState, openMcapHype: number): boolean;
   /** A coin that trades in its own pool from launch and never graduates (Robinhood Chain's pool launchpads, with flag

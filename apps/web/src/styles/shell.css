@@ -10,6 +10,15 @@ html,body,#root{height:auto;min-height:100%;overflow:visible}body{overflow:auto;
 /* Top right: the UTC clock alone. A quiet badge joins it only while data is delayed or the stream is down. */
 .apphdr-end{margin-left:auto;display:flex;align-items:center;gap:14px;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
 .apphdr-clock{min-width:12ch;text-align:right}
+/* The token's contract address, copied on click (config `token`). */
+.token-ca{display:inline-flex;align-items:center;gap:8px;height:26px;padding:0 6px 0 10px;border:1px solid var(--btn-edge);border-radius:var(--r1);background:transparent;color:var(--ink2);font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap}
+.token-ca:hover,.token-ca:focus-visible{color:var(--ink);border-color:var(--ink2)}
+.token-ca-label{color:var(--muted)}.token-ca-addr{text-transform:none;letter-spacing:0;color:var(--ink)}
+.token-ca-act{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:18px}.token-ca-act svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.4}
+.token-ca.copied{border-color:var(--ok, #6fd4a0);color:var(--ink)}.token-ca.copied .token-ca-act{color:var(--ok, #6fd4a0);padding:0 4px}
+.token-ca.compact{height:30px;padding:0 8px;gap:6px}
+/* Narrow phones: the CA takes the plan chip's place (logo, CA, wallet and menu fit at 375px). */
+@media(max-width:440px){.mbar-r:has(.token-ca) .trial{display:none}}
 .apphdr-badge{display:inline-flex;align-items:center;gap:7px;height:22px;padding:0 8px;border:1px dashed var(--btn-edge);border-radius:var(--r1);color:var(--ink2)}
 .apphdr-badge i{width:6px;height:6px;border-radius:50%;background:var(--muted)}
 .apphdr-badge.delayed{border-style:solid;background:var(--dither-dots) 0 0/var(--dither-size),var(--raise)}.apphdr-badge.delayed i{background:var(--monitor)}

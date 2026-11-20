@@ -75,6 +75,9 @@ export const PublicConfigSchema = z.object({
     syncMaxBars: z.number(),
   }),
   exampleScans: z.array(AddressSchema),
+  /** The project's token, once it is live (EKO_TOKEN_ADDRESS on the edge): shown with a copy button on the landing page
+   *  and the terminal header. Absent until set. */
+  token: z.object({ address: AddressSchema, symbol: z.string().min(1).max(16).optional() }).optional(),
 });
 export type PublicConfig = z.infer<typeof PublicConfigSchema>;
 export const MeSchema = z.object({
@@ -187,8 +190,10 @@ export const AlertSchema = z.object({
   guardV2: GuardAssessmentV2Schema.nullable().optional(),
   id: z.string(),
   ts: z.string(),
-  // TODO(spec): 'wallet_trade' (a wallet the account follows traded) is a post-launch addition, not in FACTS §7.
-  kind: z.union([AlertSettingsSchema.shape.kinds.element, z.literal('agent_trade'), z.literal('wallet_trade')]),
+  // TODO(spec): post-launch additions, not in FACTS §7: 'wallet_trade' (a wallet the account follows traded), 'dev_sell'
+  // (a coin's dev or insiders sold), 'launch_match' (a new coin matched a saved filter), 'price' (a price target was hit).
+  kind: z.union([AlertSettingsSchema.shape.kinds.element, z.literal('agent_trade'), z.literal('wallet_trade'), z.literal('dev_sell'),
+    z.literal('launch_match'), z.literal('price')]),
   level: LevelSchema.optional(),
   coin: AddressSchema.optional(),
   symbol: UntrustedSchema.optional(),

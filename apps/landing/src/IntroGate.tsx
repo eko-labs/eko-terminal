@@ -10,6 +10,7 @@ import "./intro-gate.css";
 import OriginalHeroIntro from "./OriginalHeroIntro";
 import { INTRO_SEEN_KEY } from "./intro-captions";
 import { IntroCovered } from "./intro-state";
+import TokenBar from "./sections/TokenBar";
 
 /** The intro plays again once this long has passed since it last played (a first visit always plays it). */
 export const INTRO_REPLAY_MS = 3 * 24 * 3600 * 1000;
@@ -123,6 +124,7 @@ export default function IntroGate({ children }: { children: ReactNode }) {
           aria-modal="true"
           aria-label="EKO opening animation"
         >
+          <TokenBar floating />
           <OriginalHeroIntro
             onComplete={reveal}
             onError={reveal}

@@ -9,6 +9,7 @@ import SignalGrid from "./sections/SignalGrid";
 import EkoBento from "./sections/EkoBento";
 import IntroGate from "./IntroGate";
 import FAQ from "./sections/FAQ";
+import TokenBar from "./sections/TokenBar";
 import "./eko.css";
 
 function Landing() {
@@ -17,6 +18,7 @@ function Landing() {
       <a className="skip-link" href="#senses">
         Skip to signal discovery
       </a>
+      <TokenBar />
       <main>
         <Hero />
         <p className="dashboard-caption">

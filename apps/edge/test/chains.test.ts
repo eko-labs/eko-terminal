@@ -65,6 +65,10 @@ describe('publicConfig.chain', () => {
     expect(PublicConfigSchema.parse(publicConfig()).chain).toEqual({ key: 'elysium', id: 99901, name: 'Elysium', native: 'HYPE',
       explorerUrl: ELYSIUM_PROFILE.explorerUrl, publicRpcUrl: ELYSIUM_PROFILE.publicRpc });
     expect(PublicConfigSchema.parse(publicConfig(undefined, {}, ROBINHOOD_PROFILE)).chain).toMatchObject({ key: 'robinhood', id: 4663, name: 'Robinhood Chain', native: 'ETH' });
+    // The token shows only once EKO_TOKEN_ADDRESS sets it.
+    expect(PublicConfigSchema.parse(publicConfig(undefined, {}, ROBINHOOD_PROFILE)).token).toBeUndefined();
+    expect(PublicConfigSchema.parse(publicConfig(undefined, { token: { address: '0xabABabABabABabABabABabABabABabABabABabAB', symbol: 'EKO' } }, ROBINHOOD_PROFILE)).token)
+      .toEqual({ address: '0xabababababababababababababababababababab', symbol: 'EKO' });
     for (const chain of [elysium, asRobinhood]) {
       const app = buildServer(new Edge(new Tracker(noRpc, chain), noRpc, chain, new HypeUsd(async () => new Response('{}'))));
       expect(PublicConfigSchema.parse((await app.inject({ url: '/v1/config' })).json()).chain).toMatchObject({ key: chain.profile.key, id: chain.profile.id });

@@ -19,6 +19,7 @@ import { Seg } from '../ui';
 import { PolicyLinks } from '../PolicyLinks';
 import { IconRadar, IconPairs, IconSearch, IconAgent, IconMenu } from '../icons';
 import { navGroups, breadcrumbTrail } from './navigation';
+import { TokenCa } from './TokenCa';
 
 // A real link, not a router Link: "/" is the landing, served by the host (and by vite.config.ts in dev), not the SPA.
 export function BrandLink({ compact = false }: { compact?: boolean }) {
@@ -101,9 +102,9 @@ export function Header() {
   const notice = streamNotice(state, delay, Date.now() - mounted);
   // Healthy: the status stays readable to assistive tech (and to the e2e checks) but is not drawn; the clock stands alone.
   const status = notice ?? (state === 'open' ? C.live : C.connecting);
-  return <header className="apphdr" onClick={onHeaderBackgroundClick}><BrandLink /><nav className="apphdr-crumb" aria-label="Breadcrumb">{trail.map((label, i) => <span key={`${i}-${label}`} aria-current={i === trail.length - 1 ? 'page' : undefined}>{label}</span>)}</nav><span className="apphdr-end"><span role="status" data-testid="stream-status" data-state={state} className={notice ? `apphdr-badge${state === 'open' ? ' delayed' : ''}` : 'sr'}>{notice && <i aria-hidden="true" />}{status}</span><span className="num apphdr-clock" aria-hidden="true">{new Date(now).toISOString().slice(11, 19)} UTC</span></span></header>;
+  return <header className="apphdr" onClick={onHeaderBackgroundClick}><BrandLink /><nav className="apphdr-crumb" aria-label="Breadcrumb">{trail.map((label, i) => <span key={`${i}-${label}`} aria-current={i === trail.length - 1 ? 'page' : undefined}>{label}</span>)}</nav><span className="apphdr-end"><TokenCa /><span role="status" data-testid="stream-status" data-state={state} className={notice ? `apphdr-badge${state === 'open' ? ' delayed' : ''}` : 'sr'}>{notice && <i aria-hidden="true" />}{status}</span><span className="num apphdr-clock" aria-hidden="true">{new Date(now).toISOString().slice(11, 19)} UTC</span></span></header>;
 }
-export function MobileBar() { return <header className="mbar" onClick={onHeaderBackgroundClick}><BrandLink compact /><div className="mbar-r"><PlanChip compact /><WalletButton /></div></header>; }
+export function MobileBar() { return <header className="mbar" onClick={onHeaderBackgroundClick}><BrandLink compact /><div className="mbar-r"><TokenCa compact /><PlanChip compact /><WalletButton /></div></header>; }
 function Sheet({ title, children, close }: { title: string; children: ReactNode; close: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => { const dialog = ref.current!; dialog.showModal(); return () => dialog.close(); }, []);
