@@ -138,7 +138,7 @@ function assessment(level: 'clear' | 'danger'): Assessment {
   return { coin: token, block: launchBlock, at: '2026-11-10T12:00:00.000Z', name: 'Test coin', symbol: 'TEST', key: null,
     config: { totalFeePips: 20000, lpFeePips: 0, protocolFeePips: 4000, liquiditySealed: false, seeded: true, feeLocked: false, earlyBuyFeeUntil: 0, stage: 0 },
     currentBuyFeePips: 20000, antiSnipe: null, probeUsd: 1000, matches: verdict.playbooks,
-    stats: { holders: { top10Share: 0.12, largestShare: 0.04, largest: null, transferredShare: 0, transferredWallets: 0, evidence: [] }, earlyBuyers: [],
+    stats: { holders: { top10Share: 0.12, largestShare: 0.04, largest: null, transferredShare: 0, transferredWallets: 0, evidence: [] }, earlyBuyers: [], bundles: [], copyTraders: [],
       dev: { heldShare: 0.02, cashInUsd: 70, cashOutUsd: 0, soldShare: 0, firstSellSec: null, evidence: [] }, buyers: 7, holderCount: 9 },
     probe: { method: 'sell-check-1', venue: 'uniswap_v4', routeId: 'x', block: String(launchBlock), sizeWei: '1', status: level === 'danger' ? 'sell_failed' : 'sellable',
       reason: level === 'danger' ? 'sell_reverted' : null, spentWei: '100', tokens: '5', returnedWei: level === 'danger' ? '0' : '98', quotedSellWei: null, exitCostPct: level === 'danger' ? 100 : 2, revert: null, requests: 1 },

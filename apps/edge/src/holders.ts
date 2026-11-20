@@ -2,6 +2,7 @@ import { getAddress, type Address } from 'viem';
 import type { CardSources } from '@eko/playbooks';
 import type { CoinState } from './tracker.js';
 import { BURN_SINKS } from './burn.js';
+import { launchGroups } from './bundles.js';
 
 /**
  * Holder, early-buyer and deployer figures for one coin, from its transfers and its pool's swaps. Pure.
@@ -13,6 +14,9 @@ import { BURN_SINKS } from './burn.js';
 export interface FlowStats {
   holders: NonNullable<CardSources['holders']>;
   earlyBuyers: NonNullable<CardSources['earlyBuyers']>;
+  /** Bundles linked by their own transactions, and copy traders (bundles.ts); empty without `launch` options. */
+  bundles: NonNullable<CardSources['bundles']>;
+  copyTraders: NonNullable<CardSources['copyTraders']>;
   dev: NonNullable<CardSources['dev']>;
   /** Wallets with at least one buy. */
   buyers: number;
@@ -25,7 +29,9 @@ const DEAD = BURN_SINKS;
 /** A wallet's traced funder (not a hub), when known. */
 export type FunderLookup = (wallet: string) => { funder: Address | null; fundedTs: number | null } | undefined;
 
-export function flowStats(coin: CoinState, opts: { excluded: Address[]; hypeUsd: number | null; cohortSec?: number; funders?: FunderLookup }): FlowStats {
+export interface LaunchWindow { firstBlocks: number; minWallets: number; publicRouters?: readonly string[] }
+
+export function flowStats(coin: CoinState, opts: { excluded: Address[]; hypeUsd: number | null; cohortSec?: number; funders?: FunderLookup; launch?: LaunchWindow }): FlowStats {
   const supply = coin.supply > 0n ? coin.supply : 1n;
   const share = (v: bigint) => Number((v * 1_000_000n) / supply) / 1_000_000;
   const excluded = new Set([...DEAD, ...opts.excluded.map(a => a.toLowerCase())]);
@@ -75,6 +81,10 @@ export function flowStats(coin: CoinState, opts: { excluded: Address[]; hypeUsd:
   const neverBought = top10.filter(([k]) => !bought.has(k) && k !== creator);
   const usd = (hype: number) => (opts.hypeUsd ? hype * opts.hypeUsd : 0);
   const evidence = (wallet: string, label: string) => [{ kind: 'address' as const, ref: getAddress(wallet), label }];
+  const groups = opts.launch ? launchGroups(coin, { excluded: opts.excluded, ...opts.launch }) : { bundles: [], copyTraders: [] };
+  const bundled = new Set(groups.bundles.flatMap(b => b.wallets));
+  // A busy bundle can hold a hundred wallets: the card names the twenty that appear first.
+  const named = (wallets: string[], label: string) => wallets.slice(0, 20).flatMap(w => evidence(w, label));
 
   return {
     holders: {
@@ -93,7 +103,18 @@ export function flowStats(coin: CoinState, opts: { excluded: Address[]; hypeUsd:
       funder: getAddress(funder ?? wallet), fundedAtSec: funder && f?.fundedTs != null ? f.fundedTs : e.ts, buyAtSec: e.ts, buyBlock: e.block,
       heldShare: share(balance.get(wallet) ?? 0n), boughtShare: share(e.bought), sellingIntoNetInflow: false,
       deployer: wallet === creator, evidence: evidence(wallet, wallet === creator ? 'Deployer early buy' : 'Early buyer'),
+      ...(bundled.has(wallet) ? { bundled: true } : {}),
     }; }),
+    bundles: groups.bundles.map(b => ({
+      wallets: b.wallets.length, launchWallets: b.launchWallets.length, oneTx: !!b.oneTx, boughtShare: share(b.bought), soldShare: share(b.sold), heldShare: share(b.held),
+      lastSellSec: b.lastSellBlock === null ? null : Math.max(0, (coin.trades.find(t => t.block === b.lastSellBlock)?.ts ?? coin.ts) - coin.ts),
+      evidence: [...(b.oneTx ? [{ kind: 'tx' as const, ref: b.oneTx.tx, block: b.oneTx.block, label: `One transaction bought for ${b.oneTx.wallets} bundle wallets` }] : []),
+        ...named(b.launchWallets, 'Bundle wallet (bought at launch)'), ...named(b.wallets.filter(w => !b.launchWallets.includes(w)), 'Bundle wallet (tokens passed to it)')],
+    })),
+    copyTraders: groups.copyTraders.map(c => ({
+      wallets: c.wallets.length, boughtShare: share(c.bought), soldShare: share(c.sold), heldShare: share(c.held),
+      evidence: [...evidence(c.bot, 'Copy trading bot'), ...named(c.wallets, 'Copy trader')],
+    })),
     dev: {
       heldShare: share(balance.get(creator) ?? 0n), cashInUsd: usd(dev.cashInHype), cashOutUsd: usd(dev.cashOutHype), soldShare: share(dev.sold),
       firstSellSec: dev.firstSellTs === null ? null : Math.max(0, dev.firstSellTs - coin.ts), evidence: evidence(creator, 'Deployer'),

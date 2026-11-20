@@ -13,7 +13,7 @@ export const PLAYBOOK_DESCRIPTIONS: Record<PlaybookId, string> = {
   wash_to_trend: 'Volume made by wallets trading with themselves.',
   clone_swarm: 'Copies the name of a trending coin launched earlier.',
   exempt_insiders: 'Anti-sniper-exempt wallets bought a large share of supply.',
-  bundle_dump: 'Wallets that bought in the first minute (bundles, snipers, the deployer) took a large share.',
+  bundle_dump: 'A bundle (wallets one buyer controls) or the first minute\'s buyers took a large share.',
   migration_dump: 'Insiders sold into graduation.',
   malicious_hook: 'A v4 hook charges sells more than buys.',
   agent_bait: 'Token text carries instructions aimed at AI agents',

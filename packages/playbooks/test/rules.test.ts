@@ -255,6 +255,29 @@ describe('bundle_dump', () => {
     expect(gone.level).toBe('monitor');
     expect(reasonForMatch(gone)).toBe('2 wallets bought 32% of supply in the first minute; those wallets now hold 0% (sold or moved to other wallets).');
   });
+  // 2026-11-20: bundles linked by their own transactions (one transaction buying for several wallets, tokens passed
+  // between them) are counted apart from the cohort; copy traders (each in its own transaction, through one bot) are not a bundle.
+  const linked = (bought: number, held: number, sold = bought - held, lastSellSec: number | null = 95) => ({ wallets: 15, launchWallets: 2, oneTx: true, boughtShare: bought, soldShare: sold, heldShare: held, lastSellSec, evidence: [] });
+  it.each([[0.1, 0, null], [0.15, 0, 'monitor'], [0.22, 0.1499, 'monitor'], [0.22, 0.15, 'monitor'], [0.4, 0.3, 'danger']] as const)('a linked bundle that bought %s and holds %s → %s', (bought, held, expected) =>
+    level('bundle_dump', { ...base(), bundles: [linked(bought, held)] }, expected));
+  it('counts bundled wallets in the bundle, not in the early cohort', () => {
+    const input = cohort([0.2, 0.2]); input.earlyBuyers![0].bundled = true;
+    const m = evaluatePlaybooks(input).find((x) => x.id === 'bundle_dump')!;
+    expect(m.evidence.find((e) => e.label === 'Early buyer wallets')?.value).toBe(1);
+  });
+  it('tells the bundle, the rest of the first minute and the copy traders apart', () => {
+    const input = { ...cohort([0.1, 0.05], 1, -1, 0), bundles: [linked(0.2217, 0)], copyTraders: [{ wallets: 2, boughtShare: 0.15, soldShare: 0.15, heldShare: 0, evidence: [] }] };
+    const m = evaluatePlaybooks(input).find((x) => x.id === 'bundle_dump')!;
+    expect(m.level).toBe('monitor');
+    expect(reasonForMatch(m)).toBe('A bundle: 2 wallets bought 22.2% of supply in one transaction at launch and passed it through 13 more; it has sold all of it within 95 seconds. '
+      + '2 other wallets bought 15% of supply in the first minute; those wallets now hold 0% (sold or moved to other wallets). '
+      + '2 of those wallets were copy traders, not a bundle: they bought through one trading bot, each wallet in its own transaction, and sold everything they bought.');
+    const holding = evaluatePlaybooks({ ...base(), bundles: [{ ...linked(0.3, 0.2), wallets: 3, launchWallets: 3, oneTx: false }] }).find((x) => x.id === 'bundle_dump')!;
+    expect(reasonForMatch(holding)).toBe('A bundle: 3 wallets bought 30% of supply at launch; it has sold 10% and holds 20%.');
+  });
+  it('does not match on copy traders alone', () => {
+    level('bundle_dump', { ...base(), copyTraders: [{ wallets: 9, boughtShare: 0.4, soldShare: 0.4, heldShare: 0, evidence: [] }] }, null);
+  });
   it('names at most the twenty largest early buyers', () => {
     const m = evaluatePlaybooks(cohort(Array.from({ length: 40 }, (_, i) => 0.001 * (i + 1)))).find((x) => x.id === 'bundle_dump')!;
     const named = m.evidence.filter((e) => e.kind === 'address');

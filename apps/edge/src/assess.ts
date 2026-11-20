@@ -122,10 +122,13 @@ export function judge(coin: CoinState, p: Probed, ctx: JudgeContext): Assessment
     ...(probe.reason === 'sell_reverted' && probe.revert ? { revert: probe.revert } : {}),
   }] : [];
   const excluded = chain.excluded(coin);
-  const stats = flowStats(coin, { excluded, hypeUsd, ...(ctx.funders ? { funders: ctx.funders } : {}) });
+  const window = chain.profile.playbooks.bundle_dump;
+  const stats = flowStats(coin, { excluded, hypeUsd, ...(ctx.funders ? { funders: ctx.funders } : {}),
+    launch: { firstBlocks: window.firstBlocks, minWallets: window.minWallets, ...(chain.publicRouters ? { publicRouters: chain.publicRouters } : {}) } });
   const hasHook = !!key && key.hooks !== '0x0000000000000000000000000000000000000000';
   const sources: CardSources = {
     holders: stats.holders, earlyBuyers: stats.earlyBuyers, dev: stats.dev,
+    ...(stats.bundles.length ? { bundles: stats.bundles } : {}), ...(stats.copyTraders.length ? { copyTraders: stats.copyTraders } : {}),
     coin: coin.token, deployer: coin.creator, asOfBlock, asOfSec: nowSec, createdAtSec: coin.ts, createdAtBlock: coin.block,
     launchpad: coin.launchpad, name, symbol, antiSnipeActive, simulations, ...(runUp ? { runUp } : {}),
     // Without an ETH price no market cap is claimed, so fake_mcap stays silent rather than guessing.

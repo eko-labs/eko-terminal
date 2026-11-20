@@ -56,10 +56,10 @@ export function demoWalletTags(address: string, from = COIN_EPOCH - 72 * 300, to
   });
   trade(snipers[0]!, { i: 9, k: 3, side: 'sell', usd: 2210 }); trade(snipers[1]!, { i: 24, k: 7, side: 'sell', usd: 1180 });
 
-  // Bundle one: three wallets in one block (the second after launch); one is also the first sniper's block-mate.
-  const sameBlock = [1, 2, 3].map(n => gen(`block${n}`)), bundleBlock = launchBlock + 2;
+  // Bundle one: three wallets one transaction bought for (the second block after launch).
+  const sameBlock = [1, 2, 3].map(n => gen(`block${n}`));
   sameBlock.forEach((w, n) => {
-    tag(w, 'bundle', `Bought in block ${bundleBlock.toLocaleString('en-US')} with 2 other wallets`);
+    tag(w, 'bundle', 'Bought in one transaction with 2 other wallets (a bundle of 3)');
     tag(w, 'sniper', after(2));
     trade(w, { i: 0, k: 5 + n, side: 'buy', usd: [1290, 1310, 1275][n]! });
   });

@@ -111,7 +111,19 @@ export interface CardSources {
    */
   snipers?: { wallet: Address; block: number; boughtShare: number; heldShare: number; tipGwei: number | null; evidence: EvidenceRef[] }[];
   earlyBuyers?: { wallet: Address; funder: Address; fundedAtSec: number; buyAtSec: number; buyBlock: number;
-    heldShare: number; sellingIntoNetInflow: boolean; evidence: EvidenceRef[]; boughtShare?: number; deployer?: boolean }[];
+    heldShare: number; sellingIntoNetInflow: boolean; evidence: EvidenceRef[]; boughtShare?: number; deployer?: boolean;
+    /** In one of `bundles`: counted there, not in the early cohort. */
+    bundled?: boolean }[];
+  /**
+   * Bundles read from the coin's own transfers: wallets one operator controls because one transaction bought for several
+   * of them, or sold from one and bought into another, or they sent the coin to each other. Shares are of supply;
+   * `oneTx` when a launch-window transaction bought for two or more of them.
+   */
+  bundles?: { wallets: number; launchWallets: number; oneTx: boolean; boughtShare: number; soldShare: number; heldShare: number;
+    /** Seconds after launch of the bundle's last sell; null while it has sold nothing. */
+    lastSellSec: number | null; evidence: EvidenceRef[] }[];
+  /** Launch buyers that bought through one trading bot, each in its own transaction: copy traders, not a bundle. */
+  copyTraders?: { wallets: number; boughtShare: number; soldShare: number; heldShare: number; evidence: EvidenceRef[] }[];
   graduation?: { atSec: number; tx: EvidenceRef; insiderSells: {
     atSec: number; soldShare: number; priceImpactShare: number; evidence: EvidenceRef[];
   }[] };

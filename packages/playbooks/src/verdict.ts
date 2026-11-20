@@ -10,7 +10,7 @@ const templates: Record<PlaybookId, string> = {
   wash_to_trend: 'Estimated wash activity or volume per trader meets a threshold.',
   clone_swarm: 'Normalized identity matches an older trending coin.',
   exempt_insiders: 'Snipe-tax-exempt wallets bought supply or have crew rug history.',
-  bundle_dump: 'Early buyers (bundled wallets, snipers or the deployer) took a large share of supply.',
+  bundle_dump: 'A bundle (wallets one buyer controls) or the first minute\'s buyers took a large share of supply.',
   migration_dump: 'Insiders sold holdings in the graduation window.',
   malicious_hook: 'Hook permissions or observed quote/fee behavior meet a threshold.',
   agent_bait: 'Token text contains instructions aimed at agents.',
@@ -59,12 +59,24 @@ export function reasonForMatch(match: PlaybookMatch): string {
     const bought = value('Early buyers bought supply share'), held = value('Early buyers still hold supply share'), wallets = value('Early buyer wallets'), bundled = value('Wallets bought by one funder');
     const dev = value('Deployer early bought supply share');
     const pct = (n: number) => `${Math.round(n * 1000) / 10}%`;
-    const who = wallets != null ? `${wallets} wallet${wallets === 1 ? '' : 's'}${dev ? ', the deployer among them,' : ''}` : '';
     // Held counts only the same wallets: early wallets often send tokens on to others, so a low share is not an exit.
     const now = held == null ? '' : `; ${wallets === 1 ? 'that wallet now holds' : 'those wallets now hold'} ${pct(held)}${bought != null && held < bought / 2 ? ' (sold or moved to other wallets)' : ''}`;
-    const parts = [bought != null && wallets != null ? `${who} bought ${pct(bought)} of supply in the first minute${now}` : null,
-      bundled != null ? `${bundled} wallets were bought for by one funder` : null].filter(Boolean);
-    if (parts.length) return `${parts.join('; ')}.`.replace(/^./, (c) => c.toUpperCase());
+    // A bundle linked by its own transactions, told apart from copy traders (each in its own transaction, through one bot).
+    const lBought = value('Bundle bought supply share'), lSold = value('Bundle sold supply share'), lHeld = value('Bundle still holds supply share');
+    const lWallets = value('Bundle wallets'), lLaunch = value('Bundle wallets that bought at launch'), lLast = value('Bundle last sell (seconds after launch)');
+    const bundle = lBought == null || lWallets == null || lLaunch == null ? null
+      : `A bundle: ${lLaunch} wallet${lLaunch === 1 ? '' : 's'} bought ${pct(lBought)} of supply${value('Bundle bought in one transaction') ? ' in one transaction' : ''} at launch`
+        + `${lWallets > lLaunch ? ` and passed it through ${lWallets - lLaunch} more` : ''}`
+        + (lHeld != null && lSold != null ? (lHeld < 0.0005 && lSold > 0 ? `; it has sold all of it${lLast != null ? ` within ${lLast < 120 ? `${Math.round(lLast)} seconds` : `${Math.round(lLast / 60)} minutes`}` : ''}` : `; it has sold ${pct(lSold)} and holds ${pct(lHeld)}`) : '');
+    const cWallets = value('Copy trader wallets'), cBots = value('Copy trading bots'), cBought = value('Copy traders bought supply share'), cSold = value('Copy traders sold supply share');
+    const copies = cWallets == null || cBots == null ? null
+      : `${cWallets} of ${bundle ? 'those' : 'the early'} wallets were copy traders, not a bundle: they bought through ${cBots === 1 ? 'one trading bot' : `${cBots} trading bots`}, each wallet in its own transaction`
+        + (cBought != null && cSold != null && cSold > 0 ? (cSold >= cBought * 0.95 ? ', and sold everything they bought' : `; they bought ${pct(cBought)} and have sold ${pct(cSold)}`) : '');
+    const whoRest = wallets != null ? `${wallets} ${bundle ? 'other ' : ''}wallet${wallets === 1 ? '' : 's'}${dev ? ', the deployer among them,' : ''}` : '';
+    const cohortText = [bought != null && wallets != null ? `${whoRest} bought ${pct(bought)} of supply in the first minute${now}` : null,
+      bundled != null ? `${bundled} wallets were bought for by one funder` : null].filter(Boolean).join('; ');
+    const parts = [bundle, cohortText || null, copies].filter((p): p is string => !!p).map((p) => p.replace(/^./, (c) => c.toUpperCase()));
+    if (parts.length) return `${parts.join('. ')}.`;
   }
   if (match.id === 'run_up') {
     const value = (label: string) => { const v = match.evidence.find((e) => e.kind === 'stat' && e.label === label)?.value; return typeof v === 'number' && Number.isFinite(v) ? v : null; };

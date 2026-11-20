@@ -397,6 +397,7 @@ export function robinhoodChain(registry: AddressRegistry = loadRegistry(), optio
       t.graduate(coin, next.graduatedTs ?? ts, log);
     },
     excluded: (coin) => robinhoodExcluded(coin as Pick<RobinhoodCoinState, 'curve'> | undefined, addrs),
+    publicRouters: [registry.requireAddress('uniswapV4.universalRouter'), registry.requireAddress('uniswapV3.swapRouter02'), addrs.router],
     async probe(coin, block, deps, priorTips) {
       // Pons coins have 18 decimals; other launchpads' may not (Pangea's have 9): read once, for displays (views.ts).
       if (coin.decimals === undefined && coin.launchpad !== 'pons') {

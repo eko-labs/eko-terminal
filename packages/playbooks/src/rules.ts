@@ -197,13 +197,19 @@ export const bundleDump: Rule<'bundle_dump'> = {
     const buyers = [...groups.values()].filter((g) => g.length >= cfg.minWallets).flat();
     const share = buyers.reduce((n, b) => n + b.heldShare, 0);
     const selling = buyers.some((b) => b.sellingIntoNetInflow);
-    const bundleLevel = !buyers.length || (share < cfg.heldMonitor && !selling) ? null : share >= cfg.heldDanger || selling ? 'danger' : 'monitor';
+    const fundedLevel = !buyers.length || (share < cfg.heldMonitor && !selling) ? null : share >= cfg.heldDanger || selling ? 'danger' : 'monitor';
+    // Bundles linked by their own transactions (one transaction buying for several wallets, tokens passed between them):
+    // what they hold sets the level; having bought a large share, even if since sold, is Monitor.
+    const linked = s.bundles ?? [];
+    const linkedHeld = linked.reduce((n, b) => n + b.heldShare, 0), linkedBought = linked.reduce((n, b) => n + b.boughtShare, 0);
+    const linkedLevel = !linked.length ? null : linkedHeld >= cfg.heldDanger ? 'danger' : linkedHeld >= cfg.heldMonitor || linkedBought >= cfg.heldMonitor ? 'monitor' : null;
+    const bundleLevel = fundedLevel === 'danger' || linkedLevel === 'danger' ? 'danger' : fundedLevel ?? linkedLevel;
     // The early cohort as a whole, the deployer included: whoever bought in the first cohortSec after launch (bundled,
     // sniping, waiting out the anti-snipe tax, or the deployer's own buy). What it still holds sets the level; having
     // bought a large share that it has since sold or moved is the lower one (calibrated thresholds, config v1).
     const cohort = new Map<string, NonNullable<CardSources['earlyBuyers']>[number][]>();
     for (const b of s.earlyBuyers ?? []) {
-      if (b.boughtShare == null || b.buyBlock < s.createdAtBlock || b.buyAtSec - s.createdAtSec >= cfg.cohortSec) continue;
+      if (b.boughtShare == null || b.bundled || b.buyBlock < s.createdAtBlock || b.buyAtSec - s.createdAtSec >= cfg.cohortSec) continue;
       const key = b.wallet.toLowerCase();
       cohort.set(key, [...(cohort.get(key) ?? []), b]);
     }
@@ -213,7 +219,18 @@ export const bundleDump: Rule<'bundle_dump'> = {
     const cohortLevel = held >= cfg.cohortDanger ? 'danger' : held >= cfg.cohortMonitor || bought >= cfg.cohortBought ? 'monitor' : null;
     const level = bundleLevel === 'danger' || cohortLevel === 'danger' ? 'danger' : bundleLevel ?? cohortLevel;
     if (!level) return null;
+    const copies = s.copyTraders ?? [];
+    const sum = <T,>(rows: T[], f: (r: T) => number) => rows.reduce((n, r) => n + f(r), 0);
     return match(s, h, this.id, level, [
+      ...(linked.length ? [stat(s, this.id, 'linked_bought', 'Bundle bought supply share', linkedBought), stat(s, this.id, 'linked_sold', 'Bundle sold supply share', sum(linked, (b) => b.soldShare)),
+        stat(s, this.id, 'linked_held', 'Bundle still holds supply share', linkedHeld), stat(s, this.id, 'linked_wallets', 'Bundle wallets', sum(linked, (b) => b.wallets)),
+        stat(s, this.id, 'linked_launch_wallets', 'Bundle wallets that bought at launch', sum(linked, (b) => b.launchWallets)),
+        stat(s, this.id, 'linked_one_tx', 'Bundle bought in one transaction', linked.some((b) => b.oneTx) ? 1 : 0),
+        ...(linked.every((b) => b.lastSellSec != null) ? [stat(s, this.id, 'linked_last_sell', 'Bundle last sell (seconds after launch)', Math.max(...linked.map((b) => b.lastSellSec!)))] : []),
+        ...linked.flatMap((b) => b.evidence)] : []),
+      ...(copies.length ? [stat(s, this.id, 'copy_wallets', 'Copy trader wallets', sum(copies, (c) => c.wallets)), stat(s, this.id, 'copy_bots', 'Copy trading bots', copies.length),
+        stat(s, this.id, 'copy_bought', 'Copy traders bought supply share', sum(copies, (c) => c.boughtShare)), stat(s, this.id, 'copy_sold', 'Copy traders sold supply share', sum(copies, (c) => c.soldShare)),
+        ...copies.flatMap((c) => c.evidence)] : []),
       ...(cohort.size ? [stat(s, this.id, 'cohort_bought', 'Early buyers bought supply share', bought), stat(s, this.id, 'cohort_held', 'Early buyers still hold supply share', held),
         stat(s, this.id, 'cohort_wallets', 'Early buyer wallets', cohort.size),
         stat(s, this.id, 'cohort_deployer', 'Deployer early bought supply share', [...cohort.values()].flat().filter((b) => b.deployer).reduce((n, b) => n + (b.boughtShare ?? 0), 0))] : []),

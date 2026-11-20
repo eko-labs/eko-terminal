@@ -167,6 +167,8 @@ export interface ChainAdapter {
   // Checks.
   /** Contracts that hold or route a coin without being holders. */
   excluded(coin?: Pick<CoinState, 'launcher' | 'curve'>): Address[];
+  /** Public routers anyone trades through (Uniswap's): buys through one are not a trading bot's copy trades (bundles.ts). */
+  publicRouters?: readonly Address[];
   /** The paid part of a check (name, terms, the buy-then-sell probe, early-buy tips). */
   probe(coin: CoinState, block: bigint, deps: { rpc: Rpc; hypeUsd: () => number | null; now?: () => number }, priorTips?: Record<string, number>): Promise<Probed>;
   facts(coin: CoinState, p: Probed, nowSec: number): JudgeFacts;

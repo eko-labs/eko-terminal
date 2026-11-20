@@ -164,7 +164,7 @@ export function coinCard(c: CoinState, a: Assessment | undefined, ctx: ViewConte
     // Pangea's and long.xyz's launch positions sit with their own unreviewed contracts: named missing, never claimed. The
     // unbranded launcher hands its position to the creator: removable, claimed once a check has said so.
     liquidity: { depthUsd: { pct2: 0, pct5: 0, pct10: 0 }, lpStatus: c.launchpad === 'flaunch' || robinhoodPoolLaunch(c) ? 'removable' : c.launchpad === 'pons' ? 'pons_locked' : 'locked', feeTiers: a?.config ? [feeBps] : [] },
-    supply: { top10Pct: a ? pct(a.stats.holders.top10Share) : 0, devPct: a ? pct(a.stats.dev.heldShare) : 0, bundlesHeldPct: a ? pct(earlyHeld(a)) : 0,
+    supply: { top10Pct: a ? pct(a.stats.holders.top10Share) : 0, devPct: a ? pct(a.stats.dev.heldShare) : 0, bundlesHeldPct: a ? pct((a.stats.bundles ?? []).reduce((n, b) => n + b.heldShare, 0)) : 0,
       exemptWalletsHeldPct: 0, freshWalletsPct: 0, burnedPct: 0, circulating: (c.supply / 10n ** BigInt(c.decimals ?? 18)).toString() }, // whole tokens at the coin's own decimals, not base units
     // Montra launches are clones of the factory's token master: no owner, tax, blacklist, pause, mint or upgrade. Other
     // launchpads' tokens are not reviewed: their owner powers are named unavailable in meta.control.
@@ -175,8 +175,9 @@ export function coinCard(c: CoinState, a: Assessment | undefined, ctx: ViewConte
       tradeability: { confidence: cost === null ? 0 : 1, asOfBlock: block, ...(cost === null ? { unavailable: true, missing: ['exitCostPct'] } : { missing: ['exitCostPct.usd100', 'exitCostPct.usd10k'] }),
         flags: [`probe_usd_${Math.round(a?.probeUsd ?? 1000)}`, ...(a?.sellCheckUnavailable ? ['sell_check_not_available'] : [])] },
       liquidity: { confidence: a?.config ? 1 : 0, asOfBlock: block, missing: c.launchpad === 'flaunch' || (robinhoodPoolLaunch(c) && a?.lp !== 'removable') || unprovenPonsLock(c, a) ? ['depthUsd', 'lpStatus'] : ['depthUsd'] },
-      // bundlesHeldPct here is what the first minute's buyers still hold (funding is not traced, so no same-funder bundles).
-      supply: a ? { confidence: 1, asOfBlock: block, missing: ['freshWalletsPct', 'exemptWalletsHeldPct'], flags: ['early_cohort_not_funder_bundles'] } : meta(['top10Pct', 'devPct', 'bundlesHeldPct', 'freshWalletsPct']),
+      // bundlesHeldPct is what bundles linked by their own transactions still hold (bundles.ts): one transaction buying for
+      // several wallets, or tokens passed between them. Copy traders and the rest of the first minute are not in it.
+      supply: a ? { confidence: 1, asOfBlock: block, missing: ['freshWalletsPct', 'exemptWalletsHeldPct'], flags: ['bundles_linked_by_transaction'] } : meta(['top10Pct', 'devPct', 'bundlesHeldPct', 'freshWalletsPct']),
       control: c.launchpad === 'montra' ? { confidence: 1, asOfBlock: block, flags: ['montra_factory_clone'] } : meta(['canChangeTax', 'canBlacklist', 'canPause', 'canMint', 'upgradeable']),
       // The label split is not measured (unavailable); flow.activity, when present, is (flags).
       flow: meta(LABEL_FIELDS, { flags: inNative(c) && ctx.hypeUsd ? ['activity_measured', 'wallet_labels_unavailable'] : ['wallet_labels_unavailable'] }),
