@@ -11,6 +11,7 @@ import { memoryUsageStore } from './usage.js';
 import { HistoryStore } from './history.js';
 import { Explorer } from './explorer.js';
 import { FunderTracer } from './funders.js';
+import { RpcFunding } from './funders-rpc.js';
 import { Historian } from './historian.js';
 import { AccountStore } from './accounts.js';
 import { budgetedRpc, Trading, tradeRpc } from './trade.js';
@@ -40,6 +41,9 @@ import { dirname, join } from 'node:path';
  *   EXPLORER_URL     Etherscan-style explorer API (default the chain's public Blockscout; none on Robinhood Chain, where the
  *                    funder tracer is then off too)
  *   EXPLORER_RPS     requests per second for each of the historian and the funder tracer (default 2)
+ *   FUNDER_TRACE     where funders come from: "explorer", "rpc" (the paid archive RPC: about 45 calls a wallet) or "off".
+ *                    Default: the explorer when the chain has one; else the archive RPC while linked_devs is on; else off.
+ *   FUNDER_RPC_PER_MIN  archive calls a minute the RPC funder tracer may spend (default 150, about 3 wallets a minute)
  *   REPLAY_MIN_SWAPS swaps a past launch needs before the historian rebuilds it (default 10)
  *   ACCOUNTS         "off" closes wallet sign-in (and with it trading); on by default with a store
  *   TRADING          "off" keeps sign-in but turns wallet trading off
@@ -79,8 +83,14 @@ const tracker = new Tracker(rpc, chain, { archiveRpc, backfillBlocks: Number(env
     tx: c.tx, name: c.name, symbol: c.symbol, supply: c.supply.toString() }); } catch (error) { log('launch_record_failed', { error: String((error as Error).message).slice(0, 160) }); } } } : {}) });
 const explorerApi = env.EXPLORER_URL ?? profile.explorerApi;
 const explorer = (rps: number) => new Explorer({ base: explorerApi, ratePerSec: rps });
-// Without an explorer API nothing traces funders; the historian is still built, for the live coins' outcomes.
-const funders = store && explorerApi ? new FunderTracer(explorer(Number(env.EXPLORER_RPS ?? 2)), store, { log }) : null;
+// Funders from the explorer API; on a chain without one (Robinhood Chain) from the paid archive RPC, which costs about 45
+// calls a wallet, so only while a feature that shows them is on, and only the deployer and first buyers of each launch.
+const funderSource = env.FUNDER_TRACE ?? (explorerApi ? 'explorer' : flags.on.has('linked_devs') ? 'rpc' : 'off');
+const funders = !store ? null
+  : funderSource === 'explorer' && explorerApi ? new FunderTracer(explorer(Number(env.EXPLORER_RPS ?? 2)), store, { log })
+  : funderSource === 'rpc' ? new FunderTracer(new RpcFunding(archiveRpc, { perMin: Number(env.FUNDER_RPC_PER_MIN ?? 150) }).find, store, { log, livePerWant: 6, lookupEvery: 3, maxQueue: 1000 })
+  : null;
+if (funders) log('funders_on', { source: funderSource });
 const historian = store ? new Historian(explorer(Number(env.EXPLORER_RPS ?? 2)), store, chain, { tracker, ...(funders ? { funders } : {}) }, { log, minSwaps: Number(env.REPLAY_MIN_SWAPS ?? 10) }) : null;
 // The graduation columns' coins, kept on the volume across restarts (snapshot.ts). COLUMNS_SNAPSHOT=off turns it off.
 const snapshotPath = env.COLUMNS_SNAPSHOT === 'off' ? null : env.COLUMNS_SNAPSHOT ?? (store ? join(dirname(env.HISTORY_DB ?? '.data/history.db'), 'columns.json') : null);

@@ -4,6 +4,7 @@ import type { registerAccountRoutes } from '../accounts.js';
 import { FlagNameSchema, type FlagName } from '@eko/shared';
 import type { AccountStore } from '../accounts.js';
 import type { AlertInbox } from '../alerts.js';
+import type { FunderTracer } from '../funders.js';
 import type { HistoryStore } from '../history.js';
 import type { Edge } from '../service.js';
 import type { Rpc } from '../tracker.js';
@@ -24,6 +25,8 @@ export interface FeatureContext {
   alerts?: AlertInbox;
   /** The chain RPC the edge reads with (paid and metered): a feature that reads the chain keeps it to its own budget. */
   rpc?: Rpc;
+  /** The background funder tracer (funders.ts), when the history store is on and the chain has a funding source (an explorer API, or the archive RPC while linked_devs is on): `want(wallets, 'lookup')` queues a page's wallets behind live work. */
+  funders?: FunderTracer;
 }
 export interface Feature { register(ctx: FeatureContext): void }
 export interface LoadedFeature extends Feature { flag: FlagName }

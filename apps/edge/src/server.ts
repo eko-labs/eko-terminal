@@ -212,7 +212,7 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
   });
 
   // Post-launch features that are on (features/index.ts): their routes come before the catch-all below.
-  for (const feature of opts.features ?? []) feature.register({ app, edge, ...(opts.store ? { store: opts.store } : {}), ...(opts.accounts ? { accounts: opts.accounts } : {}), ...(auth ? { auth } : {}), ...(opts.alerts ? { alerts: opts.alerts } : {}), ...(opts.rpc ? { rpc: opts.rpc } : {}) });
+  for (const feature of opts.features ?? []) feature.register({ app, edge, ...(opts.store ? { store: opts.store } : {}), ...(opts.accounts ? { accounts: opts.accounts } : {}), ...(auth ? { auth } : {}), ...(opts.alerts ? { alerts: opts.alerts } : {}), ...(opts.rpc ? { rpc: opts.rpc } : {}), ...(opts.funders ? { funders: opts.funders } : {}) });
 
   // Everything else under the API is not served yet.
   app.all('/v1/*', async (_req, reply) => fail(reply, 404, 'not_found', `Not available on EKO for ${chain.name} yet.`));

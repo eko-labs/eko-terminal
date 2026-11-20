@@ -379,6 +379,20 @@ describe('feature folders', () => {
     expect((await app.inject('/v2/arena')).statusCode).toBe(404);
     await app.close();
   });
+  it('hands a feature the funder tracer when the server has one', async () => {
+    const { HistoryStore } = await import('../src/history.js');
+    const { FunderTracer } = await import('../src/funders.js');
+    const store = new HistoryStore(':memory:');
+    const funders = new FunderTracer({ firstTxs: async () => ({ normal: [], internal: [] }) } as never, store);
+    const seen: unknown[] = [];
+    const tracker = new Tracker(fakeChain(launchBlock + 500), registry, { backfillBlocks: 600, chunk: 100 });
+    const edge = new Edge(tracker, fakeChain(launchBlock + 500), registry, new HypeUsd(async () => new Response('{}')));
+    const feature = { flag: 'leaderboards' as const, register: (ctx: { funders?: unknown }) => { seen.push(ctx.funders); } };
+    await buildServer(edge, { store, funders, features: [feature] }).close();
+    await buildServer(edge, { store, features: [feature] }).close();
+    expect(seen).toEqual([funders, undefined]);
+    store.close();
+  });
 });
 
 describe('graduation columns across a restart', () => {
