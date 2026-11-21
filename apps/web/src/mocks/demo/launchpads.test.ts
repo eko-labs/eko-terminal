@@ -112,7 +112,7 @@ describe('Every launchpad demo (flag more_launchpads)', () => {
     }
     // HRBR's snipers are its first buyers, in the launch second.
     const hrbr = createRadarCard(rows[0]!.address)!, snipers = hrbr.playbooks.find(m => m.id === 'launch_snipers')!;
-    expect(hrbr.verdict.reasons).toContain('3 wallets bought 14.2% of supply within a second of launch; they still hold 11.6%.');
+    expect(hrbr.verdict.reasons).toContain('3 wallets bought 14.2% of supply within 3.5 seconds of launch; they still hold 11.6%.');
     expect(snipers.evidence.filter(e => e.label === 'Launch sniper')).toHaveLength(3);
   });
 

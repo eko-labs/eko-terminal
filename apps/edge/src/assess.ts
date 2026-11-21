@@ -130,7 +130,7 @@ export function judge(coin: CoinState, p: Probed, ctx: JudgeContext): Assessment
     holders: stats.holders, earlyBuyers: stats.earlyBuyers, dev: stats.dev,
     ...(stats.bundles.length ? { bundles: stats.bundles } : {}), ...(stats.copyTraders.length ? { copyTraders: stats.copyTraders } : {}),
     coin: coin.token, deployer: coin.creator, asOfBlock, asOfSec: nowSec, createdAtSec: coin.ts, createdAtBlock: coin.block,
-    launchpad: coin.launchpad, name, symbol, antiSnipeActive, simulations, ...(runUp ? { runUp } : {}),
+    launchpad: coin.launchpad, name, symbol, antiSnipeActive, simulations, sniperWindowSec: chain.profile.sniperBlocks * chain.profile.blockTimeSec, ...(runUp ? { runUp } : {}),
     // Without an ETH price no market cap is claimed, so fake_mcap stays silent rather than guessing.
     ...(backing && hypeUsd ? { marketCap: { mcapUsd: backing.mcap * hypeUsd, backingUsd: backing.paidIn * hypeUsd, volume24hUsd: backing.volume24h * hypeUsd,
       holders: stats.holderCount, evidence: backing.evidence } } : {}),

@@ -106,10 +106,12 @@ export interface CardSources {
   marketCap?: { mcapUsd: number; backingUsd: number; volume24hUsd: number; holders: number; evidence: EvidenceRef[] };
   /**
    * Launch-block snipers: wallets other than the deployer that bought within the first blocks of the launch (about a
-   * second on Elysium), with the supply share each bought then and holds now, and the highest priority fee (gwei) any
+   * second on Elysium, 3.5 seconds on Robinhood Chain), with the supply share each bought then and holds now, and the highest priority fee (gwei) any
    * of its sniping transactions paid (null when not read). Absent when not computed; an empty list means none.
    */
   snipers?: { wallet: Address; block: number; boughtShare: number; heldShare: number; tipGwei: number | null; evidence: EvidenceRef[] }[];
+  /** How long the snipers' window lasts on this chain, in seconds (its launch blocks times its block time). */
+  sniperWindowSec?: number;
   earlyBuyers?: { wallet: Address; funder: Address; fundedAtSec: number; buyAtSec: number; buyBlock: number;
     heldShare: number; sellingIntoNetInflow: boolean; evidence: EvidenceRef[]; boughtShare?: number; deployer?: boolean;
     /** In one of `bundles`: counted there, not in the early cohort. */

@@ -221,6 +221,15 @@ describe('exempt_insiders', () => {
   });
 });
 
+describe('launch_snipers window', () => {
+  it('says how long the chain\'s launch window is: a second on Elysium, 3.5 seconds on Robinhood Chain', () => {
+    const input = { ...base(), snipers: [{ wallet: addr(30), block: 51, boughtShare: 0.3, heldShare: 0.3, tipGwei: null, evidence: [] }] };
+    const say = (sec?: number) => reasonForMatch(evaluatePlaybooks({ ...input, ...(sec ? { sniperWindowSec: sec } : {}) }).find((x) => x.id === 'launch_snipers')!);
+    expect(say(10 * 0.098)).toBe('1 wallet bought 30% of supply within a second of launch; it still holds 30%.');
+    expect(say(35 * 0.102)).toBe('1 wallet bought 30% of supply within 3.5 seconds of launch; it still holds 30%.');
+    expect(say()).toBe('1 wallet bought 30% of supply within a second of launch; it still holds 30%.');
+  });
+});
 describe('bundle_dump', () => {
   it.each([[0.1499, null], [0.15, 'monitor'], [0.1501, 'monitor'], [0.2999, 'monitor'], [0.3, 'danger'], [0.3001, 'danger']] as const)('held share %s → %s', (share, expected) => level('bundle_dump', bundle(share), expected));
   it.each([[2, null], [3, 'monitor'], [4, 'monitor']] as const)('same-funder wallets %s → %s', (n, expected) => level('bundle_dump', bundle(0.15, n), expected));

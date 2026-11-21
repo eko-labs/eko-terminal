@@ -394,6 +394,7 @@ export const launchSnipers: Rule<'launch_snipers'> = {
       stat(s, this.id, 'wallets', 'Launch snipers', list.length), stat(s, this.id, 'bought', 'Snipers bought supply share', round(bought, 10_000)),
       stat(s, this.id, 'held', 'Snipers still hold supply share', round(held, 10_000)),
       ...(tips.length ? [stat(s, this.id, 'tip', 'Highest sniper priority fee (gwei)', round(Math.max(...tips), 1000))] : []),
+      ...(s.sniperWindowSec ? [stat(s, this.id, 'window', 'Sniper window (seconds)', round(s.sniperWindowSec, 10))] : []),
       ...[...list].sort((a, b) => b.boughtShare - a.boughtShare).slice(0, 10).flatMap(x => x.evidence),
     ]);
   },

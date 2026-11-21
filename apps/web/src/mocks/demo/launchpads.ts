@@ -145,9 +145,9 @@ function findingsOf(c: DemoCoin, address: string, trades: Trade[]) {
     const first = trades.slice(0, s.wallets);
     found.push({ match: { id: 'launch_snipers', level: s.held >= 0.25 ? 'danger' : 'monitor', confidence: 1, history: { deployerRuns: 0 }, evidence: [
       stat('launch_snipers', 'wallets', 'Launch snipers', s.wallets), stat('launch_snipers', 'bought', 'Snipers bought supply share', s.bought),
-      stat('launch_snipers', 'held', 'Snipers still hold supply share', s.held),
+      stat('launch_snipers', 'held', 'Snipers still hold supply share', s.held), stat('launch_snipers', 'window', 'Sniper window (seconds)', 3.6),
       ...first.flatMap((t): EvidenceRef[] => [{ kind: 'address', ref: t.wallet!, label: 'Launch sniper' }, { kind: 'tx', ref: t.tx, block: MOCK_HEAD_BLOCK - c.ageSec * 10, label: 'Sniper buy' }])] },
-    reason: `${s.wallets} wallets bought ${pct(s.bought)} of supply within a second of launch; they still hold ${pct(s.held)}.` });
+    reason: `${s.wallets} wallets bought ${pct(s.bought)} of supply within 3.5 seconds of launch; they still hold ${pct(s.held)}.` });
   }
   return findingsFirst(found.map(f => ({ ...f, level: f.match.level })));
 }

@@ -18,10 +18,13 @@ const templates: Record<PlaybookId, string> = {
   holder_concentration: 'A few wallets hold a large share of supply.',
   dev_dump: 'The deployer sold on buyers or holds a large share of supply.',
   run_up: 'Much of the supply has already been bought out of the launch curve.',
-  launch_snipers: 'Wallets bought within a second of launch and hold a large share of supply.',
+  launch_snipers: 'Wallets bought in the first seconds after launch and hold a large share of supply.',
   fake_mcap: 'The market cap is far above what buyers have paid into the pool.',
 };
 const rank: Record<Level, number> = { danger: 3, monitor: 2, info: 1, clear: 0 };
+
+/** The launch window in words: about a second on Elysium, 3.5 seconds on Robinhood Chain (to the half second). */
+const within = (sec: number | null) => sec == null || sec < 1.25 ? 'within a second of launch' : `within ${Math.round(sec * 2) / 2} seconds of launch`;
 
 export function reasonForMatch(match: PlaybookMatch): string {
   if (match.id === 'honeypot' && match.level === 'info') return 'The contract probe failed; a honeypot has not been confirmed by deep simulation.';
@@ -40,7 +43,7 @@ export function reasonForMatch(match: PlaybookMatch): string {
     const wallets = value('Launch snipers'), bought = value('Snipers bought supply share'), held = value('Snipers still hold supply share'), tip = value('Highest sniper priority fee (gwei)');
     const pct = (n: number) => `${Math.round(n * 1000) / 10}%`;
     if (wallets != null && bought != null && held != null)
-      return `${wallets} wallet${wallets === 1 ? '' : 's'} bought ${pct(bought)} of supply within a second of launch${tip != null && tip > 0 ? `, paying priority fees up to ${tip} gwei` : ''}; ${wallets === 1 ? 'it still holds' : 'they still hold'} ${pct(held)}.`;
+      return `${wallets} wallet${wallets === 1 ? '' : 's'} bought ${pct(bought)} of supply ${within(value('Sniper window (seconds)'))}${tip != null && tip > 0 ? `, paying priority fees up to ${tip} gwei` : ''}; ${wallets === 1 ? 'it still holds' : 'they still hold'} ${pct(held)}.`;
   }
   if (match.id === 'tax_trap') {
     const creator = match.evidence.find((e) => e.kind === 'stat' && e.label === 'Creator tax getter (%)');
