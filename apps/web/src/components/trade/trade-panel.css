@@ -105,3 +105,21 @@
 .guarded-trade-panel .tp-fine p{margin:0}
 .guarded-trade-panel .tp-key dd.tp-key-note{font:var(--type-meta);font-size:11px;color:var(--faint);line-height:1.3}
 .guarded-trade-panel .tp-amount-big .tp-unit.tp-unit-end{left:auto;right:14px}
+/* Guard checks: the result as a small chip in the verdict colours (Passed / Warning / Refused), the icon in the same
+   tone, the check's own words beside it. */
+.guarded-trade-panel .tp-checks li.tp-check{grid-template-columns:20px minmax(0,1fr) auto;align-items:start}
+.guarded-trade-panel .tp-check .tp-ic{font-weight:600;text-align:center}
+.guarded-trade-panel .tp-check .tp-st{font:var(--type-label);letter-spacing:var(--type-label-ls);text-transform:uppercase;padding:3px 6px;border:1px solid var(--rule2);border-radius:var(--r1,2px);white-space:nowrap;color:var(--ink2)}
+.guarded-trade-panel .tp-check-pass .tp-ic,.guarded-trade-panel .tp-check-pass .tp-st{color:var(--lit)}
+.guarded-trade-panel .tp-check-pass .tp-st{border-color:color-mix(in srgb,var(--lit) 40%,transparent)}
+.guarded-trade-panel .tp-check-warn .tp-ic,.guarded-trade-panel .tp-check-warn .tp-st{color:var(--monitor)}
+.guarded-trade-panel .tp-check-warn .tp-st{border-color:color-mix(in srgb,var(--monitor) 45%,transparent)}
+.guarded-trade-panel .tp-check-refuse .tp-ic{color:var(--danger)}
+.guarded-trade-panel .tp-check-refuse .tp-st{color:var(--danger-ink);background:var(--danger);border-color:var(--danger)}
+.guarded-trade-panel .tp-more>summary{font:var(--type-meta);letter-spacing:normal;text-transform:none;color:var(--muted)}
+.guarded-trade-panel .tp-more>summary:hover{color:var(--ink)}
+.guarded-trade-panel .tp-guard details>summary{display:inline-flex;align-items:center;gap:6px;cursor:pointer;list-style:none;font:var(--type-meta);color:var(--muted)}
+.guarded-trade-panel .tp-guard details>summary::-webkit-details-marker{display:none}
+.guarded-trade-panel .tp-guard details>summary::before{content:"";width:5px;height:5px;border-right:1.4px solid currentColor;border-bottom:1.4px solid currentColor;transform:rotate(-45deg);transition:transform .15s}
+.guarded-trade-panel .tp-guard details[open]>summary::before{transform:rotate(45deg) translate(-1px,-1px)}
+.guarded-trade-panel .tp-guard details>summary:hover{color:var(--ink)}

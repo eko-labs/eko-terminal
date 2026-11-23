@@ -7,6 +7,8 @@ export const TRADE_COPY = {
   trade_cap_exceeded: 'This amount exceeds the per-trade cap for this wallet.',
   refused: 'The guard refused this trade. Nothing was sent.',
   stale: 'Data is stale — trading paused.',
+  /** The live link dropped a moment ago and is coming back (a tab back from the background, a blip). */
+  reconnecting: 'Connecting to live data… trading resumes in a moment.',
   expired: 'Quote expired — requesting a fresh quote.',
   quoteOnly: "Trading for this coin isn't open here yet.",
   signingUnavailable: 'Wallet signing is not available here yet.',

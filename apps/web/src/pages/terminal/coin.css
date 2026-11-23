@@ -461,3 +461,20 @@ button.glance:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
 }
 /* The deployer record, once under the verdict reasons: muted, with room before the checks. */
 #coin-evidence .verdict-reasons+.pb-hist{margin:-4px 0 14px;color:var(--muted)}
+/* Phones: at most four stats, the first four in the page's order (the odds, can you sell, dev sells, bundle); the rest
+   stay one tap away in the detail tabs, so the chart is still on the first screen. */
+@media(max-width:700px){.glance-row>:nth-child(n+5){display:none}}
+
+/* One fold style everywhere: a chevron and a sentence-case line in the meta face (the coin details, the flow, the
+   evidence under each check and the trade panel's Details all open the same way). */
+.coin-page .sec-fold-top>summary,.coin-page .ov-compact .ov-flow .sec-fold>summary{font:var(--type-meta);letter-spacing:normal;text-transform:none;color:var(--muted)}
+.coin-page .sec-fold-top>summary:hover,.coin-page .ov-compact .ov-flow .sec-fold>summary:hover{color:var(--ink)}
+.ev summary{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font:var(--type-meta)}
+.ev summary::before{content:"";width:5px;height:5px;border-right:1.4px solid currentColor;border-bottom:1.4px solid currentColor;transform:rotate(-45deg);transition:transform .15s}
+.ev[open]>summary::before{transform:rotate(45deg) translate(-1px,-1px)}
+.ev summary:hover{color:var(--ink)}
+.verdict-more .pb-hist{color:var(--muted)}
+/* Desktop: up to six stats sit on one line beside the verdict, none left alone on a second row. */
+@media(min-width:1101px){.glance-row{grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:18px 18px}}
+#coin-evidence .verdict-lead{margin-bottom:8px}
+#coin-evidence .verdict-more{display:block;margin:0 0 14px}

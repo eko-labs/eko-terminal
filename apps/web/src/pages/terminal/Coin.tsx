@@ -30,6 +30,8 @@ import { TradePanel } from '../../components/trade/TradePanel';
 import { CoinFlowTab, CoinTrades } from './CoinFlow';
 import { Decode, Roll } from './radarMotion';
 import { age, pct, coinVerdictActivity, noMatchLabel, playbookName, usd } from './radarModel';
+import { TRADE_COPY } from '../../copy/trade';
+import { useReconnecting } from '../../lib/useReconnecting';
 import { launchpadLabel, quotedIn } from '../../copy/chain';
 /** Robinhood Chain launchpads whose coins trade in a Uniswap pool from launch (no curve to show progress on). */
 const POOL_LAUNCHPADS: ReadonlySet<string> = new Set(['pangea', 'longxyz', 'unbranded']);
@@ -68,6 +70,7 @@ function CoinPage({address}:{address:string}){
  // Stale means the live connection is down. A rating is refreshed after trades, not every block, so its age alone does
  // not pause trading (the server checks the current rating on every quote); under an active Guard 2 release the
  // 30-second snapshot limit still applies here as it does on the server.
+ const linkBack=useReconnecting(ws),guardAged=!!primaryGuard&&(data.ageSec>30||(card?.freshness.ageSec??0)>30),reconnecting=linkBack&&!guardAged;
  const stale=ws!=='open'||(!!primaryGuard&&(data.ageSec>30||(card?.freshness.ageSec??0)>30)),delay=me?.entitlements.limits.realtime===false?Math.max(60,delayed):delayed;
  const px=bars.at(-1)?.c??row?.priceUsd;
  // TODO(spec): CoinCard has no price/change fields. Use its RadarRow for 1h/24h; derive the current price from candles/ticks, and hide unavailable changes.
@@ -128,7 +131,7 @@ function CoinPage({address}:{address:string}){
   <section className="panel coin-trade"><div className={`panel-head coin-section-head coin-trade-head${phone&&!sheet?' coin-trade-quick':''}`}>{phone&&!sheet
    // Collapsed on a phone: Buy and Sell are always on screen; either opens the panel on that side.
    ?<><button type="button" className="btn coin-quick-buy" onClick={()=>{setSideRequest({side:'buy',at:Date.now()});setSheet(true);}}>Buy</button><button type="button" className="btn coin-quick-sell" onClick={()=>{setSideRequest({side:'sell',at:Date.now()});setSheet(true);}}>Sell</button></>
-   :<><h2>Trade this coin</h2>{phone?<button className="btn btn-sm" aria-expanded={sheet} onClick={()=>setSheet(false)}>Collapse</button>:<span className="coin-trade-meta">Guarded · non-custodial</span>}</>}</div>{stale&&phone&&!sheet&&<p role="status" className="coin-stale">Data is stale — trading paused.</p>}<div className="panel-body" hidden={phone&&!sheet} inert={phone&&!sheet}><TradePanel key={address} coin={address} priceUsd={px} priceUnavailable={row?.priceUnavailable} priceFormat={formatCoinPrice} guard={guardData.assessment ?? verdict?.guardV2} stale={stale} visible={!phone||sheet} antiSnipeEndsAt={antiSnipeEndsAt} {...(sideRequest?{sideRequest}:{})} {...(identity?{symbol:inertText(identity.symbol.text)}:{})} /></div></section>
+   :<><h2>Trade this coin</h2>{phone?<button className="btn btn-sm" aria-expanded={sheet} onClick={()=>setSheet(false)}>Collapse</button>:<span className="coin-trade-meta">Guarded · non-custodial</span>}</>}</div>{stale&&phone&&!sheet&&<p role="status" className="coin-stale">{reconnecting?TRADE_COPY.reconnecting:TRADE_COPY.stale}</p>}<div className="panel-body" hidden={phone&&!sheet} inert={phone&&!sheet}><TradePanel key={address} coin={address} priceUsd={px} priceUnavailable={row?.priceUnavailable} priceFormat={formatCoinPrice} guard={guardData.assessment ?? verdict?.guardV2} stale={stale} visible={!phone||sheet} antiSnipeEndsAt={antiSnipeEndsAt} {...(sideRequest?{sideRequest}:{})} {...(identity?{symbol:inertText(identity.symbol.text)}:{})} /></div></section>
   <section className="panel coin-your-agents"><div className="panel-head coin-section-head"><h3>Your agents</h3><Link to="/mission">Mission Control</Link></div><div className="panel-body"><ul className="mine">{agents.map(a=><li key={a.id}><Link to={`/mission/agents/${a.id}`}>{a.name}</Link><span>{a.status.replaceAll('_',' ')}</span></li>)}</ul>{!agents.length&&<p className="muted">No connected on-chain agents.</p>}<p className="note">Connected agents get this same verdict when they call <span className="addr">preflight</span> before an order.</p></div></section>
  </aside></div></div></AnalysisPolicyScope></CoinDetailScope></CoinSlotScope>;
 }

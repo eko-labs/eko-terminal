@@ -56,7 +56,7 @@ export function tradeErrorText(code: string) {
 }
 export interface PanelGate {
   input: TradeQuoteRequest; snapshot: QuoteSnapshot; now: number;
-  liveEnabled?: boolean; cap?: number; stale: boolean; signerAvailable: boolean;
+  liveEnabled?: boolean; cap?: number; stale: boolean; reconnecting?: boolean; signerAvailable: boolean;
   wallet?: { address: string; chainId?: number } | null;
 }
 /** Display gating only. Accepted acquisition and current order admission remain server-owned. */
@@ -67,7 +67,7 @@ export function panelBlock(g: PanelGate): string | null {
   if (s.error === 'not_traded') return C.notTraded;
   if (g.liveEnabled === false) return C.paused;
   if (g.cap !== undefined && input.amountUsd > g.cap) return C.cap(g.cap);
-  if (g.stale) return C.stale;
+  if (g.stale) return g.reconnecting ? C.reconnecting : C.stale;
   if (g.liveEnabled === undefined) return C.config;
   if (s.error) return tradeErrorText(s.error);
   if (!q || !quoteMatches(q, input) || s.requestKey !== tradeRequestKey(input)) return C.loading;

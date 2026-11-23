@@ -18,6 +18,7 @@ import { useTradeExecution, type TradeAdapter } from './TradeContext';
 import { useWalletState } from '../../lib/walletState';
 import { WalletButton } from '../WalletSlot';
 import { TradeWalletVerification } from './TradeWalletVerification';
+import { useReconnecting } from '../../lib/useReconnecting';
 import { shortTokens, useHolding, type Holding } from './useHolding';
 import './trade-panel.css';
 
@@ -29,6 +30,8 @@ export function FeeLines({ quote: q, tier, phase }: { quote: TradeQuote; tier?: 
 }
 /** A cost share for the key: two decimals under 10%, one above (1.9286 → 1.93, 39.92 → 39.9). */
 const costPct = (n: number) => String(Math.round(n * (n < 10 ? 100 : 10)) / (n < 10 ? 100 : 10));
+/** A guard check's result in the site's words, shown as a small chip (never the raw status code). */
+const CHECK_STATUS = { pass: 'Passed', warn: 'Warning', refuse: 'Refused' } as const;
 /** The three costs a trader weighs before pressing, side by side: what the trade moves, the fee, the exit cost. */
 export function FeeKey({ quote: q, phase }: { quote: TradeQuote; phase?: PublicConfig['phase'] }) {
   const fee = `${q.fee.bps / 100}% (${dollars(q.fee.usd)})`;
@@ -56,7 +59,7 @@ export function QuoteGuard({ quote: q, mode }: { quote: TradeQuote; mode: NonNul
   return <section className={`tp-guard ${refused ? 'refuse' : q.guard.decision}`}>
     <div className="tp-guard-head">{L.guard}<span className="tag">{refused ? 'Refused' : L.checks(q.guard.checks.filter(c => c.status === 'pass').length)}</span></div>
     {q.guard.checks.some(c => c.status === 'warn') && <p className="tp-warning">{C.warnings(modes[mode])}</p>}
-    <details open={refused || q.guard.decision === 'warn'}><summary>{L.guard}</summary><ul className="tp-checks">{q.guard.checks.map((c, i) => <li key={`${c.code}-${i}`}><span className="tp-ic">{{ pass: '✓', warn: '!', refuse: '×' }[c.status]}</span><span><b>{inertText(c.label)}</b><span>{c.status}{c.value !== undefined && ` · ${c.value}`}</span></span></li>)}</ul></details>
+    <details open={refused || q.guard.decision === 'warn'}><summary>{L.guard}</summary><ul className="tp-checks">{q.guard.checks.map((c, i) => <li key={`${c.code}-${i}`} className={`tp-check tp-check-${c.status}`}><span className="tp-ic" aria-hidden="true">{{ pass: '✓', warn: '!', refuse: '×' }[c.status]}</span><span><b>{inertText(c.label)}</b>{c.value !== undefined && <span>{c.value}</span>}</span><span className="tp-st">{CHECK_STATUS[c.status]}</span></li>)}</ul></details>
   </section>;
 }
 export interface TradePanelProps {
@@ -152,7 +155,9 @@ export function TradePanel({ coin, stale = false, visible = true, sideRequest, s
   const quote = useTradeQuote(input, panel, visible && !execution.busy && !review && AddressSchema.safeParse(coin).success, display.antiSnipeEndsAt);
   const base = review ?? quote.snapshot;
   const snapshot: QuoteSnapshot = executionError ? { ...base, error: executionError } : base;
-  const gate: PanelGate = { input, snapshot, now: quote.now, cap: config?.trading.maxTradeUsd, liveEnabled: config?.trading.liveEnabled, stale: stale || ws !== 'open' || !visible, signerAvailable: !!execution.adapter?.wallet, wallet: execution.adapter?.wallet };
+  // Only the live link being down a moment reads as connecting; data aged by the guard is stale at once.
+  const linkBack = useReconnecting(ws), reconnecting = linkBack && !stale;
+  const gate: PanelGate = { input, snapshot, now: quote.now, cap: config?.trading.maxTradeUsd, liveEnabled: config?.trading.liveEnabled, stale: stale || ws !== 'open' || !visible, reconnecting, signerAvailable: !!execution.adapter?.wallet, wallet: execution.adapter?.wallet };
   const reset = () => { setResult(null); setExecutionError(null); setReview(null); setConfirm(false); setLastOrder(null); };
   useEffect(reset, [execution.adapter?.identity, input.coin, input.side, input.amountUsd, input.slippageBps, input.riskMode, input.account]);
   useEffect(() => { if (review && (quote.now >= Date.parse(review.quote!.expiresAt) || quote.now - review.requestedAt >= 15000)) { setReview(null); setConfirm(false); } }, [quote.now, review]);

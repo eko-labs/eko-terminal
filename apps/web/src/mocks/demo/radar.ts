@@ -16,7 +16,7 @@ const demo = profiles.map((c) => {
   const name = untrusted(c.name), symbol = untrusted(c.symbol, c.symbol === 'EKOX' ? ['impersonation'] : []);
   const playbooks = c.matches.map((m) => ({ id: m.id, level: m.level, confidence: m.confidence,
     evidence: [{ kind: 'stat', ref: `demo:${c.symbol.toLowerCase()}:${m.id}`, label: m.history }], history: { deployerRuns: c.deployer.flagged } }));
-  const verdict = { ...seed.verdict, coin: c.address, level: c.verdict, reasons: [c.summary, ...c.matches.map((m) => m.history)],
+  const verdict = { ...seed.verdict, coin: c.address, level: c.verdict, reasons: [...c.matches.map((m) => m.history), c.summary],
     playbooks, asOfBlock: c.receipt.block, receipt: { ...seed.verdict.receipt, hash: c.receipt.hash, block: c.receipt.block } };
   delete verdict.beta;
   const card = CoinCardSchema.parse({ ...seed,

@@ -149,7 +149,7 @@ describe('shared guarded panel contract states', () => {
   });
   it('shows warnings with mode and measured values, then only accepts exact current codes', async () => {
     const g = gate(warning()), execute = vi.fn(async () => ({ status: 'submitted' }) as TradeOrder), lock = new TradeLock();
-    expect(html(g)).toContain(C.acknowledge); expect(html(g)).toContain('Balanced treats'); expect(html(g)).toContain('warn · 12');
+    expect(html(g)).toContain(C.acknowledge); expect(html(g)).toContain('Balanced treats'); expect(html(g)).toContain('<b>Taxes</b><span>12</span></span><span class="tp-st">Warning</span>');
     expect(await lock.run(g, execute)).toBeNull();
     g.snapshot.acknowledged = ['tax']; expect(await lock.run(g, execute)).toBeNull();
     g.snapshot.acknowledged = ['tax', 'exit', 'unrelated'];
