@@ -110,7 +110,7 @@ function CoinPage({address}:{address:string}){
   </div>
  </header>
  <div className="coin-guard-status">{guardData.failed?<p role="status">{guardData.card||guardData.assessment?GUARD_REFRESH_FAILED:GUARD_UNAVAILABLE} <button className="btn btn-sm" onClick={guardData.retry}>Retry Guard</button></p>:null}</div>
- <CoinGlance card={card} verdict={verdict} guard={headerGuard} onVerdict={showEvidence}/>
+ <CoinGlance card={card} verdict={verdict} row={row} guard={headerGuard} onVerdict={showEvidence}/>
  <div className="coin-grid"><div className="coin-center">
   <ChartStage market={identity?inertText(identity.symbol.text):address} timeframe={tf} onTimeframe={setTf} bars={bars} markers={markers} supply={row?.marketCapUsd&&row.priceUsd?row.marketCapUsd/row.priceUsd:Number(card?.supply.circulating??1)} verdict={headerGuard?verdictChip:undefined} delayedSec={delay} ownToken={ownToken} burnWallet={config?.wallets.burn} launchTs={launchTs} labelsUnavailable={labelsOff} crewsEnabled={config?.flags.rug_ring_radar}/>
   {(!bars.length||data.candlesUnavailable)&&!data.error&&<p role="status" className="coin-chart-status">{data.candlesLoading ? 'Loading indexed candles…' : data.candlesUnavailable ? SUB_MINUTE_UNAVAILABLE : <>{emptyTradeWindow(data.lastTradeTs)} {!fullHistory && data.lastTradeTs!=null && <button className="btn btn-sm" onClick={()=>setFullHistory(true)}>{FULL_HISTORY}</button>}</>}</p>}

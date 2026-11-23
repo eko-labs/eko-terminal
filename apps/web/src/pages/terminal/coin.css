@@ -478,3 +478,7 @@ button.glance:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
 @media(min-width:1101px){.glance-row{grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:18px 18px}}
 #coin-evidence .verdict-lead{margin-bottom:8px}
 #coin-evidence .verdict-more{display:block;margin:0 0 14px}
+/* Tiles keep a tile's width and pack beside the verdict: two or three stats never spread across the whole band with
+   gaps between them (auto-fit stretched each column to fill the row). */
+@media(min-width:701px){.glance-row{grid-template-columns:repeat(auto-fill,150px);justify-content:start;gap:20px 32px}.glance-row>:nth-child(n+9){display:none}}
+.glance .pgauge-blank{visibility:hidden}

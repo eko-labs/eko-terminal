@@ -47,6 +47,8 @@ export function GlanceTile({ label, value, line, tone = 'neutral', gauge, dots, 
     <span className="glance-value num">{loading ? <span className="glance-wait" aria-label="Loading">—</span> : value}</span>
     {loading ? <PixelGauge pct={0} tone="neutral" /> : gauge !== undefined && <PixelGauge pct={gauge} tone={tone} />}
     {dots !== undefined && !loading && <Dots filled={dots} tone={tone} />}
+    {/* A tile with neither keeps the gauge's room, so every label in a row sits on one line. */}
+    {!loading && gauge === undefined && dots === undefined && <span className="pgauge pgauge-blank" style={{ height: 16 }} aria-hidden="true" />}
     <span className="glance-label">{label}</span>
     {loading ? <span className="glance-line" aria-hidden="true">&nbsp;</span> : line && <span className="glance-line">{line}</span>}
   </>;

@@ -1,8 +1,8 @@
-import type { CoinCard, Verdict } from '@eko/shared';
+import type { CoinCard, RadarRow, Verdict } from '@eko/shared';
 import { GlanceTile, type GlanceTone } from '../../components/GlanceTile';
 import { GlanceRow } from '../../components/coinSlots';
 import { exitMeasured, sellCheckNotAvailable, sellCheckOf } from '../../lib/sellCheck';
-import { playbookName } from './radarModel';
+import { playbookName, usd } from './radarModel';
 import { PARTLY_CHECKED } from '../../copy/availability';
 import { VerdictChip } from '../../components/ui';
 
@@ -50,9 +50,45 @@ export function holdersGlance(card: CoinCard | undefined): { value: string; line
   return { value: `${Math.round(s.top10Pct)}%`, line, tone: s.top10Pct > 50 ? 'bad' : s.top10Pct > 25 ? 'watch' : 'good', gauge: s.top10Pct };
 }
 
-export function CoinGlance({ card, verdict, guard, onVerdict }: { card: CoinCard | null | undefined; verdict: Verdict | null | undefined; guard?: unknown; onVerdict: () => void }) {
+/** What backs the price: on the curve, how full it is; in a pool, the pool's share of the FDV (the fake market cap
+ *  check's own lines: under 0.5% almost nothing backs it, under 2% it is thin). */
+export function backingGlance(card: CoinCard | undefined, row: RadarRow | null | undefined): { label: string; value: string; line: string; tone: GlanceTone; gauge?: number } | null {
+  if (!row || row.unavailable?.includes('liquidity')) return null;
+  const stage = card?.identity.stage, curve = card?.identity.curvePct ?? row.curvePct;
+  if (stage === 'curve' && curve !== undefined) return { label: 'Bonding curve', value: `${Math.round(curve)}%`, line: `${usd(row.liquidityUsd)} in the curve, filling toward graduation`, tone: 'neutral', gauge: curve };
+  const fdv = row.unavailable?.includes('marketCap') ? undefined : row.marketCapUsd;
+  if (!fdv || fdv <= 0) return null;
+  const share = row.liquidityUsd / fdv * 100, shown = share < 1 ? Math.round(share * 100) / 100 : Math.round(share * 10) / 10;
+  return { label: 'Pool backing', value: `${shown}%`, line: `${usd(row.liquidityUsd)} in its pool behind a ${usd(fdv)} FDV`,
+    tone: share < 0.5 ? 'bad' : share < 2 ? 'watch' : 'good', gauge: share };
+}
+
+const POWERS = [['canMint', 'Mint more', 'Can mint'], ['canPause', 'Pause trading', 'Can pause'], ['canBlacklist', 'Block wallets', 'Can block'],
+  ['canChangeTax', 'Change tax', 'Can tax'], ['upgradeable', 'Change code', 'Upgradeable']] as const;
+/** What the owner can still do to holders, in a word; minting, pausing and blocking are red, a tax switch or an upgrade watch. */
+export function ownerGlance(card: CoinCard | undefined): { value: string; line: string; tone: GlanceTone } | null {
+  if (!card || card.meta?.control?.unavailable) return null;
+  const on = POWERS.filter(([k]) => card.control[k]);
+  if (!on.length) return { value: 'None', line: 'No mint, pause, blocklist or tax switch', tone: 'good' };
+  const hard = on.some(([k]) => k === 'canMint' || k === 'canPause' || k === 'canBlacklist');
+  return { value: on.length === 1 ? on[0]![2] : `${on.length} powers`, line: on.map(p => p[1]).join(' · '), tone: hard ? 'bad' : 'watch' };
+}
+
+/** Is anyone trading it: the last hour's volume and trades, against the coin's usual hour when EKO has one. */
+export function activityGlance(row: RadarRow | null | undefined): { value: string; line: string; tone: GlanceTone } | null {
+  if (!row || row.volume1hUsd === undefined || row.unavailable?.includes('volume')) return null;
+  const v = row.volume1hUsd, trades = row.trades1h, base = row.volumeBaselineUsd;
+  if (v < 1) return { value: '$0', line: 'Nothing traded in the last hour', tone: 'watch' };
+  const vs = base && base > 0 ? v / base : undefined;
+  const pace = vs === undefined ? null : vs >= 1.5 ? `${vs >= 10 ? Math.round(vs) : Math.round(vs * 10) / 10}× its usual hour` : vs <= 0.5 ? 'quieter than its usual hour' : 'about its usual hour';
+  return { value: usd(v), line: [trades !== undefined ? `${trades} ${trades === 1 ? 'trade' : 'trades'}` : null, pace].filter(Boolean).join(' · '), tone: 'neutral' };
+}
+
+export function CoinGlance({ card, verdict, row, guard, onVerdict }: { card: CoinCard | null | undefined; verdict: Verdict | null | undefined; row?: RadarRow | null; guard?: unknown; onVerdict: () => void }) {
   card = card ?? undefined; verdict = verdict ?? undefined;
-  const v = verdictGlance(verdict), sell = sellGlance(card), holders = holdersGlance(card);
+  const v = verdictGlance(verdict), sell = sellGlance(card), backing = backingGlance(card, row), activity = activityGlance(row), owner = ownerGlance(card);
+  // A coin EKO joined late has no holder count: its Top 10 tile would only say "Not checked", so a measured stat takes its place.
+  const holders = card?.meta?.supply?.flags?.includes('history_partial') ? null : holdersGlance(card);
   const loading = !card && !verdict && !guard;
   return <GlanceRow tone={v?.tone ?? 'neutral'} own={[
     { order: 0, node: <button type="button" data-tour="verdict" className="glance-verdict-hit" onClick={onVerdict} aria-describedby="glance-verdict-hint">
@@ -62,7 +98,14 @@ export function CoinGlance({ card, verdict, guard, onVerdict }: { card: CoinCard
         <span className="gv-flags">{v?.line ?? 'Checks still running'}</span></span><span id="glance-verdict-hint" className="sr-only">Opens the evidence</span></button> },
     { order: 10, node: <GlanceTile label="Can you sell?" value={sell?.value ?? 'Not checked'} line={sell?.line} tone={sell?.tone ?? 'neutral'} loading={loading} {...(sell?.gauge !== undefined ? { gauge: sell.gauge } : {})}
       target={{ tab: 'Overview', section: 'coin-tradeability' }} /> },
-    ...(holders || loading ? [{ order: 70, node: <GlanceTile label="Top 10 hold" value={holders?.value ?? ''} line={holders?.line} tone={holders?.tone ?? 'neutral'} loading={loading} {...(holders?.gauge !== undefined ? { gauge: holders.gauge } : {})}
+    ...(backing || loading ? [{ order: 20, node: <GlanceTile label={backing?.label ?? 'Pool backing'} value={backing?.value ?? ''} line={backing?.line} tone={backing?.tone ?? 'neutral'} loading={loading} {...(backing?.gauge !== undefined ? { gauge: backing.gauge } : {})}
+      target={{ tab: 'Overview', section: 'coin-liquidity' }} /> }] : []),
+    ...(activity || loading ? [{ order: 25, node: <GlanceTile label="Vol 1h" value={activity?.value ?? ''} line={activity?.line} tone={activity?.tone ?? 'neutral'} loading={loading}
+      target={{ tab: 'Overview', section: 'coin-flow' }} /> }] : []),
+    // An owner who can still mint, pause or block moves up among the first stats; one who cannot sits last.
+    ...(owner ? [{ order: owner.tone === 'bad' ? 12 : 75, node: <GlanceTile label="Owner powers" value={owner.value} line={owner.line} tone={owner.tone}
+      target={{ tab: 'Overview', section: 'coin-owner' }} /> }] : []),
+    ...(holders || loading ? [{ order: 60, node: <GlanceTile label="Top 10 hold" value={holders?.value ?? ''} line={holders?.line} tone={holders?.tone ?? 'neutral'} loading={loading} {...(holders?.gauge !== undefined ? { gauge: holders.gauge } : {})}
       target={{ tab: 'Overview', section: 'coin-supply' }} /> }] : []),
   ]} />;
 }
