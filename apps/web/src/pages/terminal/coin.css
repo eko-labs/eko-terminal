@@ -241,14 +241,17 @@
  .coin-page .supply-row{grid-template-columns:96px minmax(30px,1fr) auto}
 }
 
-/* Layout shift: while the coin loads, the header holds the height it will have (tag row and figure row), so the chart
-   and panels below do not jump. Desktop and wide phones: one tag row (44px touch targets) and one figure row. Narrow
-   phones: each wraps to two lines. Once the coin's facts are in, the header takes its own height: a reserve that
-   outlives the load only leaves a gap where the rows fit on one line. */
-.coin-id-meta{min-height:72px}
-@media(max-width:700px){.coin-id-meta{min-height:84px}}
-@media(max-width:480px){.coin-id-meta{min-height:148px}}
-.coin-id-meta:has(.coin-facts){min-height:0}
+/* Layout shift: the coin header holds the height it will have once the coin loads, so the chart and panels below never
+   jump. For that the rows take the same shape at every phone width: the tags (44px touch targets) on one line and the
+   launchpad facts on their own; the price with its 1h and 24h moves on one line and FDV and liquidity under it. The
+   reserve is then exact, both while loading and after (no gap where a row would have fit on one line). */
+.coin-id-meta{min-height:68px}
+@media(max-width:700px){
+ .coin-facts{flex-basis:100%}
+ .coin-price .coin-stat:nth-child(n+4){order:2}
+ .coin-price::after{content:"";flex-basis:100%;order:1}
+ .coin-id-meta{min-height:131px}
+}
 
 
 /* Chart settings (volume, log scale, moving averages): a small menu beside the timeframes. */
@@ -426,3 +429,35 @@ button.glance:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
  .coin-page .coin-chart-phone-options .cc-settings summary{padding:0 6px}
  .coin-page .coin-chart-phone-options .cc-settings summary::after{display:none}
 }
+
+/* ---- Sweep fixes: nothing spills its card, nothing hides off screen. --------------------------------------------- */
+/* A figure that was not checked spans the gauge and value columns, so the words never overflow a 52px value column. */
+.coin-page .supply-row .supply-na{grid-column:2/-1;justify-self:end;font:var(--type-meta);color:var(--muted);text-align:right}
+/* Standalone "not checked yet" lines start with a capital, as every other line does. */
+.coin-page :is(.coin-empty,.supply-na)::first-letter{text-transform:uppercase}
+.coin-page .supply-na{display:block}
+/* A closed chart menu takes no room (Chrome still lays out a grid inside a closed <details>, which widened the page on
+   phones), and on a phone every menu opens toward the screen's middle, never past its right edge. */
+.coin-page .cc-settings:not([open])>.cc-settings-menu{display:none}
+@media(max-width:700px){
+ .coin-page .coin-chart-phone-options .cc-settings-menu{left:auto;right:0}
+ /* The symbol is the page's title: it gets the whole first line; the name and Watch / Share share the second. */
+ .coin-title-row{grid-template-rows:auto auto;row-gap:8px}
+ .coin-id h1{grid-area:1/1/2/3;font-size:clamp(30px,10.5vw,40px)}
+ .coin-name{grid-area:2/1;align-self:center}
+ .coin-actions{grid-area:2/2}
+ /* Every stat on screen at once, two to a row, instead of a sideways scroller that hides all but two. With more than
+    two stats, each keeps its figure, gauge and label; the line under it waits for the detail tab. */
+ .glance-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible;scroll-snap-type:none;gap:20px 20px}
+ .glance-row .glance-cell{min-width:0}
+ .glance-row:has(>:nth-child(3)) .glance-line{display:none}
+}
+.pb-rules{margin-top:12px}
+/* Phones: the verdict's flags always take their own line under the chip, and a tile's line holds two lines, so the band
+   has one height while loading and after. */
+@media(max-width:700px){
+ .gv-flags{flex-basis:100%}
+ .glance-row .glance-line{min-height:2lh}
+}
+/* The deployer record, once under the verdict reasons: muted, with room before the checks. */
+#coin-evidence .verdict-reasons+.pb-hist{margin:-4px 0 14px;color:var(--muted)}

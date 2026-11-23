@@ -55,11 +55,11 @@ export function CoinGlance({ card, verdict, guard, onVerdict }: { card: CoinCard
   const v = verdictGlance(verdict), sell = sellGlance(card), holders = holdersGlance(card);
   const loading = !card && !verdict && !guard;
   return <GlanceRow tone={v?.tone ?? 'neutral'} own={[
-    { order: 0, node: <button type="button" data-tour="verdict" className="glance-verdict-hit" onClick={onVerdict} aria-label="Open verdict evidence">
+    { order: 0, node: <button type="button" data-tour="verdict" className="glance-verdict-hit" onClick={onVerdict} aria-describedby="glance-verdict-hint">
       {/* The verdict in the site's own chip, made large, with its strongest flags after it. */}
       <span className="gv"><span className="gv-label">EKO says</span>
         <VerdictChip level={verdict?.level ?? 'pending'} size="lg" showGaps={false} {...(verdict?.historyPartial ? { historyPartial: verdict.historyPartial } : {})} />
-        <span className="gv-flags">{v?.line ?? 'Checks still running'}</span></span></button> },
+        <span className="gv-flags">{v?.line ?? 'Checks still running'}</span></span><span id="glance-verdict-hint" className="sr-only">Opens the evidence</span></button> },
     { order: 10, node: <GlanceTile label="Can you sell?" value={sell?.value ?? 'Not checked'} line={sell?.line} tone={sell?.tone ?? 'neutral'} loading={loading} {...(sell?.gauge !== undefined ? { gauge: sell.gauge } : {})}
       target={{ tab: 'Overview', section: 'coin-tradeability' }} /> },
     ...(holders || loading ? [{ order: 70, node: <GlanceTile label="Top 10 hold" value={holders?.value ?? ''} line={holders?.line} tone={holders?.tone ?? 'neutral'} loading={loading} {...(holders?.gauge !== undefined ? { gauge: holders.gauge } : {})}

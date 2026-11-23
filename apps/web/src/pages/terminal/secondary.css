@@ -269,7 +269,7 @@
 .pr-ml{font-size:10px;line-height:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);white-space:nowrap}
 .pr-mv{font:500 14px/17px var(--sans);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pr-mv.up{color:var(--up)}.pr-mv.down{color:var(--danger)}
-.pr-holders{display:flex;gap:12px;min-width:0;height:16px;font-size:11.5px;line-height:16px;color:var(--muted);white-space:nowrap;overflow:hidden}
+.pr-holders{display:flex;flex-wrap:wrap;gap:0 12px;min-width:0;height:16px;font-size:11.5px;line-height:16px;color:var(--muted);white-space:nowrap;overflow:hidden}
 .pr-holders b{color:var(--ink2);font-weight:500}
 .pr-holders .warn b{color:var(--lit)}
 .pr-holders .bad b{color:var(--danger)}
@@ -281,3 +281,20 @@
 .pairs-page .prow.tone.lit .pr-sym{color:var(--lit)}
 .pairs-page .prow.tone.avoid.lit{background:linear-gradient(90deg,#f08c7e1c,#f08c7e08 55%,transparent 85%);box-shadow:inset 3px 0 0 var(--danger),inset 0 0 0 1px #f08c7e26}
 @container(max-width:340px){.pairs-page .pr-metrics{grid-template-columns:1fr 1fr 1fr}.pairs-page .pr-metrics .pr-m:nth-child(n+4){display:none}.pairs-page .pr-holders span:nth-child(n+3){display:none}}
+
+/* Holder figures that do not fit drop whole to a hidden second line, never cut in half; a warning tag keeps its gap
+   from the symbol. */
+.pairs-page .pr-sym .tag{margin-left:6px}
+/* The symbol is the row's name: the verdict chip gives way first (its words truncate), so a long chip never squeezes
+   the symbol to "$…". A symbol with a warning tag (Impersonation) takes the whole first line, so the warning is always
+   seen; the chip moves under it. */
+.pairs-page .pr-verdict{max-width:60%}
+.pairs-page .pr-id{flex:0 0 auto;max-width:60%}
+.pairs-page .pr-verdict{flex:0 1 auto;margin-left:auto}
+.pairs-page .prow:has(.pr-sym .tag) .pr-top{flex-wrap:wrap;row-gap:6px}
+.pairs-page .prow:has(.pr-sym .tag) .pr-id{flex-basis:100%}
+.pairs-page .prow:has(.pr-sym .tag) .pr-sym,.pairs-page .prow:has(.pr-sym .tag) .pr-sym .untrusted{max-width:none;overflow:visible}
+.pairs-page .prow:has(.pr-sym .tag) .pr-verdict{max-width:100%}
+/* Five figures need about 380px; narrower rows (phones) show the first three, as the narrowest rows already did. */
+@container(max-width:380px){.pairs-page .pr-metrics{grid-template-columns:1fr 1fr 1fr}.pairs-page .pr-metrics .pr-m:nth-child(n+4){display:none}}
+.pr-m>:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

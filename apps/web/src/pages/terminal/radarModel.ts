@@ -165,6 +165,8 @@ export function coinVerdictActivity(card: CoinCard, nowMs: number): VerdictActiv
   return { ...identity, flow, ageSec: (nowMs - Date.parse(identity.createdAt)) / 1000,
     liquidityUsd: identity.pools.find(pool => pool.venue === 'pons_curve')?.liquidityUsd };
 }
+/** Reasons as sentences: each ends in a full stop, so joined reasons never run together. */
+export const sentences = (rs: string[]) => rs.map(r => r.trim()).filter(Boolean).map(r => /[.!?…]$/.test(r) ? r : `${r}.`).join(' ');
 export const age = (sec: number) => sec < 3600 ? `${Math.round(sec / 60)}m` : sec < 86400 ? `${(sec / 3600).toFixed(1)}h` : `${(sec / 86400).toFixed(1)}d`;
 export const exitText = (v: number) => v >= 100 ? 'Blocked' : `${v.toFixed(1)}%`;
 

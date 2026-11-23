@@ -45,10 +45,10 @@ export function GlanceTile({ label, value, line, tone = 'neutral', gauge, dots, 
   const detail = useCoinDetail();
   const body = <>
     <span className="glance-value num">{loading ? <span className="glance-wait" aria-label="Loading">—</span> : value}</span>
-    {gauge !== undefined && !loading && <PixelGauge pct={gauge} tone={tone} />}
+    {loading ? <PixelGauge pct={0} tone="neutral" /> : gauge !== undefined && <PixelGauge pct={gauge} tone={tone} />}
     {dots !== undefined && !loading && <Dots filled={dots} tone={tone} />}
     <span className="glance-label">{label}</span>
-    {line && !loading && <span className="glance-line">{line}</span>}
+    {loading ? <span className="glance-line" aria-hidden="true">&nbsp;</span> : line && <span className="glance-line">{line}</span>}
   </>;
   const cls = `glance glance-${tone}`;
   return target && detail

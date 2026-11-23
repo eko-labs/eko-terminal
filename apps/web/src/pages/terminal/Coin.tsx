@@ -76,8 +76,8 @@ function CoinPage({address}:{address:string}){
  if(data.unknown&&!card&&!verdict&&!guardData.card&&!guardData.assessment)return <div className="shell-page coin-page"><div className="empty"><h1>{NOT_INDEXED}</h1><p>{data.error || CARD_WAIT}</p><button className="btn" onClick={()=>void api(MOCKS ? '/scan' : `/scan?q=${encodeURIComponent(address)}`,MOCKS ? {body:{query:address}} : undefined).then(()=>data.retry()).catch(()=>toast({kind:'error',title:'Could not scan. Try again.'}))}>Scan</button></div><AnalysisPolicyNotice /></div>;
  const top=verdict?.playbooks.find(p=>p.level==='danger')??verdict?.playbooks.find(p=>p.level==='monitor');
  const featureTabs=[...(whosIn?["Who's in"]:[]),...(odds?['Odds']:[])];
- const tabs=phone?[{value:'Overview',label:'Card'},...featureTabs,'Flow','Trades']:['Overview',...featureTabs,...(card?.signal?['Signal']:[]),'Flow','Trades'];
- const activeValues=tabs.map(t=>typeof t==='string'?t:t.value);
+ const tabs=phone?['Overview',...featureTabs,'Flow','Trades']:['Overview',...featureTabs,...(card?.signal?['Signal']:[]),'Flow','Trades'];
+ const activeValues=tabs;
  const showEvidence=()=>{useOnboarding.getState().markStep('open_evidence');setTab('Overview');setEvidence(true);const id=headerGuard&&headerGuard.mode!=='active'?'guard-shadow-evidence':'coin-evidence';requestAnimationFrame(()=>{document.getElementById(id)?.scrollIntoView({block:'nearest'});document.getElementById(id)?.focus();});};
  const verdictActivity=card?coinVerdictActivity(card,serverNow()):row;
  const stateLabel=verdict?noMatchLabel({...verdictActivity,verdict:verdict.level,guardV2:primaryGuard}):undefined;
@@ -98,7 +98,7 @@ function CoinPage({address}:{address:string}){
   <div className="coin-id-meta">
    <div className="sub coin-tags">{row&&<HeatTag heat={displayHeat({...row,verdict:verdict?.level??row.verdict})}/>}<BlueChipBadge value={card?.blueChip} /><span className="coin-ca"><span className="addr coin-addr" title={address}>{short(address)}</span><button className="iconbtn coin-copy" aria-label="Copy address" title="Copy address" onClick={()=>void navigator.clipboard?.writeText(address).then(()=>toast({kind:'ok',title:'Address copied'})).catch(()=>undefined)}>⧉</button>{elsewhere&&<a className="coin-elsewhere" href={elsewhere.href} target="_blank" rel="noopener noreferrer" title={`Open on ${elsewhere.label}`}>{elsewhere.label}<IconOut/></a>}</span>{(identity||row)&&<span className="coin-facts">{identity&&<><span className="coin-fact">{launchpadLabel(identity.launchpad, identity.stage === 'graduated')}</span>{quotedIn(card?.identity.quoteSymbol??row?.quoteSymbol)&&<span className="coin-fact" title={`Quoted in ${card?.identity.quoteSymbol??row?.quoteSymbol}`}>{quotedIn(card?.identity.quoteSymbol??row?.quoteSymbol)}</span>}<span className="coin-fact">{identity.stage==='graduated'?'Migrated':identity.stage==='unknown'?'Stage not checked':POOL_LAUNCHPADS.has(identity.launchpad)?'Uniswap pool':`Curve ${card?.identity.curvePct??'—'}%`}</span></>}{row&&<span className="coin-fact coin-age">{formatAge(row.ageSec)} old</span>}</span>}</div>
    <dl className="coin-price">
-    <div className="coin-stat coin-stat-price"><dt className="sr-only">Price</dt><dd><b>{px===undefined || row?.priceUnavailable ? NOT_CHECKED : <Roll value={formatCoinPrice(px)}/>}</b></dd></div>
+    <div className="coin-stat coin-stat-price"><dt className="sr-only">Price</dt><dd><b>{px===undefined || row?.priceUnavailable ? (!data.card&&!data.verdict&&!data.error ? <span className="glance-wait" aria-label="Loading">—</span> : NOT_CHECKED) : <Roll value={formatCoinPrice(px)}/>}</b></dd></div>
     {row&&<div className="coin-stat"><dt>1h</dt><dd className={`num${row.change1hPct>0?' up':row.change1hPct<0?' down':''}`}>{changeText(row.change1hPct)}</dd></div>}
     {row?.change24hPct!==undefined&&<div className="coin-stat"><dt>24h</dt><dd className={`num${row.change24hPct>0?' up':row.change24hPct<0?' down':''}`}>{changeText(row.change24hPct)}</dd></div>}
     {row&&<div className="coin-stat" title="Fully diluted value: price × total supply, the same figure as Radar"><dt>FDV</dt><dd className="num">{row.marketCapUsd===undefined||row.unavailable?.includes('marketCap') ? NOT_CHECKED : usd(row.marketCapUsd)}</dd></div>}
@@ -121,7 +121,7 @@ function CoinPage({address}:{address:string}){
     :name==='Signal'&&card?.signal?<CoinSignalPanel signal={card.signal} series={bars.map(b=>b.c)}/>
     :name==='Flow'?<CoinFlowTab flows={data.flows} markers={markers} labelsUnavailable={labelsOff} nowSec={nowSec}/>
     :<CoinTrades markers={markers} flows={data.flows} labelsUnavailable={labelsOff}/>}</TabPanel>)}
-   {!guardData.card&&!guardData.assessment&&<p className="coin-asof">As of block {(verdict?.lastChecked?.block??verdict?.asOfBlock??card?.freshness.block??0).toLocaleString()} · rated {age(Math.max(0,data.ageSec))} ago</p>}
+   {!guardData.card&&!guardData.assessment&&<p className="coin-asof">As of block {(verdict?.lastChecked?.block??verdict?.asOfBlock??card?.freshness.block??0).toLocaleString()} · rated {data.ageSec<60?'just now':`${age(data.ageSec)} ago`}</p>}
   </section>
   <BlueChipDetails value={card?.blueChip} criteria={card?.blueChipCriteria} /><AnalysisPolicyNotice page /></div>
  <aside ref={sheetRef} className={`coin-aside${phone?' coin-sheet':''}${sheet?' expanded':''}`} aria-label="Trade this coin">

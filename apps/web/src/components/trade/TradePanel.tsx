@@ -27,13 +27,15 @@ export function FeeLines({ quote: q, tier, phase }: { quote: TradeQuote; tier?: 
   // TODO(spec): CA-7 has raw quantities but no output asset/decimals. Label raw units explicitly rather than manufacture token amounts.
   return <div data-tour="fee-lines" className="tp-lines"><FeeKey quote={q} phase={phase} /><FeeDetails quote={q} tier={tier} /></div>;
 }
+/** A cost share for the key: two decimals under 10%, one above (1.9286 → 1.93, 39.92 → 39.9). */
+const costPct = (n: number) => String(Math.round(n * (n < 10 ? 100 : 10)) / (n < 10 ? 100 : 10));
 /** The three costs a trader weighs before pressing, side by side: what the trade moves, the fee, the exit cost. */
 export function FeeKey({ quote: q, phase }: { quote: TradeQuote; phase?: PublicConfig['phase'] }) {
   const fee = `${q.fee.bps / 100}% (${dollars(q.fee.usd)})`;
   return <dl className="tp-key">
-    <div><dt><span aria-hidden="true">Impact</span><span className="sr-only">{L.impact}</span></dt><dd>{q.priceImpactBps / 100}%</dd></div>
+    <div><dt><span aria-hidden="true">Impact</span><span className="sr-only">{L.impact}</span></dt><dd>{costPct(q.priceImpactBps / 100)}%</dd></div>
     <div><dt><span aria-hidden="true">Fee</span><span className="sr-only">{L.fee}</span></dt><dd>{fee}</dd>{q.fee.bps === 0 && (q.route.venue === 'pons_curve' || phase === 'launch_week') && <dd className="tp-key-note">{q.route.venue === 'pons_curve' ? FEE_CURVE_ZERO : C.zeroLaunch}</dd>}</div>
-    <div><dt><span aria-hidden="true">Exit</span><span className="sr-only">{L.exit}</span></dt><dd>{q.exitCostPct}%</dd></div>
+    <div><dt><span aria-hidden="true">Exit</span><span className="sr-only">{L.exit}</span></dt><dd>{costPct(q.exitCostPct)}%</dd></div>
   </dl>;
 }
 /** Everything else the quote says (raw quantities, route, taxes, network fee, block), for whoever opens Details. */

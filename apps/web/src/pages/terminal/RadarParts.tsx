@@ -26,7 +26,7 @@ import { expandTo } from '../../lib/expand';
 import { Link } from '../../lib/Link';
 import { featureLink } from '../../features';
 import { Decode, Roll } from './radarMotion';
-import { age, exitText, hotMetrics, isLifeless, marketCapOf, noMatchLabel, pct, playbookName, price, refused, usd, type HotWindow } from './radarModel';
+import { age, exitText, sentences, hotMetrics, isLifeless, marketCapOf, noMatchLabel, pct, playbookName, price, refused, usd, type HotWindow } from './radarModel';
 import { formatAge, formatCoinPrice } from '../../lib/format';
 import { launchpadLabel, quotedIn } from '../../copy/chain';
 import { FlowBar, FLOW_SHARE_TITLE, buyShare, flowFigure } from './FlowBar';
@@ -102,7 +102,7 @@ export function HotStrip({ coins, window, onWindowChange, selected, select, load
 function Section({ title, figure, children }: { title: string; figure?: ReactNode; children: ReactNode }) { return <section className="insp-sec"><h3>{title}{figure}</h3>{children}</section>; }
 export function InspectorGuard({ card, href, mark = '' }: { card: CoinCard; href: string; mark?: string }) {
   const top = card.playbooks.find(p => p.level === 'danger') ?? card.playbooks.find(p => p.level === 'monitor');
-  return <div className={`insp-box insp-guard${card.verdict.level === 'danger' ? ' danger' : ''} ${mark}`}><div className="insp-guard-top"><b>{card.verdict.level === 'pending' ? NOT_FULLY_CHECKED : top ? `Watch for: ${playbookName(top.id, top.level)}` : 'No scam playbooks matched'}</b><Link to={href} className="insp-link">Evidence</Link></div><p>{card.verdict.reasons.join(' ')}{top?.history && ` Deployer: ${top.history.deployerRuns} prior flagged runs.`}</p><AnalysisPolicyNotice /></div>;
+  return <div className={`insp-box insp-guard${card.verdict.level === 'danger' ? ' danger' : ''} ${mark}`}><div className="insp-guard-top"><b>{card.verdict.level === 'pending' ? NOT_FULLY_CHECKED : top ? `Watch for: ${playbookName(top.id, top.level)}` : 'No scam playbooks matched'}</b><Link to={href} className="insp-link">Evidence</Link></div><p>{sentences(card.verdict.reasons)}{top?.history && ` Deployer: ${top.history.deployerRuns} prior flagged runs.`}</p><AnalysisPolicyNotice /></div>;
 }
 export function CoinInspector({ row, close, onCard, formatRowAge = age, stale = false, tradeVisible = true }: { row: HeatRow; close: () => void; onCard: (card: CoinCard) => void; formatRowAge?: typeof formatAge; stale?: boolean; tradeVisible?: boolean }) {
   const guard = useGuardCoin(row.address),rt=useRealtime();

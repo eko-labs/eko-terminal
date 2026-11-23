@@ -40,7 +40,7 @@ export function VerdictChip({ level, size, detail, runUp, stateLabel, verdictPen
   const checking = verdictPending, delayed = checking && scanDelayed;
   const context = !checking && level === 'clear' ? stateLabel : undefined;
   const className = `verdict ${context ? 'neutral' : level}${checking ? ' scanning' : ''}${delayed ? ' delayed' : ''}${size === 'lg' ? ' lg' : ''}`;
-  const content = <>{!context && <Icon />}{context ? <span className="verdict-state">{context}</span> : delayed ? SCAN_DELAYED : checking ? SCANNING : label}{detail && <span className="verdict-detail">· {detail}</span>}</>;
+  const content = <>{!context && <Icon />}{context ? <span className="verdict-state" title={typeof context === 'string' ? context : undefined}>{context}</span> : delayed ? SCAN_DELAYED : checking ? SCANNING : label}{detail && <span className="verdict-detail">· {detail}</span>}</>;
   if (runUp !== undefined && !checking && level !== 'pending' && level !== 'info') {
     // A Dead or Inactive coin has no run-up to speak of: the chip keeps its explanation but drops "· Run-up 0".
     const over = !!context && /^(Dead|Inactive)\b/.test(context);
