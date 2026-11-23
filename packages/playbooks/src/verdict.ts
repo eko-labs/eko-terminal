@@ -1,5 +1,7 @@
 import type { Level, PlaybookId, PlaybookMatch, Verdict } from '@eko/shared';
-import type { VerdictMeta } from './types.js';
+import { CONFIG_V1, type PlaybookConfig } from '../config/v1.js';
+import { readMarketCap } from './rules.js';
+import type { CardSources, VerdictMeta } from './types.js';
 
 const templates: Record<PlaybookId, string> = {
   honeypot: 'A deep simulation confirmed a failed sell or less than 5% returned.',
@@ -23,6 +25,29 @@ const templates: Record<PlaybookId, string> = {
 };
 const rank: Record<Level, number> = { danger: 3, monitor: 2, info: 1, clear: 0 };
 
+/** Dollars as a trader reads them: $0.89, $745, $39.3K, $781K, $1.02M, $405M, $1.2B. */
+export function compactUsd(n: number): string {
+  const sig = (v: number) => (v >= 100 ? Math.round(v) : v >= 10 ? Math.round(v * 10) / 10 : Math.round(v * 100) / 100).toString();
+  const a = Math.max(0, n);
+  if (a >= 999.5e6) return `$${sig(a / 1e9)}B`;
+  if (a >= 999.5e3) return `$${sig(a / 1e6)}M`;
+  if (a >= 999.5) return `$${sig(a / 1e3)}K`;
+  return `$${a >= 100 ? Math.round(a) : a.toFixed(2)}`;
+}
+/** A share as a percentage: 28%, 3.8%, 0.19%, under 0.01%. */
+export function sharePct(share: number): string {
+  const p = Math.max(0, share) * 100;
+  if (p === 0) return '0%';
+  if (p < 0.01) return 'under 0.01%';
+  return `${p >= 10 ? Math.round(p) : p >= 1 ? Math.round(p * 10) / 10 : Math.round(p * 100) / 100}%`;
+}
+/** A span in words: 40 minutes, 5 hours, 3 days, 4 weeks, 3 months; `adjective` gives "5-hour" as in "a 5-hour-old coin". */
+export function ageWords(sec: number, adjective = false): string {
+  const [n, unit] = sec < 2 * 3600 ? [Math.max(1, Math.round(sec / 60)), 'minute'] : sec < 48 * 3600 ? [Math.round(sec / 3600), 'hour']
+    : sec < 14 * 86_400 ? [Math.round(sec / 86_400), 'day'] : sec < 60 * 86_400 ? [Math.round(sec / (7 * 86_400)), 'week'] : [Math.round(sec / (30 * 86_400)), 'month'];
+  return adjective ? `${n}-${unit}` : `${n} ${unit}${n === 1 ? '' : 's'}`;
+}
+
 /** The launch window in words: about a second on Elysium, 3.5 seconds on Robinhood Chain (to the half second). */
 const within = (sec: number | null) => sec == null || sec < 1.25 ? 'within a second of launch' : `within ${Math.round(sec * 2) / 2} seconds of launch`;
 
@@ -33,10 +58,20 @@ export function reasonForMatch(match: PlaybookMatch): string {
     return 'A buy-then-sell test could not sell, or got back less than 5% of what it paid.';
   if (match.id === 'fake_mcap') {
     const value = (label: string) => { const v = match.evidence.find((e) => e.kind === 'stat' && e.label === label)?.value; return typeof v === 'number' && Number.isFinite(v) ? v : null; };
-    const mcap = value('Market cap, price × supply (USD)'), paid = value('Paid into the pool on net (USD)'), volume = value('24h volume (USD)'), holders = value('Holders');
-    const usd = (n: number) => `$${n >= 100 ? Math.round(n).toLocaleString('en-US') : n.toFixed(2)}`;
-    if (mcap != null && paid != null && volume != null && holders != null)
-      return `Priced at a ${usd(mcap)} market cap with ${usd(paid)} paid into its pool, ${usd(volume)} traded in 24 hours and ${holders} holder${holders === 1 ? '' : 's'}: the price is not backed.`;
+    const mcap = value('Market cap, price × supply (USD)'), pool = value('In its pool (USD)'), share = value('In its pool as a share of market cap');
+    const volume = value('24h volume (USD)'), hour = value('Last hour volume (USD)'), holders = value('Holders'), age = value('Coin age (seconds)');
+    if (mcap != null && pool != null && share != null) {
+      const backed = `${compactUsd(mcap)} market cap with ${compactUsd(pool)} in its pool (${sharePct(share)})`;
+      if (match.level === 'danger') {
+        const traded = hour != null ? hour < 0.5 ? 'nothing traded in the last hour' : `${compactUsd(hour)} traded in the last hour`
+          : volume != null ? volume < 0.5 ? 'nothing traded in 24 hours' : `${compactUsd(volume)} traded in 24 hours` : null;
+        const few = holders != null && holders <= 3 ? `${holders} holder${holders === 1 ? '' : 's'}` : null;
+        const rest = [traded, few].filter(Boolean) as string[];
+        return `A ${backed}${rest.length ? `${rest.length > 1 ? `, ${rest[0]} and ${rest[1]}` : ` and ${rest[0]}`}` : ''}: the price rests on almost nothing.`;
+      }
+      return age != null && age < CONFIG_V1.fake_mcap.youngH * 3600 ? `A ${ageWords(age, true)}-old coin at a ${backed}: its price ran far ahead of what the pool holds.`
+        : `A ${backed}: thin for its size, so a large sell would move the price a long way.`;
+    }
   }
   if (match.id === 'launch_snipers') {
     const value = (label: string) => { const v = match.evidence.find((e) => e.kind === 'stat' && e.label === label)?.value; return typeof v === 'number' && Number.isFinite(v) ? v : null; };
@@ -152,4 +187,26 @@ export function assembleVerdict(matches: PlaybookMatch[], meta: VerdictMeta): Ve
   const ordered = [...matches].sort((a, b) => rank[b.level] - rank[a.level] || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   return { ...meta, level, reasons: [...new Set(ordered.map(reasonForMatch))].slice(0, 3), playbooks: matches,
     schemaVersion: 'verdict-1' };
+}
+
+/**
+ * The context line for an older coin that simply trades little (readMarketCap `quiet`): not a finding, so no match
+ * carries it; the caller adds it to the verdict's reasons. Null for any other reading.
+ */
+export function marketCapContext(s: CardSources, cfg: PlaybookConfig['fake_mcap'] = CONFIG_V1.fake_mcap): string | null {
+  const read = readMarketCap(s, cfg), m = s.marketCap;
+  if (read?.kind !== 'quiet' || !m) return null;
+  const hour = m.volume1hUsd == null ? null : m.volume1hUsd < 0.5 ? 'nothing traded in the last hour' : `${compactUsd(m.volume1hUsd)} traded in the last hour`;
+  const buyers = m.buyers24h == null ? null : `${m.buyers24h} buyer${m.buyers24h === 1 ? '' : 's'} in 24 hours`;
+  return [`Quiet: ${ageWords(read.ageSec)} old`, hour, buyers, `${compactUsd(m.backingUsd)} in its pool (${sharePct(read.backingShare)} of its ${compactUsd(m.mcapUsd)} market cap).`]
+    .filter(Boolean).join(' · ');
+}
+
+/**
+ * Why a verdict rests on part of a coin's history: EKO holds its trades and transfers only from `sinceSec`, so the
+ * checks that read holders and early buyers did not run.
+ */
+export function partialHistoryReason(createdAtSec: number, sinceSec: number): string {
+  const gap = Math.max(0, sinceSec - createdAtSec);
+  return `EKO started following this coin ${gap < 14 * 86_400 ? ageWords(gap) : `${Math.round(gap / 86_400)} days`} after launch: holders and early buyers are not counted.`;
 }

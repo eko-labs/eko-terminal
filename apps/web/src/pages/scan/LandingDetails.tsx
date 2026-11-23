@@ -27,7 +27,7 @@ export function RadarPreview({ rows, delayedSec }: { rows: RadarRow[]; delayedSe
   return <div className="scan-radar-grid">{rows.slice(0, 6).map(row => <article className="panel scan-preview" key={row.address}>
     <Link to={`/coin/${row.address}`}><b>$<UntrustedText value={row.symbol} /></b><p><UntrustedText value={row.name} /></p></Link>
     <p className="muted">{C.radarDelay}: {delayedSec} s · {age(row.ageSec)} · {launchpadLabel(row.launchpad, row.stage === 'graduated')}</p>
-    <CompactVerdictChip priceMove={row.priceMove} level={row.verdict} guard={row.guardV2} failed={row.guardRefreshFailed} pending={row.verdictPending} evaluatedPlaybooks={row.evaluatedPlaybooks} missing={row.missingChecks} />
+    <CompactVerdictChip priceMove={row.priceMove} level={row.verdict} guard={row.guardV2} failed={row.guardRefreshFailed} pending={row.verdictPending} evaluatedPlaybooks={row.evaluatedPlaybooks} missing={row.missingChecks} historyPartial={row.historyPartial} />
     <p>{C.exit}: {row.unavailable?.includes('exitCost') ? C.notChecked : exitText(row.exitCost1kPct)}</p>
     <FlowBar flow={row.flow} unavailable={row.unavailable?.includes('flow')} legend />
   </article>)}</div>;

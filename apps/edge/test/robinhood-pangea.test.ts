@@ -101,9 +101,9 @@ describe('Pangea launches (Robinhood Chain)', () => {
     expect(fake.level).toBe('danger');
     const stat = (label: string) => fake.evidence.find(e => e.label === label)?.value;
     expect(stat('Market cap, price × supply (USD)')).toBeGreaterThan(100_000);
-    expect(stat('Paid into the pool on net (USD)')).toBeCloseTo(36, 0);
+    expect(stat('In its pool (USD)')).toBeCloseTo(36, 0);
     expect(fake.evidence.some(e => e.kind === 'address' && e.ref === coin.poolId)).toBe(true);
-    expect(a.verdict.reasons.join(' ')).toMatch(/market cap with \$36\.00 paid into its pool/);
+    expect(a.verdict.reasons.join(' ')).toMatch(/market cap with \$36\.00 in its pool/);
     // The honeypot check ran on the pool and the sell went through: no honeypot claimed.
     expect(a.probe!.status).toBe('sellable');
     expect(a.matches.find(m => m.id === 'honeypot')).toBeUndefined();

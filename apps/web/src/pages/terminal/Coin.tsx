@@ -34,7 +34,9 @@ import { launchpadLabel, quotedIn } from '../../copy/chain';
 /** Robinhood Chain launchpads whose coins trade in a Uniswap pool from launch (no curve to show progress on). */
 const POOL_LAUNCHPADS: ReadonlySet<string> = new Set(['pangea', 'longxyz', 'unbranded']);
 import { coinElsewhere } from '../../lib/coinLinks';
-import { CoinSlotScope } from '../../components/coinSlots';
+import { CoinDetailScope, CoinSlotScope, TabSections, ToolRow, sectionAnchor, useTabSections } from '../../components/coinSlots';
+import { CoinGlance } from './CoinGlance';
+import type { CoinDetailTab } from '../../features';
 import './radar.css';
 import './coin.css';
 const short=(s:string)=>`${s.slice(0,6)}…${s.slice(-4)}`;
@@ -42,13 +44,16 @@ export { RAW_TRADES_NOTE } from './CoinFlow';
 export default function Coin({params}:{params:Record<string,string>}){return <CoinPage key={params.address} address={params.address}/>;}
 function CoinPage({address}:{address:string}){
  const [tf,setTf]=useState<CoinTimeframe>('5m'),[tab,setTab]=useState('Overview'),[evidence,setEvidence]=useState(false),[row,setRow]=useState<RadarRow|null>(null),[agents,setAgents]=useState<Agent[]>([]),[burns,setBurns]=useState<BurnEvent[]>([]),[sheet,setSheet]=useState(false);
- const [fullHistory,setFullHistory]=useState(false);
+ const [fullHistory,setFullHistory]=useState(false),[sideRequest,setSideRequest]=useState<{side:'buy'|'sell';at:number}|null>(null);
  const sheetRef=useRef<HTMLElement>(null),[sheetHeight,setSheetHeight]=useState(140);
 
  const data=useCoin(address,tf,fullHistory),config=useShell(s=>s.config),ws=useShell(s=>s.wsState),delayed=useShell(s=>s.delayedSec),me=useShell(s=>s.me),phone=useMedia('(max-width:700px)'),toast=useApp(s=>s.toast);
  useEffect(()=>{if(!phone||!sheetRef.current)return;const measure=()=>setSheetHeight(sheetRef.current!.getBoundingClientRect().height);measure();const observer=new ResizeObserver(measure);observer.observe(sheetRef.current);return()=>observer.disconnect();},[phone,sheet]);
  const {card,verdict,bars,markers}=data;
  const guardData=useGuardCoin(address);
+ // Detail tabs features fill (features.ts CoinSlots.section): shown only when something fills them.
+ const whosIn=useTabSections("Who's in").length>0,odds=useTabSections('Odds').length>0;
+ const detail=useMemo(()=>({open:(name:CoinDetailTab,section?:string)=>{setTab(name);if(section)requestAnimationFrame(()=>requestAnimationFrame(()=>{const el=document.getElementById(section)??document.getElementById(sectionAnchor(section));el?.scrollIntoView({block:'start',behavior:'smooth'});(el as HTMLElement|null)?.focus({preventScroll:true});}));}}),[]);
  const antiSnipeEndsAt=useMemo(()=>antiSnipeDeadline(card,guardData.card,serverNow()),[card,guardData.card]);
  const identity=card?.identity??guardData.card?.identity??knownCoinIdentity(address);
  const primaryGuard=guardData.assessment?.mode==='active'?guardData.assessment:verdict?.guardV2?.mode==='active'?verdict.guardV2:undefined;
@@ -70,17 +75,18 @@ function CoinPage({address}:{address:string}){
  useEffect(()=>{if((phone||!card?.signal)&&tab==='Signal')setTab('Overview');},[phone,card?.signal,tab]);
  if(data.unknown&&!card&&!verdict&&!guardData.card&&!guardData.assessment)return <div className="shell-page coin-page"><div className="empty"><h1>{NOT_INDEXED}</h1><p>{data.error || CARD_WAIT}</p><button className="btn" onClick={()=>void api(MOCKS ? '/scan' : `/scan?q=${encodeURIComponent(address)}`,MOCKS ? {body:{query:address}} : undefined).then(()=>data.retry()).catch(()=>toast({kind:'error',title:'Could not scan. Try again.'}))}>Scan</button></div><AnalysisPolicyNotice /></div>;
  const top=verdict?.playbooks.find(p=>p.level==='danger')??verdict?.playbooks.find(p=>p.level==='monitor');
- const tabs=phone?[{value:'Overview',label:'Card'},'Flow','Trades']:['Overview',...(card?.signal?['Signal']:[]),'Flow','Trades'];
+ const featureTabs=[...(whosIn?["Who's in"]:[]),...(odds?['Odds']:[])];
+ const tabs=phone?[{value:'Overview',label:'Card'},...featureTabs,'Flow','Trades']:['Overview',...featureTabs,...(card?.signal?['Signal']:[]),'Flow','Trades'];
  const activeValues=tabs.map(t=>typeof t==='string'?t:t.value);
  const showEvidence=()=>{useOnboarding.getState().markStep('open_evidence');setTab('Overview');setEvidence(true);const id=headerGuard&&headerGuard.mode!=='active'?'guard-shadow-evidence':'coin-evidence';requestAnimationFrame(()=>{document.getElementById(id)?.scrollIntoView({block:'nearest'});document.getElementById(id)?.focus();});};
  const verdictActivity=card?coinVerdictActivity(card,serverNow()):row;
  const stateLabel=verdict?noMatchLabel({...verdictActivity,verdict:verdict.level,guardV2:primaryGuard}):undefined;
- const verdictChip=headerGuard?<button data-tour="verdict" className="coin-verdict-button" aria-label="Open verdict evidence" onClick={showEvidence}><VerdictChip level="pending" guard={headerGuard} showGaps={false}/></button>:verdict?<button data-tour="verdict" className="coin-verdict-button" aria-label="Open verdict evidence" onClick={showEvidence}><VerdictChip level={verdict.level} guard={primaryGuard} showGaps={false} evaluatedPlaybooks={verdict.evaluatedPlaybooks} meta={card?.meta} stateLabel={stateLabel} detail={top?playbookName(top.id,top.level):undefined}/></button>:<VerdictChip level="pending" verdictPending/>;
+ const verdictChip=headerGuard?<button data-tour="verdict" className="coin-verdict-button" aria-label="Open verdict evidence" onClick={showEvidence}><VerdictChip level="pending" guard={headerGuard} showGaps={false}/></button>:verdict?<button data-tour="verdict" className="coin-verdict-button" aria-label="Open verdict evidence" onClick={showEvidence}><VerdictChip level={verdict.level} guard={primaryGuard} showGaps={false} evaluatedPlaybooks={verdict.evaluatedPlaybooks} meta={card?.meta} stateLabel={stateLabel} historyPartial={verdict.historyPartial} detail={top?playbookName(top.id,top.level):undefined}/></button>:<VerdictChip level="pending" verdictPending/>;
  const elsewhere=coinElsewhere(address,identity?.stage);
  const changeText=(v:number)=>row?.unavailable?.includes('change') ? NOT_CHECKED : pct(v);
  const labelsOff=data.labelsUnavailable || card?.meta?.flow?.unavailable;
  const nowSec=Math.floor(Date.now()/1000);
- return <CoinSlotScope coin={address}><AnalysisPolicyScope><div onClickCapture={e=>{const target=(e.target as HTMLElement).closest('summary')?.parentElement;if(target?.classList.contains('ev'))useOnboarding.getState().markStep('open_evidence');}} className="shell-page coin-page" style={{'--trade-sheet-clearance':`${sheetHeight}px`} as CSSProperties}>{data.error&&<div role="status" className="coin-error">{data.error} <button className="btn" onClick={data.retry}>Retry</button></div>}
+ return <CoinSlotScope coin={address}><CoinDetailScope value={detail}><AnalysisPolicyScope><div onClickCapture={e=>{const target=(e.target as HTMLElement).closest('summary')?.parentElement;if(target?.classList.contains('ev'))useOnboarding.getState().markStep('open_evidence');}} className="shell-page coin-page" style={{'--trade-sheet-clearance':`${sheetHeight}px`} as CSSProperties}>{data.error&&<div role="status" className="coin-error">{data.error} <button className="btn" onClick={data.retry}>Retry</button></div>}
  <header className="coin-head">
   <div className="coin-title-row">
    <div className="coin-id">
@@ -101,13 +107,17 @@ function CoinPage({address}:{address:string}){
   </div>
  </header>
  <div className="coin-guard-status">{guardData.failed?<p role="status">{guardData.card||guardData.assessment?GUARD_REFRESH_FAILED:GUARD_UNAVAILABLE} <button className="btn btn-sm" onClick={guardData.retry}>Retry Guard</button></p>:null}</div>
+ <CoinGlance card={card} verdict={verdict} guard={headerGuard} onVerdict={showEvidence}/>
  <div className="coin-grid"><div className="coin-center">
-  <ChartStage market={identity?inertText(identity.symbol.text):address} timeframe={tf} onTimeframe={setTf} bars={bars} markers={markers} supply={row?.marketCapUsd&&row.priceUsd?row.marketCapUsd/row.priceUsd:Number(card?.supply.circulating??1)} verdict={verdictChip} delayedSec={delay} ownToken={ownToken} burnWallet={config?.wallets.burn} launchTs={launchTs} labelsUnavailable={labelsOff} crewsEnabled={config?.flags.rug_ring_radar}/>
+  <ChartStage market={identity?inertText(identity.symbol.text):address} timeframe={tf} onTimeframe={setTf} bars={bars} markers={markers} supply={row?.marketCapUsd&&row.priceUsd?row.marketCapUsd/row.priceUsd:Number(card?.supply.circulating??1)} verdict={headerGuard?verdictChip:undefined} delayedSec={delay} ownToken={ownToken} burnWallet={config?.wallets.burn} launchTs={launchTs} labelsUnavailable={labelsOff} crewsEnabled={config?.flags.rug_ring_radar}/>
   {(!bars.length||data.candlesUnavailable)&&!data.error&&<p role="status" className="coin-chart-status">{data.candlesLoading ? 'Loading indexed candles…' : data.candlesUnavailable ? SUB_MINUTE_UNAVAILABLE : <>{emptyTradeWindow(data.lastTradeTs)} {!fullHistory && data.lastTradeTs!=null && <button className="btn btn-sm" onClick={()=>setFullHistory(true)}>{FULL_HISTORY}</button>}</>}</p>}
+  <ToolRow/>
   <section className="coin-findings" aria-labelledby="coin-findings-h">
    <div className="coin-zone-head"><h2 id="coin-findings-h" className="coin-zone-title">What EKO found</h2><span className="coin-zone-sub">Checks, supply and trading flow for this coin. Not a recommendation.</span></div>
    <div className="coin-tabs"><Tabs tabs={tabs} value={tab} onChange={setTab} label="Coin details" id="coin-details"/></div>
-   {activeValues.map((name,i)=><TabPanel key={name} id="coin-details" index={i} active={tab===name}>{name==='Overview'?<>{!!delay&&<span className="tag">Delayed ~{delay} s</span>}{guardData.card?<>{verdict&&!primaryGuard&&<CoinVerdict verdict={verdict} identity={card?.identity} activity={verdictActivity??undefined} meta={card?.meta} evidenceOpen={evidence}/>}<GuardCard card={guardData.card} assessment={guardData.assessment??undefined} evidenceOpen={evidence}/></>:guardData.assessment?<GuardAssessment guard={guardData.assessment} evidenceOpen={evidence}/>:card&&verdict?<CoinOverview card={card} verdict={verdict} flows={data.flows} evidenceOpen={evidence} ownToken={ownToken} launchBurn={!!launch} ageSec={data.ageSec}/>:verdict?<CoinVerdict verdict={verdict} identity={card?.identity} activity={verdictActivity??undefined} meta={card?.meta} evidenceOpen={evidence}/>:<div className="skel coin-card-skel" aria-label="Loading coin card"/>}</>
+   {activeValues.map((name,i)=><TabPanel key={name} id="coin-details" index={i} active={tab===name}>{name==='Overview'?<>{!!delay&&<span className="tag">Delayed ~{delay} s</span>}{guardData.card?<>{verdict&&!primaryGuard&&<CoinVerdict verdict={verdict} identity={card?.identity} activity={verdictActivity??undefined} meta={card?.meta} evidenceOpen={evidence}/>}<GuardCard card={guardData.card} assessment={guardData.assessment??undefined} evidenceOpen={evidence}/></>:guardData.assessment?<GuardAssessment guard={guardData.assessment} evidenceOpen={evidence}/>:card&&verdict?<CoinOverview card={card} verdict={verdict} flows={data.flows} evidenceOpen={evidence} ownToken={ownToken} launchBurn={!!launch} ageSec={data.ageSec}/>:verdict?<CoinVerdict verdict={verdict} identity={card?.identity} activity={verdictActivity??undefined} meta={card?.meta} evidenceOpen={evidence}/>:<div className="skel coin-card-skel" aria-label="Loading coin card"/>}<TabSections tab="Overview"/></>
+    :name==="Who's in"?<TabSections tab="Who's in"/>
+    :name==='Odds'?<TabSections tab="Odds"/>
     :name==='Signal'&&card?.signal?<CoinSignalPanel signal={card.signal} series={bars.map(b=>b.c)}/>
     :name==='Flow'?<CoinFlowTab flows={data.flows} markers={markers} labelsUnavailable={labelsOff} nowSec={nowSec}/>
     :<CoinTrades markers={markers} flows={data.flows} labelsUnavailable={labelsOff}/>}</TabPanel>)}
@@ -115,7 +125,10 @@ function CoinPage({address}:{address:string}){
   </section>
   <BlueChipDetails value={card?.blueChip} criteria={card?.blueChipCriteria} /><AnalysisPolicyNotice page /></div>
  <aside ref={sheetRef} className={`coin-aside${phone?' coin-sheet':''}${sheet?' expanded':''}`} aria-label="Trade this coin">
-  <section className="panel coin-trade"><div className="panel-head coin-section-head coin-trade-head"><h2>{phone?'Trade':'Trade this coin'}</h2>{phone?<button className="btn btn-sm" aria-expanded={sheet} onClick={()=>setSheet(!sheet)}>{sheet?'Collapse':'Expand'}</button>:<span className="coin-trade-meta">Guarded · non-custodial</span>}</div>{stale&&phone&&!sheet&&<p role="status" className="coin-stale">Data is stale — trading paused.</p>}<div className="panel-body" hidden={phone&&!sheet} inert={phone&&!sheet}><TradePanel key={address} coin={address} priceUsd={px} priceUnavailable={row?.priceUnavailable} priceFormat={formatCoinPrice} guard={guardData.assessment ?? verdict?.guardV2} stale={stale} visible={!phone||sheet} antiSnipeEndsAt={antiSnipeEndsAt} /></div></section>
+  <section className="panel coin-trade"><div className={`panel-head coin-section-head coin-trade-head${phone&&!sheet?' coin-trade-quick':''}`}>{phone&&!sheet
+   // Collapsed on a phone: Buy and Sell are always on screen; either opens the panel on that side.
+   ?<><button type="button" className="btn coin-quick-buy" onClick={()=>{setSideRequest({side:'buy',at:Date.now()});setSheet(true);}}>Buy</button><button type="button" className="btn coin-quick-sell" onClick={()=>{setSideRequest({side:'sell',at:Date.now()});setSheet(true);}}>Sell</button></>
+   :<><h2>Trade this coin</h2>{phone?<button className="btn btn-sm" aria-expanded={sheet} onClick={()=>setSheet(false)}>Collapse</button>:<span className="coin-trade-meta">Guarded · non-custodial</span>}</>}</div>{stale&&phone&&!sheet&&<p role="status" className="coin-stale">Data is stale — trading paused.</p>}<div className="panel-body" hidden={phone&&!sheet} inert={phone&&!sheet}><TradePanel key={address} coin={address} priceUsd={px} priceUnavailable={row?.priceUnavailable} priceFormat={formatCoinPrice} guard={guardData.assessment ?? verdict?.guardV2} stale={stale} visible={!phone||sheet} antiSnipeEndsAt={antiSnipeEndsAt} {...(sideRequest?{sideRequest}:{})} {...(identity?{symbol:inertText(identity.symbol.text)}:{})} /></div></section>
   <section className="panel coin-your-agents"><div className="panel-head coin-section-head"><h3>Your agents</h3><Link to="/mission">Mission Control</Link></div><div className="panel-body"><ul className="mine">{agents.map(a=><li key={a.id}><Link to={`/mission/agents/${a.id}`}>{a.name}</Link><span>{a.status.replaceAll('_',' ')}</span></li>)}</ul>{!agents.length&&<p className="muted">No connected on-chain agents.</p>}<p className="note">Connected agents get this same verdict when they call <span className="addr">preflight</span> before an order.</p></div></section>
- </aside></div></div></AnalysisPolicyScope></CoinSlotScope>;
+ </aside></div></div></AnalysisPolicyScope></CoinDetailScope></CoinSlotScope>;
 }

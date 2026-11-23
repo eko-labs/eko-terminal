@@ -53,7 +53,7 @@ describe('Radar contract-driven row and trade slots', () => {
   it('preserves the Watch section beside the shared guarded trade panel',()=>{
     const html=renderToStaticMarkup(<CoinInspector row={row} close={()=>undefined} onCard={()=>undefined}/>);
     expect(html).toContain('<h3>Watch</h3>');expect(html).toContain('>Watch</button>');
-    expect(html).toContain('<h3>Trade</h3>');expect(html).toContain('Custom trade amount');
+    expect(html).toContain('<h3>Trade</h3>');expect(html).toContain('>Amount<');
   });
   it('calls the signal "Signal · five readings", never agents, with one Beta marker in the column header (BACKEND §7.7)',()=>{
     expect(partsSource).toContain('Signal · five readings'); expect(partsSource).not.toMatch(/five[- ]agent/i);

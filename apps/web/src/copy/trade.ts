@@ -43,7 +43,7 @@ export const TRADE_COPY = {
   },
 };
 export const TRADE_LABELS = {
-  side: 'Trade side', buy: 'Buy', sell: 'Sell', amount: 'Custom trade amount', slippage: 'Slippage (%)',
+  side: 'Trade side', buy: 'Buy', sell: 'Sell', amount: 'Amount', slippage: 'Slippage (%)',
   mode: 'Mode', pay: 'You pay', receive: 'Expected received (raw units)', minimum: 'Minimum received (raw units)',
   input: 'Input (raw units)', value: 'Native value (wei)', price: 'Price', route: 'Route', fee: 'Terminal fee',
   buyTax: 'Buy tax', sellTax: 'Sell tax', exit: 'Exit cost at this size', impact: 'Price impact', network: 'Network fee (execution + L1 data)',

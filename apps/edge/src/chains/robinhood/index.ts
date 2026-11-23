@@ -85,7 +85,19 @@ export function poolBacking(coin: CoinState, nowSec: number) {
   const p = coin.launchPosition, left = p && p.liquidity > 0n ? 1 - Math.min(1, Number(p.removed) / Number(p.liquidity)) : 1;
   const paidIn = (Number(p?.seed ?? 0n) / 1e18 + Math.max(0, coin.netHype)) * left;
   const label = p ? 'Pool (seeded with ETH at launch; launch position held by the creator)' : 'Pool (opened with only the coin in it)';
-  return { mcap: price * Number(coin.supply) / 1e18, paidIn, volume24h, evidence: [{ kind: 'address' as const, ref: coin.poolId, label }] };
+  return { mcap: price * Number(coin.supply) / 1e18, paidIn, volume24h, source: 'net_flow' as const, evidence: [{ kind: 'address' as const, ref: coin.poolId, label }] };
+}
+/**
+ * What backs a Pons graduate's price (playbook fake_mcap), in native currency: the ETH its v4 pool holds at the pool's
+ * own price, read on chain by the probe (probe.ts ponsPoolReserve: the locked graduation position once the lock is
+ * proven). Not EKO's net of the trades it saw: that misses the ETH graduation put in, and everything before EKO
+ * followed the coin.
+ */
+export function ponsBacking(coin: CoinState, reserve: { native: number; price: number }, lockProven: boolean, nowSec: number) {
+  let volume24h = 0;
+  for (let i = coin.trades.length - 1; i >= 0 && coin.trades[i]!.ts > nowSec - 86_400; i--) volume24h += coin.trades[i]!.hype;
+  const label = lockProven ? 'Pool (graduation liquidity locked by Pons; ETH side read on chain)' : 'Pool (ETH side read on chain)';
+  return { mcap: reserve.price * Number(coin.supply) / 1e18, paidIn: reserve.native, volume24h, source: 'pool' as const, evidence: [{ kind: 'address' as const, ref: coin.poolId, label }] };
 }
 /** EKO's memory on Robinhood Chain in blocks: 25 hours (the tracker's keepSec) at ~0.102 s blocks. */
 export const ROBINHOOD_KEEP_BLOCKS = 882_000n;
@@ -471,7 +483,8 @@ export function robinhoodChain(registry: AddressRegistry = loadRegistry(), optio
           buyFeePct: null, sellFeePct: null,
         },
         ...(coin.curve && !coin.graduated && coin.supply > 0n ? { runUp: curveRunUp(coin as CoinState & { curve: NonNullable<CoinState['curve']> }, nowSec) } : {}),
-        ...(coin.launchpad !== 'pons' && coin.key && coin.supply > 0n ? { backing: poolBacking(coin, nowSec) } : {}),
+        ...(coin.launchpad === 'pons' && coin.graduated && key && p.poolReserve && coin.supply > 0n ? { backing: ponsBacking(coin, p.poolReserve, !!lock?.locked, nowSec) }
+          : coin.launchpad !== 'pons' && coin.key && coin.supply > 0n ? { backing: poolBacking(coin, nowSec) } : {}),
       };
     },
     trade: robinhoodVenue(trade),

@@ -1,4 +1,4 @@
-import { decodeFunctionResult, encodeFunctionData, getAddress, keccak256, parseAbi, zeroAddress, type Address, type Hex } from 'viem';
+import { decodeFunctionResult, encodeAbiParameters, encodeFunctionData, getAddress, keccak256, parseAbi, toHex, zeroAddress, type Address, type Hex } from 'viem';
 import { ponsCurveAbi, readPonsProfile, runSellProbe, v4PoolId, type PonsProfileClient, type SellPair, type SellProbe, type SellRoute } from '@eko/chain';
 import { readTips, type Probed } from '../../assess.js';
 import type { CoinState, Rpc } from '../../tracker.js';
@@ -24,6 +24,10 @@ const lockerAbi = parseAbi(['function lockedPositions(address token) view return
 const posmAbi = parseAbi(['function ownerOf(uint256 tokenId) view returns (address)', 'function getApproved(uint256 tokenId) view returns (address)',
   'function getPositionLiquidity(uint256 tokenId) view returns (uint128)', 'function poolManager() view returns (address)',
   'function getPoolAndPositionInfo(uint256 tokenId) view returns ((address currency0,address currency1,uint24 fee,int24 tickSpacing,address hooks) poolKey, uint256 info)']);
+const managerAbi = parseAbi(['function extsload(bytes32 slot) view returns (bytes32)']);
+/** v4's PoolManager keeps pools in a mapping at slot 6; a pool's slot0 is the first word of its state and its in-range
+ *  liquidity the fourth (v4-core StateLibrary). */
+const POOLS_SLOT = 6n, LIQUIDITY_OFFSET = 3n;
 const multicallAbi = parseAbi(['struct Call3 { address target; bool allowFailure; bytes callData; }', 'struct Result { bool success; bytes returnData; }',
   'function aggregate3(Call3[] calls) payable returns (Result[] returnData)']);
 
@@ -87,7 +91,10 @@ export async function probeRobinhoodCoin(coin: RobinhoodCoinState, block: bigint
   // The lock proof is Pons' (its launch locker); other launchpads' positions are not in it.
   const lockCalls = key && coin.launchpad === 'pons' ? [enc(addrs.factory, factoryAbi, 'locker'), enc(addrs.factory, factoryAbi, 'positionManager'), enc(addrs.factory, factoryAbi, 'memeHook'),
     enc(PONS_LOCK.locker, lockerAbi, 'lockedPositions', [coin.token]), enc(PONS_LOCK.positionManager, posmAbi, 'poolManager')] : [];
-  const read = await batch(rpc, addrs.multicall3, block, [enc(coin.token, erc20Abi, 'name'), enc(coin.token, erc20Abi, 'symbol'), ...curveCalls, ...lockCalls]);
+  // A graduate's pool state: its price (slot0) and in-range liquidity, read from the PoolManager's storage.
+  const state = key && coin.launchpad === 'pons' ? BigInt(keccak256(encodeAbiParameters([{ type: 'bytes32' }, { type: 'uint256' }], [coin.poolId as Hex, POOLS_SLOT]))) : null;
+  const poolCalls = state !== null ? [state, state + LIQUIDITY_OFFSET].map(slot => enc(addrs.poolManager, managerAbi, 'extsload', [toHex(slot, { size: 32 })])) : [];
+  const read = await batch(rpc, addrs.multicall3, block, [enc(coin.token, erc20Abi, 'name'), enc(coin.token, erc20Abi, 'symbol'), ...curveCalls, ...lockCalls, ...poolCalls]);
   const name = read(0, d => decodeFunctionResult({ abi: erc20Abi, functionName: 'name', data: d })) ?? coin.name ?? '';
   const symbol = read(1, d => decodeFunctionResult({ abi: erc20Abi, functionName: 'symbol', data: d })) ?? coin.symbol ?? '';
   const uint = (i: number) => read(i, d => BigInt(d.slice(0, 66)));
@@ -125,6 +132,18 @@ export async function probeRobinhoodCoin(coin: RobinhoodCoinState, block: bigint
       deps.pins ?? { locker: PONS_LOCK.lockerCodeHash, positionManager: PONS_LOCK.positionManagerCodeHash }).catch(() => null);
   }
 
+  // What backs a graduate's price: the ETH side of its pool at the pool's own price. Graduation puts one full-range
+  // position in the pool, which holds L / sqrtP of currency0 (ETH) and L * sqrtP of the coin; the locked position's
+  // liquidity is counted once the lock is proven (what nobody can take out), else the pool's in-range liquidity.
+  let poolReserve: Probed['poolReserve'];
+  if (poolCalls.length) {
+    const p0 = 2 + curveCalls.length + lockCalls.length;
+    const slot0 = read(p0, d => BigInt(d)), inRange = read(p0 + 1, d => BigInt(d) & ((1n << 128n) - 1n));
+    const sqrtPriceX96 = slot0 === null ? 0n : slot0 & ((1n << 160n) - 1n);
+    const liquidity = lock?.locked && lock.liquidity > 0n ? lock.liquidity : inRange;
+    if (sqrtPriceX96 > 0n && liquidity !== null) poolReserve = ponsPoolReserve(sqrtPriceX96, liquidity);
+  }
+
   // The probe: about $1,000 of ETH. On the curve only while it trades (a graduated or ready curve is closed for sells
   // and the pool takes over); on the pool only with a key that hashes to the coin's pool id. A Pangea pool takes the
   // same v4 route with empty hookData (its swaps through the Universal Router pass none; the probe sold on all five
@@ -149,7 +168,17 @@ export async function probeRobinhoodCoin(coin: RobinhoodCoinState, block: bigint
   // Pons and Pangea coins, quoted in native ETH, never carry quoteConverted.
   const unavailable = !route && coin.quoteConverted && key && key.currency0 !== zeroAddress ? { sellCheckUnavailable: 'token_quoted_pool' as const } : {};
   return { block: Number(block), at: new Date(nowSec * 1000).toISOString(), name, symbol, key, config: null, currentBuyFeePips: null, probe,
-    probeUsd: ethUsd ? 1000 : 0, tips, ...(taxPct ? { taxPct } : {}), pons, lock, ...unavailable };
+    probeUsd: ethUsd ? 1000 : 0, tips, ...(taxPct ? { taxPct } : {}), pons, lock, ...(poolReserve ? { poolReserve } : {}), ...unavailable };
+}
+
+/**
+ * A Pons pool (native ETH currency0, the coin currency1) at `sqrtPriceX96` with full-range `liquidity`: the ETH it holds
+ * (L / sqrtP, in whole ETH; the full range's upper bound adds nothing measurable) and ETH per 1e18 base units of the
+ * coin (1 / sqrtP²).
+ */
+export function ponsPoolReserve(sqrtPriceX96: bigint, liquidity: bigint): { native: number; price: number } {
+  const native = Number((liquidity << 96n) / sqrtPriceX96) / 1e18, sqrtP = Number(sqrtPriceX96) / 2 ** 96;
+  return { native, price: 1 / (sqrtP * sqrtP) };
 }
 
 /**

@@ -999,7 +999,7 @@
         "decision": "deny",
         "rule": "blockPlaybookLevel",
         "reasons": [
-          "Danger: Stuck at bonding. This deployer ran stuck-at-bonding 5 times",
+          "Danger: Stuck on the curve. This deployer ran stuck-at-bonding 5 times",
           "Your policy blocks Danger playbooks. There is no override"
         ],
         "t": 4033,
@@ -1229,7 +1229,7 @@
         "decision": "deny",
         "rule": "blockPlaybookLevel",
         "reasons": [
-          "Danger: Stuck at bonding. This deployer ran stuck-at-bonding 10 times",
+          "Danger: Stuck on the curve. This deployer ran stuck-at-bonding 10 times",
           "Your policy blocks Danger playbooks. There is no override"
         ],
         "t": 1912,

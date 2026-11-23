@@ -260,7 +260,7 @@
         "id": "migration_dump",
         "level": "danger",
         "confidence": 0.91,
-        "history": "Insiders sold 64% of holdings within 5 minutes of graduation"
+        "history": "Insiders sold 88% of what they bought within 7 minutes of launch"
       },
       {
         "id": "wash_to_trend",
@@ -1283,7 +1283,7 @@
       "hash": "0x058443417a763aa1ec9091d328fb368aec3e3f316f8dc5e9c9c3c2a476c4838f",
       "block": 4811970
     },
-    "summary": "Stuck at bonding detected. The guard will refuse this trade.",
+    "summary": "Stuck on the curve. The guard will refuse this trade.",
     "curvePct": 22,
     "rank": 10
   },
@@ -2104,7 +2104,7 @@
       "hash": "0x803dbd7184f2ca716ca6c83e25e38aaa48bc7c779654dde43067fe633b91ff1b",
       "block": 4812040
     },
-    "summary": "Exempt insiders detected. The guard will refuse this trade.",
+    "summary": "Tax-free insiders. The guard will refuse this trade.",
     "curvePct": 69,
     "rank": 17
   },
@@ -2998,7 +2998,7 @@
     },
     "supply": {
       "top10": 26,
-      "dev": 3.7,
+      "dev": 12.3,
       "bundles": 5.1,
       "exempt": 0.4,
       "fresh": 10.1,
@@ -3114,7 +3114,7 @@
     },
     "supply": {
       "top10": 56,
-      "dev": 1.8,
+      "dev": 11.6,
       "bundles": 2.1,
       "exempt": 1.3,
       "fresh": 15.9,
@@ -3136,7 +3136,7 @@
       "hash": "0x941d77e326e3d88708d3ee1fc35925a1275ad0061152372c368639756d196f28",
       "block": 4812231
     },
-    "summary": "Stuck at bonding detected. The guard will refuse this trade.",
+    "summary": "Stuck on the curve. The guard will refuse this trade.",
     "curvePct": 84,
     "rank": 26
   },
@@ -3339,7 +3339,7 @@
     },
     "supply": {
       "top10": 77,
-      "dev": 2.8,
+      "dev": 0,
       "bundles": 0.8,
       "exempt": 20,
       "fresh": 16.9,
@@ -3361,7 +3361,7 @@
       "hash": "0x5238bd8d1f440afaa382b3f397545165ec830f678009eae65f989ab8e449421b",
       "block": 4812242
     },
-    "summary": "Exempt insiders detected. The guard will refuse this trade.",
+    "summary": "Tax-free insiders. The guard will refuse this trade.",
     "curvePct": 84,
     "rank": 28
   },

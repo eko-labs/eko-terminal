@@ -78,6 +78,12 @@ describe('frozen contract samples (FACTS §7, BACKEND §23)', () => {
       'malicious_hook', 'agent_bait', 'serial_deployer', 'holder_concentration', 'dev_dump', 'run_up', 'launch_snipers', 'fake_mcap',
     ]);
     expect(contracts.VerdictSchema.safeParse({ ...samples.Verdict, level: 'info' }).success).toBe(false);
+    // Additive: a grade on part of a coin's history carries when that history starts, on the verdict and on list rows.
+    const partial = { since: '2026-11-21T00:01:53.000Z' };
+    expect(contracts.VerdictSchema.parse({ ...samples.Verdict, historyPartial: partial }).historyPartial).toEqual(partial);
+    expect(contracts.VerdictSchema.safeParse({ ...samples.Verdict, historyPartial: { since: 'yesterday' } }).success).toBe(false);
+    expect(contracts.VerdictSchema.parse(samples.Verdict).historyPartial).toBeUndefined();
+    expect(contracts.RadarRowSchema.parse({ ...samples.RadarRow, historyPartial: partial }).historyPartial).toEqual(partial);
     expect(contracts.EntitlementsSchema.safeParse({ ...samples.Entitlements, feeBps: 10 }).success).toBe(false);
     for (const feeBps of [0, 50, 40, 30, 25]) expect(contracts.EntitlementsSchema.safeParse({ ...samples.Entitlements, feeBps }).success).toBe(true);
     for (const payload of [null, false, 'text', [1], { text: 'opaque' }]) {
@@ -127,7 +133,7 @@ describe('flags, bus and versions', () => {
     'Drop 5': ['agent_launcher'], 'Drop 6': ['loop_lab_pro', 'stocks_lane'], 'Drop 7': ['eko_score', 'eko_inside'],
     'Drop 8': ['chain_base'], 'Drop 9': ['institutional_pack', 'marketplace', 'eko_agent'],
     // Post-launch updates beyond §21.4 (docs/FLAGS.md).
-    Updates: ['wallet_tags', 'dev_profile', 'more_launchpads', 'wallet_tracker', 'exit_check', 'dev_sell_alerts', 'launch_alerts', 'linked_devs', 'price_alerts'],
+    Updates: ['wallet_tags', 'dev_profile', 'more_launchpads', 'wallet_tracker', 'exit_check', 'dev_sell_alerts', 'launch_alerts', 'linked_devs', 'price_alerts', 'launch_map', 'top_traders', 'holders_in_profit', 'bonding_alerts', 'quant'],
   };
   it('has exactly the §21.4 flags, excludes ops, and requires a complete record', () => {
     expect(flags.FLAG_STAGES).toEqual(stages);

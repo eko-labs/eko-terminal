@@ -36,6 +36,8 @@ export const CoinSummarySchema = z.object({
   // TODO(spec): Additive row tooltip context avoids waiting for a separate card fetch.
   evaluatedPlaybooks: VerdictSchema.shape.evaluatedPlaybooks,
   missingChecks: z.array(z.string()).optional(),
+  // TODO(spec): additive (2026-11-23), as on the verdict: graded on the coin's history from `since` only (Partly checked).
+  historyPartial: VerdictSchema.shape.historyPartial,
   // CA-31 (accepted): market cap in USD for the Radar inspector and coin view.
   marketCapUsd: z.number().optional(),
   // TODO(spec): additive. The live sell check (BACKEND §6.2 contract probe) at one block: `refused` means a buy went

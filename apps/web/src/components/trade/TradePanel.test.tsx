@@ -173,7 +173,7 @@ describe('shared guarded panel contract states', () => {
     expect(css).toContain('var(--trade-sheet-clearance, 140px)'); expect(css).toContain('env(safe-area-inset-bottom)'); expect(css).toContain('overflow-y:auto');
   });
   it('has labeled keyboard controls, visible focus, touch targets and no motion in either preference', () => {
-    const text = html(gate()); expect(text).toContain('Custom trade amount'); expect(text).toContain('Slippage (%)'); expect(text).toContain('aria-pressed');
+    const text = html(gate()); expect(text).toContain('Amount'); expect(text).toContain('Slippage (%)'); expect(text).toContain('aria-pressed');
     expect(css).toContain(':focus-visible'); expect(css).toContain('outline:2px'); expect(css).toContain('@media(pointer:coarse)'); expect(css).toContain('min-height:44px');
     expect(css).toContain('animation:none;transition:none'); expect(text).not.toContain('autofocus');
   });

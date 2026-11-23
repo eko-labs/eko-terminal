@@ -33,7 +33,9 @@ describe('CA-35 availability',()=>{
   it('shows a calm empty chart and disables all wallet label controls',()=>{
     expect(emptyTradeWindow(0,36000)).toBe('No trades in this window · last trade 10 h ago');
     const html=render(<ChartStage market="DEMO" timeframe="5m" onTimeframe={()=>{}} bars={[]} markers={[]} supply={1} verdict={null} labelsUnavailable/>);
-    expect(html).toContain('Wallet labels arrive later');expect(html.match(/type="checkbox" disabled=""/g)).toHaveLength(4);
+    expect(html).toContain('Wallet labels arrive later');
+    // The Markers menu sits in the chart's top bar and again in the phone options: four disabled label boxes in each.
+    expect(html.match(/class="cc-settings cc-markers"/g)).toHaveLength(2);expect(html.match(/type="checkbox" disabled=""/g)).toHaveLength(8);
   });
   it('shows one shared availability legend above Radar',()=>{
     const html=render(<Radar/>);

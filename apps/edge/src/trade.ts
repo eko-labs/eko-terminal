@@ -189,7 +189,10 @@ export class Trading {
     const checks: GuardCheck[] = [
       { code: 'honeypot', status: honeypot ? (buy ? 'refuse' : 'warn') : 'pass', label: honeypot ? 'A buy-then-sell check could not sell this coin.' : 'A buy-then-sell check sold it back.' },
       { code: 'verdict', status: a.verdict.level === 'danger' ? 'warn' : a.verdict.level === 'pending' ? 'warn' : 'pass',
-        label: a.verdict.level === 'danger' ? 'EKO rates this coin Danger.' : a.verdict.level === 'pending' ? 'EKO has not finished checking this coin.' : `EKO rates this coin ${a.verdict.level}.` },
+        label: a.verdict.level === 'danger' ? 'EKO rates this coin Danger.' : a.verdict.level === 'pending' ? 'EKO has not finished checking this coin.'
+          // Graded on part of its history (it started following the coin late): the level stands, the gap is named.
+          : a.verdict.historyPartial ? `EKO rates this coin ${a.verdict.level} on its history since ${a.verdict.historyPartial.since.slice(0, 10)}; holders and early buyers are not counted.`
+          : `EKO rates this coin ${a.verdict.level}.` },
     ];
     if (a.antiSnipe) checks.push({ code: 'anti_snipe', status: 'warn', label: `${this.profile.text.earlyFee} is active (${a.antiSnipe.taxPct}% for ${a.antiSnipe.endsInSec} s).`, value: a.antiSnipe.taxPct });
     if (impactBps >= 1000) checks.push({ code: 'price_impact', status: 'warn', label: `This trade moves the price ${(impactBps / 100).toFixed(1)}%.`, value: impactBps / 100 });

@@ -133,6 +133,9 @@ export interface TrackerOptions {
   onLaunch?: (coin: CoinState) => void;
 }
 
+/** The most trades and transfers a coin keeps by default (TrackerOptions): past them the oldest trades are dropped and
+ *  the oldest transfers folded (compactFlows). */
+export const MAX_TRADES_PER_COIN = 5000, MAX_FLOWS_PER_COIN = 20_000;
 /** The default start-up replay in seconds (32,400 blocks at Elysium's ~98 ms). */
 export const BACKFILL_SEC = 3_175.2;
 const hex = (n: bigint | number) => `0x${n.toString(16)}`;
@@ -176,8 +179,8 @@ export class Tracker implements TrackerCore {
     const blockTimeSec = options.blockTimeSec ?? this.chain.profile.blockTimeSec;
     this.chunk = options.chunk ?? this.chain.profile.tracker.chunk;
     this.opts = { backfillBlocks: options.backfillBlocks ?? this.chain.profile.tracker.backfillBlocks ?? Math.round(BACKFILL_SEC / blockTimeSec), keepSec: options.keepSec ?? 90_000,
-      activeQuote24h: options.activeQuote24h ?? this.chain.profile.tracker.activeQuote24h ?? 0, maxTradesPerCoin: options.maxTradesPerCoin ?? 5000,
-      maxFlowsPerCoin: options.maxFlowsPerCoin ?? 20_000, blockTimeSec, now: options.now ?? (() => Date.now() / 1000) };
+      activeQuote24h: options.activeQuote24h ?? this.chain.profile.tracker.activeQuote24h ?? 0, maxTradesPerCoin: options.maxTradesPerCoin ?? MAX_TRADES_PER_COIN,
+      maxFlowsPerCoin: options.maxFlowsPerCoin ?? MAX_FLOWS_PER_COIN, blockTimeSec, now: options.now ?? (() => Date.now() / 1000) };
     this.onLaunch = options.onLaunch;
     this.archive = options.archiveRpc ?? rpc;
   }

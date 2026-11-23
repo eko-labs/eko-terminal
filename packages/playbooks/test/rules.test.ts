@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PlaybookIdSchema, PlaybookMatchSchema } from '@eko/shared';
 import type { Level, PlaybookId } from '@eko/shared';
-import { CONFIG_V1, cloneFromMatches, evaluatePlaybooks, rules } from '../src/index.js';
+import { ageWords, CONFIG_V1, cloneFromMatches, compactUsd, evaluatePlaybooks, marketCapContext, partialHistoryReason, readMarketCap, rules, sharePct } from '../src/index.js';
 import { reasonForMatch } from '../src/verdict.js';
 import type { PlaybookInput } from '../src/index.js';
 import { addr, bait, base, bundle, clone, cloneFixture, curve, evidence, hook, launch, lp, migration, pool, pons, serial, sim, taxes, wash } from './fixtures.js';
@@ -469,8 +469,72 @@ describe('fake_mcap (set from Pangea launches, 2026-11-18)', () => {
     level('fake_mcap', fakeMcap({ mcapUsd: 100_000, backingUsd: 500, volume24hUsd: 1_999, holders: 40 }), 'danger'));
   it('treats a negative net flow as nothing paid in', () => level('fake_mcap', fakeMcap({ backingUsd: -50 }), 'danger'));
   it('names the numbers', () => {
-    expect(reasonForMatch(run('fake_mcap', fakeMcap())!)).toBe('Priced at a $100,242 market cap with $0.89 paid into its pool, $172 traded in 24 hours and 1 holder: the price is not backed.');
-    expect(reasonForMatch(run('fake_mcap', fakeMcap({ holders: 0, backingUsd: 0, volume24hUsd: 189.4 }))!)).toBe('Priced at a $100,242 market cap with $0.00 paid into its pool, $189 traded in 24 hours and 0 holders: the price is not backed.');
+    expect(reasonForMatch(run('fake_mcap', fakeMcap())!)).toBe('A $100K market cap with $0.89 in its pool (under 0.01%), $172 traded in 24 hours and 1 holder: the price rests on almost nothing.');
+    expect(reasonForMatch(run('fake_mcap', fakeMcap({ holders: 0, backingUsd: 0, volume24hUsd: 189.4 }))!)).toBe('A $100K market cap with $0.00 in its pool (0%), $189 traded in 24 hours and 0 holders: the price rests on almost nothing.');
+    expect(reasonForMatch(run('fake_mcap', fakeMcap({ mcapUsd: 100_000, backingUsd: 500, volume24hUsd: 5_000, holders: 40 }))!))
+      .toBe('A 3-hour-old coin at a $100K market cap with $500 in its pool (0.5%): its price ran far ahead of what the pool holds.');
+  });
+  it('never counts holders, volume or buyers it does not know', () => {
+    level('fake_mcap', fakeMcap({ volume24hUsd: null, holders: null }), 'monitor');
+    level('fake_mcap', fakeMcap({ volume24hUsd: null, holders: null, buyers24h: 2 }), 'danger');
+  });
+});
+
+/**
+ * Pons graduates and older pool coins, from the live radar of 2026-11-23 (ETH $1,762.05): the market cap at the pool's
+ * own price and the ETH side of the coin's v4 pool, both read on Robinhood Chain, with 24-hour and last-hour volume and
+ * 24-hour buyers as EKO measured them. Holders are null: EKO started following these coins after their launch.
+ */
+describe('fake_mcap on older coins (Pons graduates, 2026-11-23)', () => {
+  const DAY = 86_400;
+  const coin = (ageDays: number, m: Omit<NonNullable<PlaybookInput['marketCap']>, 'evidence' | 'holders'> & { holders?: number | null }): PlaybookInput => {
+    const b = base();
+    return { ...b, launchpad: 'pons', createdAtSec: b.asOfSec - Math.round(ageDays * DAY),
+      marketCap: { holders: null, evidence: [evidence('Pool (graduation liquidity locked by Pons; ETH side read on chain)', 'address')], ...m } };
+  };
+  const NOVAAI = coin(96.4, { mcapUsd: 404_639_280, backingUsd: 781_067, volume24hUsd: 188_528, volume1hUsd: 744, buyers24h: 101 });
+  const BUN = coin(81.6, { mcapUsd: 19_309_464, backingUsd: 170_624, volume24hUsd: 27_201, volume1hUsd: 310, buyers24h: 31 });
+  const ZZZ = coin(79.7, { mcapUsd: 4_649_831, backingUsd: 83_728, volume24hUsd: 20_143, volume1hUsd: 453, buyers24h: 33 });
+  const CHARLIE = coin(28.6, { mcapUsd: 1_021_523, backingUsd: 39_260, volume24hUsd: 7_840, volume1hUsd: 285, buyers24h: 84 });
+  const RAETO = coin(42.1, { mcapUsd: 707_361, backingUsd: 32_657, volume24hUsd: 57_943, volume1hUsd: 2_100, buyers24h: 90 });
+  it('is Danger when a $405M market cap rests on $781K and 0.05% of it trades in a day (NovaAI)', () => {
+    level('fake_mcap', NOVAAI, 'danger');
+    expect(reasonForMatch(run('fake_mcap', NOVAAI)!)).toBe('A $405M market cap with $781K in its pool (0.19%) and $744 traded in the last hour: the price rests on almost nothing.');
+  });
+  it('is Monitor when an older coin\'s pool is thin for its size but not tiny (ZZZ 1.8%, BUN 0.9%)', () => {
+    level('fake_mcap', ZZZ, 'monitor'); level('fake_mcap', BUN, 'monitor');
+    expect(reasonForMatch(run('fake_mcap', ZZZ)!)).toBe('A $4.65M market cap with $83.7K in its pool (1.8%): thin for its size, so a large sell would move the price a long way.');
+  });
+  it('reads a quiet older coin as context, never a flag (Charlie)', () => {
+    level('fake_mcap', CHARLIE, null);
+    expect(readMarketCap(CHARLIE, CONFIG_V1.fake_mcap)?.kind).toBe('quiet');
+    expect(marketCapContext(CHARLIE)).toBe('Quiet: 4 weeks old · $285 traded in the last hour · 84 buyers in 24 hours · $39.3K in its pool (3.8% of its $1.02M market cap).');
+  });
+  it('says nothing about an older coin that backs its price and trades (Raeto)', () => {
+    level('fake_mcap', RAETO, null); expect(marketCapContext(RAETO)).toBeNull();
+  });
+  it('the same thin pool is Danger while young and idle, and tiny backing is Danger at any age only when idle', () => {
+    const young = { ...ZZZ, createdAtSec: ZZZ.asOfSec - 3 * DAY };
+    level('fake_mcap', young, 'danger');
+    level('fake_mcap', { ...NOVAAI, marketCap: { ...NOVAAI.marketCap!, volume24hUsd: 20_000_000 } }, 'monitor');
+    // A week is the line (youngH 168).
+    level('fake_mcap', { ...ZZZ, createdAtSec: ZZZ.asOfSec - 168 * 3600 + 1 }, 'danger');
+    level('fake_mcap', { ...ZZZ, createdAtSec: ZZZ.asOfSec - 168 * 3600 }, 'monitor');
+  });
+  it('a quiet line needs the day\'s trading to be known', () => {
+    expect(marketCapContext({ ...CHARLIE, marketCap: { ...CHARLIE.marketCap!, volume24hUsd: null, buyers24h: null } })).toBeNull();
+  });
+});
+
+describe('verdict wording helpers', () => {
+  it('writes dollars, shares and spans as a trader reads them', () => {
+    expect([0.89, 745, 39_260, 781_067, 999_600, 1_021_523, 404_639_280, 1.2e9].map(compactUsd)).toEqual(['$0.89', '$745', '$39.3K', '$781K', '$1M', '$1.02M', '$405M', '$1.2B']);
+    expect([0, 0.00005, 0.0019, 0.0384, 0.286].map(sharePct)).toEqual(['0%', 'under 0.01%', '0.19%', '3.8%', '29%']);
+    expect([600, 5 * 3600, 3 * 86_400, 28.6 * 86_400, 96 * 86_400].map((s) => ageWords(s))).toEqual(['10 minutes', '5 hours', '3 days', '4 weeks', '3 months']);
+  });
+  it('names a partial history in one plain line', () => {
+    expect(partialHistoryReason(1_000_000, 1_000_000 + 22 * 86_400 + 5_000)).toBe('EKO started following this coin 22 days after launch: holders and early buyers are not counted.');
+    expect(partialHistoryReason(1_000_000, 1_000_000 + 5 * 3600)).toBe('EKO started following this coin 5 hours after launch: holders and early buyers are not counted.');
   });
 });
 

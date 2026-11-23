@@ -53,3 +53,55 @@
   .coin-sheet:has(.guarded-trade-panel){bottom:calc(58px + env(safe-area-inset-bottom));max-height:65dvh;overflow-y:auto}
   .coin-sheet.expanded:has(.guarded-trade-panel) .panel-body{max-height:calc(65dvh - 52px);overflow-y:auto;padding-bottom:24px}
 }
+
+/* ---- The trade panel as the page's main action: a big Buy / Sell switch, the amount large, presets under it, the
+   key costs (shown before the action, as the guarded panel requires), then the action in the side's colour (lit for buy, coral for sell, both dithered like the site's keys), then
+   what the trade costs and moves; raw quantities, route and block fold away under Quote details. ------------------ */
+.guarded-trade-panel .tp-sides{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:var(--plate);border:1px solid var(--btn-edge);border-radius:var(--r2)}
+.guarded-trade-panel .tp-sides button{height:44px;border:0;border-radius:var(--r1);background:none;color:var(--muted);font:600 16px/1 var(--sans);letter-spacing:.01em;cursor:pointer}
+.guarded-trade-panel .tp-sides button:hover{color:var(--ink);background:#ffffff08}
+.guarded-trade-panel .tp-sides .tp-buy[aria-checked=true]{background:var(--dither-ink) 0 0/var(--dither-size),var(--lit);color:var(--brand-ink)}
+.guarded-trade-panel .tp-sides .tp-sell[aria-checked=true]{background:radial-gradient(#04111a47 .9px,transparent 1px) 0 0/3px 3px,var(--danger);color:var(--danger-ink)}
+.guarded-trade-panel .tp-amount-big{display:flex;flex-direction:column;gap:6px;margin:16px 0 0}
+.guarded-trade-panel .tp-big{position:relative;display:block}
+.guarded-trade-panel .tp-amount-big input{width:100%;height:56px;padding:0 14px 0 34px;font:500 28px/1 var(--font-num);letter-spacing:-.02em;font-variant-numeric:tabular-nums;background:var(--plate);border:1px solid var(--btn-edge);border-radius:var(--r2)}
+.guarded-trade-panel .tp-amount-big input:focus{border-color:var(--accent)}
+.guarded-trade-panel .tp-amount-big .tp-unit{left:14px;font:500 22px/1 var(--font-num);color:var(--muted)}
+.guarded-trade-panel .tp-amounts{grid-template-columns:repeat(4,minmax(0,1fr));margin:8px 0 0}
+.guarded-trade-panel .tp-amounts .btn{height:34px;font:500 13px/1 var(--font-num)}
+.guarded-trade-panel .tp-amounts .btn[aria-pressed=true]{background:var(--btn-sel);border-color:var(--btn-edge-hi);color:var(--lit)}
+.guarded-trade-panel .tp-settings{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 0}
+.guarded-trade-panel .tp-settings .tp-slippage{margin:0;gap:8px}
+.guarded-trade-panel .tp-settings .tp-slippage input{width:64px;min-height:30px}
+.guarded-trade-panel .tp-submit{min-height:56px;margin:14px 0 0;border-radius:var(--r2);font:600 18px/1 var(--sans);letter-spacing:.01em}
+.guarded-trade-panel .tp-submit[data-side=sell]:not([disabled]){background:radial-gradient(#04111a47 .9px,transparent 1px) 0 0/3px 3px,var(--danger);border-color:var(--danger);color:var(--danger-ink)}
+.guarded-trade-panel .tp-status{margin:12px 0 0}
+.guarded-trade-panel .tp-lines{margin:14px 0 0}
+.guarded-trade-panel .tp-key{margin:0;padding:10px 0;border-block:1px solid var(--rule)}
+.guarded-trade-panel .tp-more{border-bottom:1px solid var(--rule)}
+.guarded-trade-panel .tp-more>summary{display:flex;align-items:center;gap:6px;padding:10px 0;cursor:pointer;list-style:none;font:var(--type-label);letter-spacing:var(--type-label-ls);text-transform:uppercase;color:var(--muted)}
+.guarded-trade-panel .tp-more>summary::-webkit-details-marker{display:none}
+.guarded-trade-panel .tp-more>summary::before{content:"";width:5px;height:5px;border-right:1.4px solid currentColor;border-bottom:1.4px solid currentColor;transform:rotate(-45deg)}
+.guarded-trade-panel .tp-more[open]>summary::before{transform:rotate(45deg) translate(-1px,-1px)}
+.guarded-trade-panel .tp-more .tp-quote{margin:0;border:0;padding:0 0 12px}
+
+/* ---- Fewer words: three costs as small figures, one Details fold for everything else, one line of fine print. -- */
+.guarded-trade-panel .tp-key{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0 0;padding:0;border:0}
+.guarded-trade-panel .tp-key div{display:flex;flex-direction:column;gap:3px}
+.guarded-trade-panel .tp-key dt{font:var(--type-label);letter-spacing:var(--type-label-ls);text-transform:uppercase;color:var(--faint);white-space:nowrap}
+.guarded-trade-panel .tp-key dd{margin:0;font:500 15px/1 var(--font-num);font-variant-numeric:tabular-nums;color:var(--ink)}
+.guarded-trade-panel .tp-big-pct input{padding:0 40px 0 14px}
+.guarded-trade-panel .tp-unit-end{left:auto;right:14px}
+.guarded-trade-panel .tp-hold{margin:8px 0 0;font:var(--type-meta);color:var(--muted)}
+.guarded-trade-panel .tp-hold b{color:var(--ink);font-weight:600;font-family:var(--font-num)}
+.guarded-trade-panel .tp-more{margin:14px 0 0;border-top:1px solid var(--rule);border-bottom:0}
+.guarded-trade-panel .tp-more[open]{padding-bottom:6px}
+.guarded-trade-panel .tp-more>.tp-settings{margin:4px 0 10px}
+.guarded-trade-panel .tp-more .tp-quote{margin:0 0 10px;padding:8px 0;border-block:1px solid var(--rule);font:var(--type-meta)}
+.guarded-trade-panel .tp-more .tp-quote+.tp-quote{border-top:0}
+.guarded-trade-panel .tp-more .tp-quote dd{font-size:12px}
+.guarded-trade-panel .tp-fine{display:flex;flex-wrap:wrap;gap:4px 10px;margin:10px 0 0;font:var(--type-meta);font-size:11px;color:var(--faint)}
+.guarded-trade-panel .tp-fine>*{margin:0;font:inherit;color:inherit}
+.guarded-trade-panel .tp-fine p{margin:0}
+.guarded-trade-panel .tp-key dd.tp-key-note{font:var(--type-meta);font-size:11px;color:var(--faint);line-height:1.3}
+.guarded-trade-panel .tp-amount-big .tp-unit.tp-unit-end{left:auto;right:14px}

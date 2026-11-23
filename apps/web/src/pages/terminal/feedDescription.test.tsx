@@ -23,7 +23,7 @@ describe('CA-32 feed descriptions', () => {
     [item({ kind: 'verdict', firstVerdictMs: 4100, level: 'danger' }), 'First verdict in 4.1 s'],
     [item({ kind: 'verdict', firstVerdictMs: 4100, level: 'clear' }), 'First verdict in 4.1 s · no playbook matched'],
     // Long after the launch it is a coin graded again, not a first scan that took days.
-    [item({ kind: 'verdict', firstVerdictMs: 276_119_000, playbookId: 'bundle_dump' }), 'Grade updated · Bundle dump'],
+    [item({ kind: 'verdict', firstVerdictMs: 276_119_000, playbookId: 'bundle_dump' }), 'Grade updated · Bundled launch'],
     [item({ kind: 'swarm', swarm: { pass: 7, of: 9 } }), '7 of 9 personas pass · graded against all launches'],
     [item({ kind: 'wash' }), 'Playbook alert · Wash trading'],
   ])('renders %j as %s', (event, expected) => expect(feedDescription(event)).toBe(expected));

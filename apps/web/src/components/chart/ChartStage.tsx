@@ -35,11 +35,20 @@ export function ChartStage(p:{market:string;timeframe:CoinTimeframe;onTimeframe:
   <label className="check"><input type="checkbox" checked={saved.log} onChange={e=>update({log:e.target.checked})}/>Log scale</label>
   <hr/>{[9,21,50].map(n=><label className="check" key={n}><input type="checkbox" checked={saved.ema.includes(n)} onChange={()=>toggleEma(n)}/><span className="cc-swatch" style={{background:EMA_COLORS[n]}}/>EMA {n}</label>)}
   <hr/><button type="button" className="btn btn-sm btn-ghost" onClick={()=>core?.autoScale()}>Auto-fit price</button>
+  <span className="cc-zoom" role="group" aria-label="Zoom"><button type="button" className="btn btn-sm btn-ghost" aria-label="Reset chart" onClick={()=>core?.reset()}>Reset view</button><button type="button" className="iconbtn" aria-label="Zoom out" onClick={()=>core?.zoom(1.25)}>−</button><button type="button" className="iconbtn" aria-label="Zoom in" onClick={()=>core?.zoom(.8)}>+</button></span>
+  <p className="cc-menu-note">Scroll to zoom · drag to move · double-click to reset</p>
+ </div></details>;
+ // Which trades the chart marks: wallet labels, and any feature's key (wallet tags), in one menu instead of rows under the chart.
+ const markersMenu=<details className="cc-settings cc-markers" onKeyDown={e=>{if(e.key==='Escape'){e.preventDefault();(e.currentTarget as HTMLDetailsElement).open=false;}}}><summary aria-label="Chart markers" data-tour={!p.labelsUnavailable && p.markers.length ? "flow-markers" : undefined}>Markers</summary><div className="cc-settings-menu cc-markers-menu" role="group" aria-label="Chart markers">
+  <p className="cc-menu-h">Mark trades by</p>
+  {(Object.keys(show) as WalletLabel[]).map(label=><label className="check" key={label}><input type="checkbox" disabled={p.labelsUnavailable} title={p.labelsUnavailable ? WALLET_LABELS_LATER : undefined} checked={!p.labelsUnavailable && show[label]} onChange={e=>setShow({...show,[label]:e.target.checked})}/><Glyph label={label}/>{WALLET_LABEL_WORD[label]}</label>)}
+  {p.labelsUnavailable && <p className="cc-menu-note">{WALLET_LABELS_LATER}</p>}
+  <ChartKeySlots/>
  </div></details>;
  const up=(id:number)=>{pointers.current.delete(id);pinch.current=null;drag.current=null;};
  return <div className="cchart">
  <div className="chart-top" role="toolbar" aria-label="Chart controls"><div className="chart-read">{p.verdict}<span className="num coin-ohlc" ref={readout} aria-hidden="true"/>{!!p.delayedSec&&<span className="tag">Delayed ~{p.delayedSec} s</span>}</div><div className="chart-ctl"><Seg options={['Line','Candles']} value={mode} onChange={v=>setMode(v as typeof mode)} label="Chart type"/><TimeframeControls value={p.timeframe} onChange={p.onTimeframe}/><Seg options={['Price','FDV']} value={axis} onChange={setAxis} label="Axis"/>
- {settingsMenu}</div></div>
+ {markersMenu}{settingsMenu}</div></div>
  <div className="plate coin-chart" ref={plot} data-timeframe={p.timeframe}>
  <div ref={surface} className="cc-surface" tabIndex={0} role="application" aria-roledescription="chart" aria-label={`${p.market} price chart. Plus and minus zoom, arrow keys move, 0 resets. Keys 1 to 9 select timeframe.`}
  onKeyDown={e=>{if(!core||e.target!==e.currentTarget)return;const key=e.key;if(key==='+'||key==='=')core.zoom(.8);else if(key==='-'||key==='_')core.zoom(1.25);else if(key==='0')core.reset();else if(key==='ArrowLeft'||key==='ArrowRight')core.pan((key==='ArrowLeft'?1:-1)*core.paneWidth()*.1);else if(/^[1-9]$/.test(key))p.onTimeframe(COIN_TIMEFRAMES[Number(key)-1]);else return;e.preventDefault();e.stopPropagation();}}
@@ -49,6 +58,6 @@ export function ChartStage(p:{market:string;timeframe:CoinTimeframe;onTimeframe:
  <div ref={scale} className="cc-scale" aria-label="Price scale" title="Drag or scroll to stretch the price scale · double-click to fit" onPointerDown={e=>{if(!core)return;e.currentTarget.setPointerCapture(e.pointerId);drag.current={x:e.clientX,y:e.clientY,view:core.view,k:core.scale,shift:core.shift,kind:'scale'};}} onPointerMove={e=>{const d=drag.current;if(core&&d?.kind==='scale')core.stretch((e.clientY-d.y)*3,d.k);}} onPointerUp={e=>up(e.pointerId)} onPointerCancel={e=>up(e.pointerId)} onDoubleClick={()=>core?.autoScale()}/>
  {core&&!p.labelsUnavailable&&<FlowLayer {...p} core={core} show={show}/>}
  {core&&<ChartOverlaySlots core={core}/>}
- </div><div className="coin-chart-phone-options"><Seg options={['Line','Candles']} value={mode} onChange={v=>setMode(v as typeof mode)} label="Chart type"/><Seg options={['Price','FDV']} value={axis} onChange={setAxis} label="Axis"/>{settingsMenu}</div>
- <div data-tour={!p.labelsUnavailable && p.markers.length ? "flow-markers" : undefined} className="chart-flowkeys"><span className="muted">Show trades by</span>{(Object.keys(show) as WalletLabel[]).map(label=><label className="check" key={label}><input type="checkbox" disabled={p.labelsUnavailable} title={p.labelsUnavailable ? WALLET_LABELS_LATER : undefined} checked={!p.labelsUnavailable && show[label]} onChange={e=>setShow({...show,[label]:e.target.checked})}/><Glyph label={label}/>{WALLET_LABEL_WORD[label]}</label>)}{p.labelsUnavailable && <span className="muted">{WALLET_LABELS_LATER}</span>}<span className="cc-hint">Scroll to zoom out to thin candles · drag to move · drag the price scale to stretch it · double-click to reset</span><span className="cc-zoom" role="group" aria-label="Zoom"><button className="btn btn-sm btn-ghost" aria-label="Reset chart" onClick={()=>core?.reset()}>Reset</button><button className="iconbtn" aria-label="Zoom out" onClick={()=>core?.zoom(1.25)}>−</button><button className="iconbtn" aria-label="Zoom in" onClick={()=>core?.zoom(.8)}>+</button></span></div><ChartKeySlots/></div>;
+ </div><div className="coin-chart-phone-options"><Seg options={['Line','Candles']} value={mode} onChange={v=>setMode(v as typeof mode)} label="Chart type"/><Seg options={['Price','FDV']} value={axis} onChange={setAxis} label="Axis"/>{markersMenu}{settingsMenu}</div>
+ </div>;
 }

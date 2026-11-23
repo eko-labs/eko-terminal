@@ -191,9 +191,10 @@ export const AlertSchema = z.object({
   id: z.string(),
   ts: z.string(),
   // TODO(spec): post-launch additions, not in FACTS §7: 'wallet_trade' (a wallet the account follows traded), 'dev_sell'
-  // (a coin's dev or insiders sold), 'launch_match' (a new coin matched a saved filter), 'price' (a price target was hit).
+  // (a coin's dev or insiders sold), 'launch_match' (a new coin matched a saved filter), 'price' (a price target was hit),
+  // 'curve' (a coin's bonding curve reached a level, or the coin graduated from it).
   kind: z.union([AlertSettingsSchema.shape.kinds.element, z.literal('agent_trade'), z.literal('wallet_trade'), z.literal('dev_sell'),
-    z.literal('launch_match'), z.literal('price')]),
+    z.literal('launch_match'), z.literal('price'), z.literal('curve')]),
   level: LevelSchema.optional(),
   coin: AddressSchema.optional(),
   symbol: UntrustedSchema.optional(),

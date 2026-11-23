@@ -8,7 +8,7 @@ export { CONFIG_V1 };
 export type { PlaybookConfig } from '../config/v1.js';
 export type { CardSources, HistoryView, PlaybookInput, PriorLaunch, Rule, Simulation, VerdictMeta } from './types.js';
 export * from './rules.js';
-export { assembleVerdict, reasonForMatch } from './verdict.js';
+export { ageWords, assembleVerdict, compactUsd, marketCapContext, partialHistoryReason, reasonForMatch, sharePct } from './verdict.js';
 export * from './guard-registry.js';
 export * from './history-v2.js';
 export * from './guard-scoring.js';

@@ -17,7 +17,7 @@ export interface PlaybookConfig {
   dev_dump: { cashOutMultiple: number; firstSellSec: number; minSoldShare: number; heldMonitor: number; heldDanger: number };
   run_up: { outMonitor: number; hourDanger: number };
   launch_snipers: { monitorHeld: number; dangerHeld: number; monitorBoughtDumped: number };
-  fake_mcap: { minMcapUsd: number; maxBackingShare: number; maxVolumeShare: number; dangerHolders: number };
+  fake_mcap: { minMcapUsd: number; maxBackingShare: number; maxVolumeShare: number; dangerHolders: number; tinyBackingShare: number; youngH: number };
 }
 
 export const CONFIG_V1: Readonly<{ [K in keyof PlaybookConfig]: Readonly<PlaybookConfig[K]> }> = Object.freeze({
@@ -66,5 +66,13 @@ export const CONFIG_V1: Readonly<{ [K in keyof PlaybookConfig]: Readonly<Playboo
   // market cap; six opened at about $100,000 (GMGN's SPDA, SPc, SPd, SPb, SPe, SPf) and an hour later had $0 to $1.06
   // of ETH in the pool, $104 to $216 of volume (33 to 312 tiny round trips) and 0 to 2 holders. A real single-sided launch
   // that ran up r times holds (sqrt(r) - 1) / r of its market cap in quote: under 2% only past about 2,500 times.
-  fake_mcap: Object.freeze({ minMcapUsd: 20_000, maxBackingShare: 0.02, maxVolumeShare: 0.02, dangerHolders: 3 }),
+  // 2026-11-23, Pons graduates added (the quote side of their v4 pool, read on chain) and age weighed in, from the 49
+  // graduates and 65 pool launches live that day: a graduate's full-range pool holds the same value in ETH as in coins,
+  // so its backing share is the share of supply still in the pool (28.6% at graduation, falling with the square root of
+  // the run-up). Under 2% is thin (Monitor). Danger needs the price to rest on almost nothing and nobody to be trading
+  // against it: under 2% while young (under a week: the Pangea case above), or under 0.5% at any age, with 24-hour
+  // volume under 2% of the market cap, or 3 or fewer holders or buyers in 24 hours. NovaAI ($405M on $781K, 0.19%,
+  // 0.05% traded a day, 96 days old) is Danger; ZZZ (1.8%) and BUN (0.9%) are thin; Charlie (3.8%, 4 weeks old, 0.8% a
+  // day) is quiet: an older coin at 2% or more that trades under 2% a day gets a context line, never a flag.
+  fake_mcap: Object.freeze({ minMcapUsd: 20_000, maxBackingShare: 0.02, maxVolumeShare: 0.02, dangerHolders: 3, tinyBackingShare: 0.005, youngH: 168 }),
 });

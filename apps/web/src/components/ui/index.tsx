@@ -2,7 +2,7 @@ import { NOT_CHECKED_LABEL, NOT_TRACKED_LABEL } from '../../copy/availability';
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from 'react';
 import type { Level, Untrusted, Verdict, WalletLabel } from '@eko/shared';
-import { SCANNING, SCAN_DELAYED, SCAN_DELAYED_DETAIL, NOT_FULLY_CHECKED, NO_FLAGS, missingChecks, runUpTitle } from '../../copy/availability';
+import { SCANNING, SCAN_DELAYED, SCAN_DELAYED_DETAIL, NOT_FULLY_CHECKED, NO_FLAGS, PARTLY_CHECKED, missingChecks, partlyCheckedTitle, runUpTitle } from '../../copy/availability';
 import { projectGuardLevelToV1, guardInertText, type CoinCardMeta, type PlaybookId, type GuardAssessmentV2 } from '@eko/shared';
 import { GUARD_LABELS, GUARD_SHADOW, GUARD_CANDIDATE, guardGapText } from '../../copy/guard';
 import { IconAlert, IconCheck, IconChevron, IconFlame, IconInfo, IconOct, IconEye } from '../icons';
@@ -21,7 +21,7 @@ const VERDICT_EXPLANATION = {
   monitor: 'Monitor means the guard found warning signs. Review the evidence before trading.',
   danger: 'Danger means the guard found a high-risk condition. Review the evidence before trading.',
 };
-export function VerdictChip({ level, size, detail, runUp, stateLabel, verdictPending = false, scanDelayed = false, evaluatedPlaybooks, meta, missing, guard, showGaps = true }: { level: VerdictLevel; size?: 'lg'; detail?: string; runUp?: number; stateLabel?: string; verdictPending?: boolean; scanDelayed?: boolean; evaluatedPlaybooks?: PlaybookId[]; meta?: CoinCardMeta; missing?: string[]; guard?: GuardAssessmentV2; showGaps?: boolean }) {
+export function VerdictChip({ level, size, detail, runUp, stateLabel, verdictPending = false, scanDelayed = false, evaluatedPlaybooks, meta, missing, guard, showGaps = true, historyPartial }: { level: VerdictLevel; size?: 'lg'; detail?: string; runUp?: number; stateLabel?: string; verdictPending?: boolean; scanDelayed?: boolean; evaluatedPlaybooks?: PlaybookId[]; meta?: CoinCardMeta; missing?: string[]; guard?: GuardAssessmentV2; showGaps?: boolean; historyPartial?: Verdict['historyPartial'] }) {
   if (guard) {
     const projected = projectGuardLevelToV1(guard.level), Icon = VERDICTS[projected].Icon;
     const gap = guardGapText(guard), shadow = guard.mode !== 'active';
@@ -31,6 +31,11 @@ export function VerdictChip({ level, size, detail, runUp, stateLabel, verdictPen
       {showGaps && gap && <strong className="guard-gap">{gap}</strong>}
     </span>;
   }
+  // A Clear grade on part of the coin's history is not "No flags": the holder checks never ran (verdict.historyPartial).
+  if (level === 'clear' && historyPartial && !verdictPending)
+    return <span className={`verdict neutral partly${size === 'lg' ? ' lg' : ''}`} title={partlyCheckedTitle(historyPartial.since)} tabIndex={0}>
+      <IconEye />{PARTLY_CHECKED}{detail && <span className="verdict-detail">· {detail}</span>}
+    </span>;
   const { label, Icon } = VERDICTS[level];
   const checking = verdictPending, delayed = checking && scanDelayed;
   const context = !checking && level === 'clear' ? stateLabel : undefined;

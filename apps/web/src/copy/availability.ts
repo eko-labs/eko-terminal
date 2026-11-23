@@ -6,6 +6,11 @@ export const SCAN_DELAYED_AFTER_SEC = 60;
 export const SCAN_DELAYED = 'Scan delayed';
 export const SCAN_DELAYED_DETAIL = "No verdict yet. This launch is waiting in the scan queue; Trade stays off until the guard's first scan finishes.";
 export const NOT_FULLY_CHECKED = 'Not fully checked';
+/** A Clear grade on part of a coin's history (verdict.historyPartial): EKO started following it after launch, so the
+ *  checks that read holders and early buyers did not run. Shown in place of "No flags". */
+export const PARTLY_CHECKED = 'Partly checked';
+export const HOLDERS_NOT_COUNTED = 'Not counted: EKO started following this coin after its launch, so it does not hold every transfer.';
+export const partlyCheckedTitle = (since?: string) => `Nothing flagged in the checks that ran. EKO started following this coin after its launch${since ? ` (from ${since.slice(0, 10)})` : ''}, so holders and early buyers are not counted.`;
 /** Why a row's Trade button says Refused, in the reader's risk mode. */
 export const REFUSED_TITLE = (mode: 'safe' | 'balanced' | 'degen', hard: boolean) => hard ? 'The guard refuses this coin in every risk mode: it cannot be sold, costs most of a position to sell, or its liquidity can be pulled.'
   : mode === 'degen' ? 'The guard refuses this coin: its sell failed in the buy-then-sell check.' : 'The guard refuses Danger coins in Careful and Balanced. Degen mode accepts a Danger grade given for who holds the coin or how far its price has run.';

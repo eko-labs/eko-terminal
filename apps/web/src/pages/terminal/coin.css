@@ -258,3 +258,168 @@
 .coin-page .cc-settings-menu .cc-swatch{width:12px;height:2px;border-radius:1px;flex:none}
 .coin-page .cc-settings-menu hr{border:0;border-top:1px solid var(--rule2);margin:4px 0}
 @media(pointer:coarse){.coin-page .cc-settings-menu .check{min-height:44px}}
+
+/* ---- Glance band ----------------------------------------------------------------------------------------------------
+   Built from the radar's own parts: the verdict in the site's verdict chip, made large, with its flags after it; the
+   readouts in the radar's head-stat style (a monospace figure, the radar's pixel bars as a gauge, a label under it). */
+.glance-band{display:grid;grid-template-columns:minmax(260px,.9fr) minmax(0,2fr);gap:18px 40px;align-items:end;margin:4px 0 22px;padding:0 0 20px;border-bottom:1px solid var(--rule)}
+.glance-head{display:flex;flex-direction:column;gap:16px;min-width:0}
+.glance-cell{min-width:0;display:flex}
+.glance-cell>*{flex:1;min-width:0}
+.glance-verdict-hit{display:flex;padding:0;background:none;border:0;width:100%;text-align:left;color:inherit;cursor:pointer}
+.glance-verdict-hit:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.gv{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.gv-label,.glance-label{font:var(--type-label);letter-spacing:var(--type-label-ls);text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.gv .verdict{height:44px;padding:0 18px 0 14px;gap:10px;border-radius:var(--r2);font:600 22px/1 var(--sans);letter-spacing:.01em}
+.gv .verdict svg{width:20px;height:20px}
+.gv .guard-chip .verdict{height:44px}
+.gv-flags{font:var(--type-body);color:var(--ink);max-width:40ch}
+.glance-verdict-hit:hover .gv-flags{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule3)}
+.glance{display:flex;flex-direction:column;align-items:flex-start;gap:6px;width:100%;padding:0;background:none;border:0;text-align:left;color:var(--ink);font:inherit}
+button.glance{cursor:pointer}
+button.glance:hover .glance-label{color:var(--ink)}
+button.glance:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.glance-value{font:var(--type-stat);letter-spacing:var(--type-stat-ls);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.glance-bad .glance-value{color:var(--danger)}
+.glance-line{font:var(--type-meta);color:var(--muted);max-width:26ch}
+.glance-wait{color:var(--faint)}
+.glance-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:18px 28px;align-items:start;min-width:0}
+.glance-head .glance-cell+.glance-cell .glance{flex-direction:row;flex-wrap:wrap;align-items:center;column-gap:12px;row-gap:4px}
+.glance-head .glance-cell+.glance-cell .glance-label{order:-1;flex-basis:100%}
+.glance-head .glance-cell+.glance-cell .glance-line{flex-basis:100%;max-width:44ch}
+.pgauge{position:relative;display:block;width:96px}
+.pgauge>span{position:absolute;inset:0}
+.pgauge-track{opacity:.35}
+.dots{display:inline-flex;align-items:center;gap:4px}
+.dots i{width:8px;height:8px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--rule3)}
+.dots i.on{background:var(--tone,var(--accent));box-shadow:none}
+.dots-good{--tone:var(--clear)}.dots-watch{--tone:var(--monitor)}.dots-bad{--tone:var(--danger)}
+@media(max-width:1100px){.glance-band{grid-template-columns:1fr;align-items:start}}
+
+/* ---- Tool row under the chart: one segmented control, like the chart's own; one panel open under it. ------------- */
+.coin-tools{margin:12px 0 20px}
+.coin-tools-row{display:inline-flex;flex-wrap:wrap;gap:2px;padding:3px;background:var(--panel);border:1px solid var(--btn-edge);border-radius:var(--r2)}
+.coin-tools-row .btn{height:30px;padding:0 12px;border:0;border-radius:var(--r1);background:none;color:var(--ink2);font:500 13px/1 var(--sans)}
+.coin-tools-row .btn:hover{background:#ffffff0a;color:var(--ink)}
+.coin-tools-row .btn.on{background:var(--btn-sel);color:var(--lit);box-shadow:inset 0 0 0 1px var(--btn-edge-hi)}
+.coin-tool-panel{margin-top:8px;padding:16px;background:var(--panel);border:1px solid var(--edge);border-radius:var(--r2)}
+.coin-tool-panel .xc-panel,.coin-tool-panel .pa-panel{border:0;padding:0;margin:0;background:none}
+
+/* ---- Chart menus (Markers, Settings): the same plate and edge as the segmented controls beside them. ------------- */
+.coin-page .cc-settings summary{height:34px;min-height:0;padding:0 12px;gap:6px;background:var(--panel);border-color:var(--btn-edge);border-radius:var(--r2);color:var(--ink2);font:500 13px/1 var(--sans)}
+.coin-page .cc-settings summary::after{content:"";width:5px;height:5px;border-right:1.4px solid currentColor;border-bottom:1.4px solid currentColor;transform:translateY(-2px) rotate(45deg);opacity:.7}
+.coin-page .cc-settings summary:hover{color:var(--ink);border-color:var(--btn-edge-hi)}
+.coin-page .cc-markers-menu{width:280px}
+.coin-page .cc-menu-h{margin:2px 0 4px;font:var(--type-label);letter-spacing:var(--type-label-ls);text-transform:uppercase;color:var(--muted)}
+.coin-page .cc-menu-note{margin:6px 0 0;font:var(--type-meta);color:var(--faint)}
+.coin-page .cc-markers-menu .chart-flowkeys{display:flex;flex-direction:column;align-items:stretch;gap:0;margin:6px 0 0;padding:6px 0 0;border-top:1px solid var(--rule2)}
+.coin-page .cc-markers-menu .chart-flowkeys .check{min-height:30px}
+.coin-page .cc-markers-menu .chart-flowkeys .cc-hint{display:block;white-space:normal}
+.coin-page .cc-settings-menu .cc-zoom{display:flex;gap:6px;align-items:center;margin-top:4px}
+
+/* ---- Overview: compact tiles on the radar's card recipe (a blue-tinted edge, a soft wash from the top, a lit top
+   line), two by two, the flags full width under them, trading flow and the coin's details folded at the bottom. --- */
+.ov-compact{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:stretch}
+.ov-compact>.ov-col{display:contents}
+.ov-compact .ov-exit{order:1}.ov-compact .ov-hold{order:2}.ov-compact .ov-liq{order:3}.ov-compact .ov-own{order:4}
+.ov-compact #coin-evidence{order:5;grid-column:1/-1}
+.ov-compact .ov-flow{order:6;grid-column:1/-1}
+.ov-compact>.ov-wide{order:7;grid-column:1/-1}
+.ov-compact>.ov-col>.panel,.ov-compact>.ov-wide>.panel,.coin-section{margin:0;min-width:0;border:1px solid #1b3446;border-radius:var(--r3);background:linear-gradient(180deg,#8fcaf00f,transparent 70%),var(--panel);box-shadow:inset 0 1px 0 #8fcaf024}
+.ov-compact .ov-tile .panel-body{padding:14px 16px 16px}
+.ov-compact .ov-tile .sec,.ov-compact .ov-flow .sec{padding:0;border:0}
+.coin-card-panel .sec h4,.coin-card-panel .panel-head h3{font:var(--type-label);letter-spacing:var(--type-label-ls);text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+.ov-figure{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:0 0 12px}
+.ov-figure b{font:var(--type-stat);letter-spacing:var(--type-stat-ls);font-family:var(--font-num);font-variant-numeric:tabular-nums;color:var(--ink)}
+.ov-bad b{color:var(--danger)}
+.ov-figure span{font:var(--type-meta);color:var(--ink2);max-width:46ch}
+.ov-figure span b{font:inherit;font-weight:600;color:var(--ink);letter-spacing:0}
+.ov-figure .pgauge{width:140px}
+.ov-bars{display:grid;gap:4px;margin:0 0 12px}
+.ov-bar,.coin-page .ov-compact .supply-row{display:grid;grid-template-columns:84px minmax(0,1fr) 52px;align-items:center;gap:12px;min-height:22px;padding:0;font:var(--type-meta);color:var(--ink2)}
+.ov-bar{grid-template-columns:40px minmax(0,1fr) 52px}
+.ov-bar .pgauge,.coin-page .ov-compact .supply-row .pgauge{width:100%}
+.ov-bar em,.coin-page .ov-compact .supply-row .num{font:500 12px/1 var(--font-num);font-style:normal;font-variant-numeric:tabular-nums;text-align:right;color:var(--ink)}
+.coin-page .coin-circ{display:flex;align-items:baseline;gap:8px;margin:10px 0 0;font:var(--type-meta)}
+.coin-page .coin-circ .num{font-size:12px}
+.ov-chips{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.ov-chips li{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 9px;border:1px solid var(--rule2);border-radius:var(--r1);font:500 12px/1 var(--sans);color:var(--faint)}
+.ov-chips li i{width:6px;height:6px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--rule3)}
+.ov-chips li.on{color:var(--danger);border-color:#f08c7e66}
+.ov-chips li.on i{background:var(--danger);box-shadow:none}
+.coin-page .coin-fact{display:flex;align-items:center;gap:10px;margin:10px 0 0;font:var(--type-meta);color:var(--ink2)}
+.sec-lead{margin:0 0 8px;font:var(--type-body);color:var(--ink2)}
+.sec-fold>summary{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--muted);font:var(--type-meta);list-style:none;padding:4px 0}
+.sec-fold>summary::-webkit-details-marker{display:none}
+.sec-fold>summary::before{content:"";width:5px;height:5px;border-right:1.4px solid currentColor;border-bottom:1.4px solid currentColor;transform:rotate(-45deg);transition:transform .15s}
+.sec-fold[open]>summary::before{transform:rotate(45deg) translate(-1px,-1px)}
+.sec-fold>summary:hover{color:var(--ink)}
+.sec-fold[open]>summary{margin-bottom:10px}
+.sec-fold-top>summary,.ov-compact .ov-flow .sec-fold>summary{font:var(--type-label);letter-spacing:var(--type-label-ls);text-transform:uppercase;color:var(--muted)}
+.ov-compact .ov-flow .sec h4{display:none}
+.ov-compact .ov-flow .panel-body,.ov-compact>.ov-wide .panel-body{padding:12px 16px}
+
+/* ---- Detail-tab sections: the same card, a mono kicker, then the section's own lead sentence as its big line. ---- */
+.coin-section{position:relative;margin:0 0 12px;padding:16px 18px 18px}
+.coin-section:focus{outline:none}
+.coin-section-title{font:var(--type-label);letter-spacing:var(--type-label-ls);text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.coin-section :is(.lm-head,.qt-lead,.ld-top),.coin-section .hp-lead:first-of-type,.coin-section .tt-lead:first-of-type,.coin-section>.ds-section>.sec-lead{
+ font:var(--type-panel);letter-spacing:var(--type-panel-ls);color:var(--ink);max-width:64ch;margin:0 0 14px;text-wrap:pretty}
+
+@media(max-width:700px){
+ .glance-row{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;gap:24px}
+ .glance-row::-webkit-scrollbar{display:none}
+ .glance-row .glance-cell{flex:0 0 auto;scroll-snap-align:start}
+ .gv .verdict{height:38px;font-size:19px}
+ .ov-compact{grid-template-columns:1fr}
+ .coin-page .coin-chart-phone-options{flex-wrap:nowrap;gap:4px;align-items:stretch}
+ .coin-page .coin-chart-phone-options .seg button{padding-left:6px;padding-right:6px}
+ .coin-page .coin-chart-phone-options .cc-settings summary{padding:0 8px}
+ .coin-page .coin-chart-phone-options .cc-markers .cc-settings-menu{left:auto;right:0}
+ .coin-tools-row{display:flex;width:100%}
+ .coin-tools-row .btn{flex:1}
+}
+/* Organized band: the verdict in its own column, a rule, then every stat (the odds first) in one aligned row. */
+.glance-band{grid-template-columns:minmax(220px,max-content) minmax(0,1fr);gap:18px 0;align-items:stretch}
+.glance-head{justify-content:center;padding-right:32px;margin-right:32px;border-right:1px solid var(--rule)}
+.glance-row{grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:18px 24px}
+.glance-row .glance-value{font-size:24px}
+.glance-row .dots i{width:6px;height:6px}
+.glance-row .dots{height:16px;gap:3px}
+@media(max-width:1100px){.glance-head{padding-right:0;margin-right:0;border-right:0;padding-bottom:18px;border-bottom:1px solid var(--rule)}}
+/* The verdict chip carries the brand's dither, as the primary buttons do: ink dots on a solid plate, light dots on an
+   outline. */
+.gv .verdict.danger{background:var(--dither-ink) 0 0/var(--dither-size),var(--danger)}
+.gv .verdict.monitor{background:var(--dither-dots) 0 0/var(--dither-size),var(--monitor-bg)}
+.gv .verdict.clear{background:var(--dither-dots) 0 0/var(--dither-size),var(--clear-bg)}
+.gv-flags{max-width:32ch}
+@media(max-width:1100px){
+ .glance-band{grid-template-columns:1fr}
+ .glance-head{padding-right:0;margin-right:0;border-right:0;padding-bottom:18px;border-bottom:1px solid var(--rule)}
+ .gv{flex-direction:row;flex-wrap:wrap;align-items:center;column-gap:14px}
+ .gv-label{flex-basis:100%}
+ .gv-flags{max-width:none}
+}
+/* A denser ink dither on the large chip, so it reads as texture, like the site's dithered keys. */
+.gv .verdict.danger{background:radial-gradient(#04111a47 .9px,transparent 1px) 0 0/3px 3px,var(--danger)}
+
+/* ---- Trade panel as the main action: a stronger edge and a bigger title on desktop; on a phone the collapsed sheet
+   is two big buttons, Buy and Sell, always on screen. ------------------------------------------------------------ */
+.coin-aside .coin-trade{border-color:#2a4b63;background:linear-gradient(180deg,#8fcaf014,transparent 40%),var(--panel);box-shadow:inset 0 1px 0 #8fcaf02e}
+.coin-aside .coin-trade-head h2{font:var(--type-section);letter-spacing:var(--type-section-ls)}
+.coin-trade-quick{display:grid!important;grid-template-columns:1fr 1fr;gap:8px;padding:10px 0!important;background:none!important;border-bottom:0!important}
+.coin-trade-quick .btn{height:52px;border-radius:var(--r2);font:600 18px/1 var(--sans)}
+.coin-quick-buy{background:var(--dither-ink) 0 0/var(--dither-size),var(--lit);border-color:var(--lit);color:var(--brand-ink)}
+.coin-quick-sell{background:radial-gradient(#04111a47 .9px,transparent 1px) 0 0/3px 3px,var(--danger);border-color:var(--danger);color:var(--danger-ink)}
+/* The phone chart options must fit a 375 px screen with its gutters, or the whole page lays out wider than the phone. */
+@media(max-width:700px){
+ .coin-page .coin-chart-phone-options{max-width:100%;gap:4px}
+ .coin-page .coin-chart-phone-options .seg{padding:2px}
+ .coin-page .coin-chart-phone-options .seg button{padding:4px 7px;font-size:12px}
+ .coin-page .coin-chart-phone-options .cc-settings summary{height:30px;padding:0 7px;font-size:12px;gap:4px}
+}
+@media(max-width:700px){
+ .coin-page .coin-chart-phone-options .seg button{padding:4px 5px}
+ .coin-page .coin-chart-phone-options .cc-settings summary{padding:0 6px}
+ .coin-page .coin-chart-phone-options .cc-settings summary::after{display:none}
+}

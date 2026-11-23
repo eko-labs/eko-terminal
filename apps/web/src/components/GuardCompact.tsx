@@ -6,7 +6,7 @@ import { GUARD_REFRESH_FAILED, GUARD_COPY } from '../copy/guard';
 import { GUARD_LEGEND, LEGACY_TITLE } from '../copy/availability';
 
 /** Lists can show a shadow alongside the original grade without replacing it. */
-export function CompactVerdictChip({ priceMove, level, guard, pending = false, failed = false, linked = true, ...context }: { priceMove?: RatingPriceMove; level: Verdict['level'] | 'info'; guard?: GuardAssessmentV2 | null; pending?: boolean; failed?: boolean; linked?: boolean; evaluatedPlaybooks?: import('@eko/shared').PlaybookId[]; missing?: string[]; scanDelayed?: boolean; runUp?: number; stateLabel?: string }) {
+export function CompactVerdictChip({ priceMove, level, guard, pending = false, failed = false, linked = true, ...context }: { priceMove?: RatingPriceMove; level: Verdict['level'] | 'info'; guard?: GuardAssessmentV2 | null; pending?: boolean; failed?: boolean; linked?: boolean; evaluatedPlaybooks?: import('@eko/shared').PlaybookId[]; missing?: string[]; scanDelayed?: boolean; runUp?: number; stateLabel?: string; historyPartial?: Verdict['historyPartial'] }) {
   const fact=<RatingPriceFact move={priceMove}/>;
   const snapshot = guard ? compactGuardVerdict({version:2,assessment:guard}) : null;
   const detailText = guard && `Block ${guard.cursor.blockNumber} · $100 / $1,000 · EOA / smart account`;

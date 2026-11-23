@@ -34,7 +34,16 @@ export interface Bundle {
   bought: bigint; sold: bigint; held: bigint;
   /** The block of the bundle's last sell, null while it has sold nothing. */
   lastSellBlock: number | null;
+  /** Tokens one of its wallets passed to another of its wallets, oldest first (see `Rotation`). */
+  rotations: Rotation[];
 }
+
+/**
+ * One wallet of a group passing tokens to another: in one transaction that sold from `from` and bought into `to`
+ * (`how: 'swap'`), or a plain transfer between them (`how: 'transfer'`). `value` is what `to` received of it; when a
+ * transaction moved several wallets' tokens at once, each receiver's amount is split across the senders by their size.
+ */
+export interface Rotation { tx: string; block: number; ts: number; from: string; to: string; value: bigint; how: 'swap' | 'transfer' }
 
 export interface CopyGroup {
   /** The contract every buy went through (the trade's sender: a trading bot's router). */
@@ -87,6 +96,11 @@ export function launchGroups(coin: CoinState, o: LaunchGroupOptions): LaunchGrou
   const balance = new Map<string, bigint>();
   const firstBuy = new Map<string, { block: number; ts: number; tx: string }>();
   const multiBuy: { tx: string; block: number; wallets: string[] }[] = [];
+  const passes: Rotation[] = [];
+  const pass = (tx: string, block: number, ts: number, how: Rotation['how'], out: [string, bigint][], into: [string, bigint][]) => {
+    const total = out.reduce((n, [, v]) => n - v, 0n);
+    if (total > 0n) for (const [from, sent] of out) for (const [to, got] of into) passes.push({ tx, block, ts, from, to, value: got * -sent / total, how });
+  };
   // Per transaction: each wallet's net, and its buy/sell legs.
   const nets = new Map<string, Map<string, bigint>>();
   for (const [tx, flows] of byTx) {
@@ -121,11 +135,15 @@ export function launchGroups(coin: CoinState, o: LaunchGroupOptions): LaunchGrou
       const legs = [...buys, ...sells];
       for (const w of legs) meet(w);
       if (buys.length >= 2 || (buys.length >= 1 && sells.length >= 1)) for (const w of legs.slice(1)) join(legs[0]!, w);
+      if (buys.length && sells.length) pass(tx, swap.block, swap.ts, 'swap', big.filter(([w]) => sells.includes(w)), big.filter(([w]) => buys.includes(w)));
       if (buys.length >= 2 && inWindow(swap.block)) multiBuy.push({ tx, block: swap.block, wallets: buys });
     } else {
       // A plain transfer between wallets: the same operator moving its tokens.
       const out = big.filter(([, v]) => v < 0n).map(([w]) => w), into = big.filter(([, v]) => v > 0n).map(([w]) => w);
-      if (out.length && into.length) for (const w of [...out, ...into]) { meet(w); join(out[0]!, w); }
+      if (out.length && into.length) {
+        for (const w of [...out, ...into]) { meet(w); join(out[0]!, w); }
+        pass(tx, flows[0]!.block, flows[0]!.ts, 'transfer', big.filter(([, v]) => v < 0n), big.filter(([, v]) => v > 0n));
+      }
     }
   }
 
@@ -152,7 +170,8 @@ export function launchGroups(coin: CoinState, o: LaunchGroupOptions): LaunchGrou
     }
     const firsts = launch.map(w => firstBuy.get(w)!).sort((a, b) => a.block - b.block);
     bundles.push({ wallets, launchWallets: launch, oneTx: one ? { tx: one.tx, block: one.block, wallets: one.wallets.length, bought: one.wallets } : null,
-      block: firsts[0]!.block, ts: firsts[0]!.ts, bought, sold, held: wallets.reduce((n, w) => n + ((balance.get(w) ?? 0n) > 0n ? balance.get(w)! : 0n), 0n), lastSellBlock });
+      block: firsts[0]!.block, ts: firsts[0]!.ts, bought, sold, held: wallets.reduce((n, w) => n + ((balance.get(w) ?? 0n) > 0n ? balance.get(w)! : 0n), 0n), lastSellBlock,
+      rotations: passes.filter(p => set.has(p.from) && set.has(p.to)).sort((a, b) => a.block - b.block) });
     for (const w of wallets) bundled.add(w);
   }
   bundles.sort((a, b) => a.block - b.block);

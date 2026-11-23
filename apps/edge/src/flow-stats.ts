@@ -26,7 +26,7 @@ export interface FlowContext { nowSec: number; hypeUsd: number | null }
 
 /** Addresses that move the coin for the protocol, never as a trader: the zero and burn addresses, the token, its pool
  *  manager, launcher and curve, and any the chain names (its routers, hook, factory, locker). */
-function notTraders(c: CoinState, extra: readonly string[]) {
+export function notTraders(c: CoinState, extra: readonly string[]) {
   return new Set([...NOT_TRADERS, c.token, c.manager, c.launcher, ...(c.curve ? [c.curve.address] : []), ...extra].map(a => a.toLowerCase()));
 }
 

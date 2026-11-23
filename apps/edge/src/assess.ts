@@ -1,11 +1,13 @@
 import { decodeFunctionResult, encodeFunctionData, keccak256, parseAbi, stringToHex, type Address, type Hex } from 'viem';
 import type { SellProbe, V4PoolKey } from '@eko/chain';
-import { assembleVerdict, evaluatePlaybooks, type CardSources, type HistoryView, type Simulation } from '@eko/playbooks';
+import { assembleVerdict, evaluatePlaybooks, marketCapContext, partialHistoryReason, type CardSources, type HistoryView, type Simulation } from '@eko/playbooks';
 import type { PlaybookMatch, Verdict } from '@eko/shared';
 import type { CoinState, Rpc } from './tracker.js';
 import type { ChainAdapter } from './chains/types.js';
 import { flowStats, type FlowStats, type FunderLookup } from './holders.js';
 import { findSnipers, SNIPER_BLOCKS } from './snipers.js';
+import { transferCoverage, type Coverage } from './coverage.js';
+import { flowActivity } from './flow-stats.js';
 
 const erc20Abi = parseAbi(['function name() view returns (string)', 'function symbol() view returns (string)']);
 const multicallAbi = parseAbi(['struct Call3 { address target; bool allowFailure; bytes callData; }', 'struct Result { bool success; bytes returnData; }',
@@ -30,6 +32,11 @@ export interface Assessment {
   matches: PlaybookMatch[]; verdict: Verdict;
   /** Whether the launch liquidity was found locked or removable (JudgeFacts.liquidity); absent when nothing is claimed. */
   lp?: 'locked' | 'removable';
+  /** From when EKO holds the coin's transfers (coverage.ts): when not from launch, holder and early-buyer checks did not
+   *  run and the card names those figures missing. Absent on checks made before it was kept. */
+  history?: Coverage;
+  /** Native currency in the coin's pool, read on chain (Probed.poolReserve); absent where only EKO's net of trades says. */
+  poolNative?: number;
 }
 
 /** The permission bits of a v4 hook are the low 14 bits of its address; the four return-delta bits are the lowest. */
@@ -70,6 +77,12 @@ export interface Probed {
    * more_launchpads pools); a coin whose probe merely failed or has not run leaves it unset and stays Pending.
    */
   sellCheckUnavailable?: 'token_quoted_pool';
+  /**
+   * The coin's pool read on chain at the probe block, where the chain can read it (a Pons graduate's v4 pool): the
+   * native currency it holds (whole units) and its price (native per 1e18 base units). It backs the price (fake_mcap)
+   * and is the liquidity the card shows, whatever part of the coin's history EKO holds.
+   */
+  poolReserve?: { native: number; price: number };
 }
 /** Whether a check still owes its sell test: none ran, or it could not answer, and the pool is not one it can never run on. */
 export const sellCheckOutstanding = (p: Pick<Probed, 'probe' | 'sellCheckUnavailable'>) => p.probe ? p.probe.status === 'unavailable' : !p.sellCheckUnavailable;
@@ -126,14 +139,25 @@ export function judge(coin: CoinState, p: Probed, ctx: JudgeContext): Assessment
   const stats = flowStats(coin, { excluded, hypeUsd, ...(ctx.funders ? { funders: ctx.funders } : {}),
     launch: { firstBlocks: window.firstBlocks, minWallets: window.minWallets, ...(chain.publicRouters ? { publicRouters: chain.publicRouters } : {}) } });
   const hasHook = !!key && key.hooks !== '0x0000000000000000000000000000000000000000';
+  // Holders, the deployer's balance, bundles, early buyers and snipers are sums over the coin's transfers: on a history
+  // that does not start at the launch they are a sliver of the truth, so those checks are not fed at all (a missing
+  // source is no match) and the verdict says so below.
+  const history = transferCoverage(coin, nowSec), whole = history.complete;
+  // Trading in a window is known only when EKO's trades cover all of it.
+  const covered = (sec: number) => whole || history.since <= nowSec - sec;
+  const sumSince = (sec: number) => coin.trades.reduce((n, t) => t.ts > nowSec - sec ? n + t.hype : n, 0);
+  const buyers24h = hypeUsd && covered(86_400) ? flowActivity(coin, '24h', { nowSec, hypeUsd }, { excluded })?.buyers ?? null : null;
+  // Backing from EKO's own net of trades needs the whole history; read from the pool on chain it does not.
+  const market = backing && hypeUsd && (whole || backing.source === 'pool') ? { mcapUsd: backing.mcap * hypeUsd, backingUsd: backing.paidIn * hypeUsd,
+    volume24hUsd: covered(86_400) ? backing.volume24h * hypeUsd : null, volume1hUsd: covered(3600) ? sumSince(3600) * hypeUsd : null, buyers24h,
+    holders: whole ? stats.holderCount : null, evidence: backing.evidence } : null;
   const sources: CardSources = {
-    holders: stats.holders, earlyBuyers: stats.earlyBuyers, dev: stats.dev,
-    ...(stats.bundles.length ? { bundles: stats.bundles } : {}), ...(stats.copyTraders.length ? { copyTraders: stats.copyTraders } : {}),
+    ...(whole ? { holders: stats.holders, earlyBuyers: stats.earlyBuyers, dev: stats.dev,
+      ...(stats.bundles.length ? { bundles: stats.bundles } : {}), ...(stats.copyTraders.length ? { copyTraders: stats.copyTraders } : {}) } : {}),
     coin: coin.token, deployer: coin.creator, asOfBlock, asOfSec: nowSec, createdAtSec: coin.ts, createdAtBlock: coin.block,
     launchpad: coin.launchpad, name, symbol, antiSnipeActive, simulations, sniperWindowSec: chain.profile.sniperBlocks * chain.profile.blockTimeSec, ...(runUp ? { runUp } : {}),
     // Without an ETH price no market cap is claimed, so fake_mcap stays silent rather than guessing.
-    ...(backing && hypeUsd ? { marketCap: { mcapUsd: backing.mcap * hypeUsd, backingUsd: backing.paidIn * hypeUsd, volume24hUsd: backing.volume24h * hypeUsd,
-      holders: stats.holderCount, evidence: backing.evidence } } : {}),
+    ...(market ? { marketCap: market } : {}),
     ...(p.taxPct ? { taxes: { buyPct: p.taxPct.buy, sellPct: p.taxPct.sell, mutable: null, changes: [] } } : {}),
     ...(locked ? { liquidity: { positions: [{ owner: locked.owner, controlledBy: locked.controlledBy ?? 'other' as const, share: 1, status: locked.status,
       evidence: [{ kind: 'address' as const, ref: locked.owner, label: locked.label }] }], priorRemovals: [],
@@ -144,8 +168,8 @@ export function judge(coin: CoinState, p: Probed, ctx: JudgeContext): Assessment
       address: key.hooks, ...hookBits(key.hooks), reviewed: hook.reviewed, sourceVerified: hook.sourceVerified, quoteSimGapPct: null,
       buyFeePct: hook.buyFeePct, sellFeePct: hook.sellFeePct, evidence: [{ kind: 'address' as const, ref: key.hooks, label: hook.label }] } } : {}),
   };
-  const snipers = findSnipers(coin, excluded, p.tips, chain.profile.sniperBlocks);
-  const matches = evaluatePlaybooks({ ...sources, snipers, history: ctx.history ?? { launches: [] } }, chain.profile.playbooks);
+  const snipers = whole ? findSnipers(coin, excluded, p.tips, chain.profile.sniperBlocks) : undefined;
+  const matches = evaluatePlaybooks({ ...sources, ...(snipers ? { snipers } : {}), history: ctx.history ?? { launches: [] } }, chain.profile.playbooks);
   const receiptId = `pending:${coin.token.toLowerCase()}:${asOfBlock}`;
   const assembled = assembleVerdict(matches, { coin: coin.token, asOfBlock, receipt: { id: receiptId, hash: keccak256(stringToHex(receiptId)), status: 'pending' } });
   const probeRan = simulations.length > 0;
@@ -153,17 +177,25 @@ export function judge(coin: CoinState, p: Probed, ctx: JudgeContext): Assessment
   // coin Monitor); with no finding at all it stays Pending, since Clear needs the honeypot check.
   const graded = probeRan || (!!p.sellCheckUnavailable && assembled.level !== 'clear');
   const at = new Date(nowSec * 1000).toISOString();
+  const level = (!graded || antiSnipeActive) && assembled.level !== 'danger' ? 'pending' : assembled.level;
+  // The level stays what the checks that ran say (pending keeps its meaning for trading). A partial history is named:
+  // a machine-readable flag with the time EKO's history starts, and a plain line (first on a Clear level, which clients
+  // then show as Partly checked). An older coin that simply trades little gets its context line (never a flag).
+  const partial = whole ? null : partialHistoryReason(coin.ts, history.since);
+  const quiet = marketCapContext(sources, chain.profile.playbooks.fake_mcap);
+  const reasons = [...(partial && level === 'clear' ? [partial] : []), ...assembled.reasons, ...(partial && level !== 'clear' ? [partial] : []), ...(quiet ? [quiet] : [])];
   const verdict: Verdict = {
-    ...assembled,
+    ...assembled, reasons,
     // Without a probe the required honeypot check has not run: pending, never Clear (antiSnipe is its own reason).
     // Inside an early-buy window the honeypot rule is skipped (the fee is not a trap), so Clear would be unearned.
-    level: (!graded || antiSnipeActive) && assembled.level !== 'danger' ? 'pending' : assembled.level,
+    level,
     evaluatedPlaybooks: probeRan ? undefined : ['agent_bait', 'malicious_hook', 'fee_trap_pool', 'removable_liquidity'],
+    ...(whole ? {} : { historyPartial: { since: new Date(history.since * 1000).toISOString() } }),
     lastChecked: { block: asOfBlock, at },
   };
   if (!verdict.evaluatedPlaybooks) delete verdict.evaluatedPlaybooks;
   return { coin: coin.token, block: asOfBlock, at, name, symbol, key, config, currentBuyFeePips, antiSnipe, ...(p.taxPct !== undefined ? { taxPct: p.taxPct } : {}), probe, probeUsd: p.probeUsd, stats, matches, verdict, ...(locked ? { lp: locked.status } : {}),
-    ...(p.sellCheckUnavailable ? { sellCheckUnavailable: p.sellCheckUnavailable } : {}) };
+    ...(p.sellCheckUnavailable ? { sellCheckUnavailable: p.sellCheckUnavailable } : {}), history, ...(p.poolReserve ? { poolNative: p.poolReserve.native } : {}) };
 }
 
 /** A full check now: probe, then judge. */

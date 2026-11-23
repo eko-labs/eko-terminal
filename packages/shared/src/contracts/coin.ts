@@ -33,6 +33,10 @@ export const VerdictSchema = z.object({
   // CA-34 (lead): pending means required checks have not run; it is never Clear.
   level: z.enum(['clear', 'monitor', 'danger', 'pending']),
   evaluatedPlaybooks: z.array(PlaybookIdSchema).optional(),
+  // TODO(spec): additive (2026-11-23). EKO holds this coin's trades and transfers only from `since`, not from its launch
+  // (it started following the coin late): the checks that read holders and early buyers did not run, and the level
+  // rests on the rest. Clients show a Clear level with it as "Partly checked". Absent when the history is complete.
+  historyPartial: z.object({ since: z.iso.datetime() }).optional(),
   reasons: z.array(z.string()),
   playbooks: z.array(PlaybookMatchSchema),
   beta: z.object({

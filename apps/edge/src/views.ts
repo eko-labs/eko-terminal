@@ -45,6 +45,14 @@ const levelOf = (a: Assessment | undefined): Verdict['level'] => a?.verdict.leve
 const pct = (share: number) => Math.min(100, Math.max(0, Math.round(share * 10_000) / 100));
 /** What the first minute's buyers still hold. */
 const earlyHeld = (a: Assessment) => a.stats.earlyBuyers.reduce((n, b) => n + b.heldShare, 0);
+/** The check graded the coin on a history that does not start at its launch (Assessment.history): its holder figures
+ *  are a sliver of the truth and are never shown as measured. */
+const partial = (a: Assessment | undefined) => !!a?.history && !a.history.complete;
+/** Supply figures summed from the coin's transfers: named missing (shown "not checked") on a partial history. */
+const TRANSFER_FIELDS = ['top10Pct', 'devPct', 'bundlesHeldPct', 'freshWalletsPct', 'exemptWalletsHeldPct'];
+/** Native currency in the coin's pool: read on chain by its last check where the chain can (a Pons graduate's v4 pool),
+ *  else EKO's running net of the trades it saw (right only for a coin followed from launch). */
+const poolNative = (c: CoinState, a: Assessment | undefined) => a?.poolNative ?? Math.max(0, c.netHype);
 
 export function pendingVerdict(coin: CoinState, head: number): Verdict {
   const id = `pending:${coin.token.toLowerCase()}:${head}`;
@@ -61,12 +69,13 @@ export function coinSummary(c: CoinState, a: Assessment | undefined, ctx: ViewCo
     address: c.token, name: toUntrusted(a?.name ?? c.name ?? '', UNTRUSTED_LIMITS.name), symbol: toUntrusted(a?.symbol ?? c.symbol ?? '', UNTRUSTED_LIMITS.symbol),
     launchpad: c.launchpad, ...quoteSymbol(c), stage: c.graduated ? 'graduated' : 'curve', ...graduationPct(c, ctx), ...curvePct(c, ctx),
     priceUsd: usd(priceHype(c) * unitScale(c), ctx), ...(ctx.hypeUsd && priceHype(c) ? {} : { priceUnavailable: true }),
-    change1hPct: changePct(c.trades, ctx.nowSec - 3600), liquidityUsd: usd(Math.max(0, c.netHype), ctx),
+    change1hPct: changePct(c.trades, ctx.nowSec - 3600), liquidityUsd: usd(c.curve && !c.graduated ? Math.max(0, c.netHype) : poolNative(c, a), ctx),
     verdict: levelOf(a), ...(a ? { lastChecked: a.verdict.lastChecked, ratingAgeSec: Math.max(0, ctx.nowSec - Math.floor(Date.parse(a.at) / 1000)) } : {}),
     ...(top ? { topPlaybook: top } : {}), ageSec: Math.max(0, ctx.nowSec - c.ts), unavailable,
     verdictPending: levelOf(a) === 'pending', marketCapUsd: usd(priceHype(c) * supplyTokens(c), ctx),
     ...(a?.probe && a.probe.status !== 'unavailable' ? { sellCheck: { status: a.probe.status === 'sellable' ? 'sellable' as const : 'refused' as const, asOfBlock: a.block, checkedAt: a.at } } : {}),
     ...(a?.verdict.level === 'danger' && a.verdict.playbooks.some(m => m.id === 'honeypot' && m.level === 'danger') ? { hardDanger: true } : {}),
+    ...(a?.verdict.historyPartial ? { historyPartial: a.verdict.historyPartial } : {}),
   };
 }
 
@@ -115,10 +124,12 @@ export function radarRow(c: CoinState, a: Assessment | undefined, ctx: ViewConte
 }
 
 export function pairRow(c: CoinState, a: Assessment | undefined, ctx: ViewContext): PairRow {
-  const h = hourStats(c, ctx.nowSec);
-  return { ...coinSummary(c, a, ctx), column: pairColumn(c, ctx), buyers: a?.stats.buyers ?? 0, exitCost100Pct: exitCost(a) ?? 0, flow: flowOf(c, ctx),
+  const h = hourStats(c, ctx.nowSec), summary = coinSummary(c, a, ctx);
+  // On a partial history the buyer count and holder shares are not known: left out (absent means not measured).
+  return { ...summary, ...(partial(a) ? { unavailable: [...summary.unavailable ?? [], 'buyers' as const] } : {}),
+    column: pairColumn(c, ctx), buyers: partial(a) ? 0 : a?.stats.buyers ?? 0, exitCost100Pct: exitCost(a) ?? 0, flow: flowOf(c, ctx),
     ...(a?.antiSnipe ? { antiSnipe: a.antiSnipe } : {}), verdictPending: levelOf(a) === 'pending',
-    ...(a ? { top10Pct: pct(a.stats.holders.top10Share), devPct: pct(a.stats.dev.heldShare), earlyHeldPct: pct(earlyHeld(a)) } : {}),
+    ...(a && !partial(a) ? { top10Pct: pct(a.stats.holders.top10Share), devPct: pct(a.stats.dev.heldShare), earlyHeldPct: pct(earlyHeld(a)) } : {}),
     spark8h: spark(c.trades, ctx.nowSec).map(p => p * (ctx.hypeUsd ?? 0)), volume1hUsd: usd(h.volumeHype, ctx), trades1h: h.trades };
 }
 
@@ -154,7 +165,7 @@ export function coinCard(c: CoinState, a: Assessment | undefined, ctx: ViewConte
       // Before graduation a bonding-curve coin trades on its curve (no v4 pool yet).
       pools: [c.curve && !c.graduated ? { id: c.curve.address, venue: 'pons_curve', address: c.curve.address, quote: c.quote, feeBps, liquidityUsd: usd(Math.max(0, c.netHype), ctx), executable: false }
         : { id: c.poolId, venue: 'uniswap_v4', poolId: c.poolId, ...(a?.key ? { hooks: a.key.hooks } : {}), quote: c.quote, feeBps,
-          liquidityUsd: usd(Math.max(0, c.netHype), ctx), executable: false }] },
+          liquidityUsd: usd(poolNative(c, a), ctx), executable: false }] },
     // The probe runs at about $1,000: the $100 and $10k figures are not measured (named in meta.tradeability.missing).
     tradeability: { exitCostPct: { usd100: cost ?? 0, usd1k: cost ?? 0, usd10k: cost ?? 0 }, buyTaxPct: a?.taxPct?.buy ?? 0, sellTaxPct: a?.taxPct?.sell ?? 0,
       honeypot: verdict.playbooks.some(m => m.id === 'honeypot' && m.level === 'danger'),
@@ -164,7 +175,8 @@ export function coinCard(c: CoinState, a: Assessment | undefined, ctx: ViewConte
     // Pangea's and long.xyz's launch positions sit with their own unreviewed contracts: named missing, never claimed. The
     // unbranded launcher hands its position to the creator: removable, claimed once a check has said so.
     liquidity: { depthUsd: { pct2: 0, pct5: 0, pct10: 0 }, lpStatus: c.launchpad === 'flaunch' || robinhoodPoolLaunch(c) ? 'removable' : c.launchpad === 'pons' ? 'pons_locked' : 'locked', feeTiers: a?.config ? [feeBps] : [] },
-    supply: { top10Pct: a ? pct(a.stats.holders.top10Share) : 0, devPct: a ? pct(a.stats.dev.heldShare) : 0, bundlesHeldPct: a ? pct((a.stats.bundles ?? []).reduce((n, b) => n + b.heldShare, 0)) : 0,
+    supply: { top10Pct: a && !partial(a) ? pct(a.stats.holders.top10Share) : 0, devPct: a && !partial(a) ? pct(a.stats.dev.heldShare) : 0,
+      bundlesHeldPct: a && !partial(a) ? pct((a.stats.bundles ?? []).reduce((n, b) => n + b.heldShare, 0)) : 0,
       exemptWalletsHeldPct: 0, freshWalletsPct: 0, burnedPct: 0, circulating: (c.supply / 10n ** BigInt(c.decimals ?? 18)).toString() }, // whole tokens at the coin's own decimals, not base units
     // Montra launches are clones of the factory's token master: no owner, tax, blacklist, pause, mint or upgrade. Other
     // launchpads' tokens are not reviewed: their owner powers are named unavailable in meta.control.
@@ -177,7 +189,10 @@ export function coinCard(c: CoinState, a: Assessment | undefined, ctx: ViewConte
       liquidity: { confidence: a?.config ? 1 : 0, asOfBlock: block, missing: c.launchpad === 'flaunch' || (robinhoodPoolLaunch(c) && a?.lp !== 'removable') || unprovenPonsLock(c, a) ? ['depthUsd', 'lpStatus'] : ['depthUsd'] },
       // bundlesHeldPct is what bundles linked by their own transactions still hold (bundles.ts): one transaction buying for
       // several wallets, or tokens passed between them. Copy traders and the rest of the first minute are not in it.
-      supply: a ? { confidence: 1, asOfBlock: block, missing: ['freshWalletsPct', 'exemptWalletsHeldPct'], flags: ['bundles_linked_by_transaction'] } : meta(['top10Pct', 'devPct', 'bundlesHeldPct', 'freshWalletsPct']),
+      // On a history that does not start at launch (EKO started following the coin late) every share summed from
+      // transfers is named missing and flagged history_partial; the circulating supply is still read.
+      supply: a && partial(a) ? { confidence: 0, asOfBlock: block, missing: TRANSFER_FIELDS, flags: ['history_partial'] }
+        : a ? { confidence: 1, asOfBlock: block, missing: ['freshWalletsPct', 'exemptWalletsHeldPct'], flags: ['bundles_linked_by_transaction'] } : meta(['top10Pct', 'devPct', 'bundlesHeldPct', 'freshWalletsPct']),
       control: c.launchpad === 'montra' ? { confidence: 1, asOfBlock: block, flags: ['montra_factory_clone'] } : meta(['canChangeTax', 'canBlacklist', 'canPause', 'canMint', 'upgradeable']),
       // The label split is not measured (unavailable); flow.activity, when present, is (flags).
       flow: meta(LABEL_FIELDS, { flags: inNative(c) && ctx.hypeUsd ? ['activity_measured', 'wallet_labels_unavailable'] : ['wallet_labels_unavailable'] }),

@@ -20,6 +20,31 @@ describe('bundles and copy traders at a launch', () => {
     expect(b!.lastSellBlock! - fx.launchBlock).toBe(901);
   });
 
+  it('lists the passes between its wallets: each sold from one wallet and bought into a fresh one in the same transaction', () => {
+    const [b] = launchGroups(nymo(), PONS).bundles;
+    const r = b!.rotations;
+    expect(r).toHaveLength(13);
+    expect(r.every(x => x.how === 'swap' && b!.wallets.includes(x.from) && b!.wallets.includes(x.to) && x.from !== x.to && x.value > 0n)).toBe(true);
+    expect(r.map(x => x.block)).toEqual([...r.map(x => x.block)].sort((p, q) => p - q));
+    // Every wallet that did not buy at launch got its tokens passed to it, once, after the wallet that passed them.
+    const into = r.map(x => x.to);
+    expect(new Set(into).size).toBe(13);
+    expect(b!.wallets.filter(w => !b!.launchWallets.includes(w)).sort()).toEqual([...into].sort());
+    const firstIn = new Map(r.map(x => [x.to, x.block]));
+    for (const x of r) if (firstIn.has(x.from)) expect(firstIn.get(x.from)!).toBeLessThan(x.block);
+    expect(r[0]!.block - fx.launchBlock).toBe(39);
+    expect(r.at(-1)!.block - fx.launchBlock).toBe(811);
+    expect(pct(r[0]!.value)).toBeCloseTo(2.92, 2);
+  });
+
+  it('lists a plain transfer between its wallets as a pass too', () => {
+    const c = nymo(), fresh = '0xabab'.padEnd(42, '1'), from = '0x8a94ea7c8597673a3b7ff3406ec771852a37ef53';
+    c.flows.push({ tx: `0x${'7'.repeat(64)}`, block: fx.launchBlock + 60, ts: fx.launchTs + 6, from, to: fresh, value: 10n ** 24n });
+    const [b] = launchGroups(c, PONS).bundles;
+    expect(b!.wallets).toContain(fresh);
+    expect(b!.rotations.find(x => x.to === fresh)).toMatchObject({ how: 'transfer', from, value: 10n ** 24n, block: fx.launchBlock + 60 });
+  });
+
   it('does not read the graduation, which pays the launchpad fee to another wallet in the same transaction, as a bundle', () => {
     const { bundles } = launchGroups(nymo(), PONS);
     expect(bundles.flatMap(b => b.wallets)).not.toContain('0x74ab274b19f0989f9064f803e820b4e082bd058e');

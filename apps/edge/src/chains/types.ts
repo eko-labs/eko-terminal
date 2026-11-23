@@ -96,12 +96,13 @@ export interface JudgeFacts {
   /** A bonding-curve coin's run-up (playbook run_up): supply bought out of the curve, in all and in the last hour. */
   runUp?: { outShare: number; hourShare: number; ageSec: number; evidence: { kind: 'address'; ref: Address; label: string }[] };
   /**
-   * A coin whose pool opened with only the coin in it, followed from its launch (playbook fake_mcap): its market cap
-   * (price × supply), the native currency buyers paid into the pool on net (all the pool holds of it), and its 24-hour
-   * volume, all in native currency. Absent where the chain cannot say what backs the price (curves, pools seeded with
-   * quote, coins first seen after launch).
+   * What backs a pool-traded coin's price (playbook fake_mcap): its market cap (price × supply), the native currency in
+   * its pool, and its 24-hour volume, all in native currency. `source` says how the pool's native was known: `pool`,
+   * read from the pool on chain (judge uses it whatever part of the history EKO holds); `net_flow`, what buyers paid
+   * into a pool that opened with only the coin in it, summed from EKO's trades (used only on a history from launch).
+   * Absent where the chain cannot say (curves, pools seeded with quote it does not read).
    */
-  backing?: { mcap: number; paidIn: number; volume24h: number; evidence: { kind: 'address'; ref: string; label: string }[] };
+  backing?: { mcap: number; paidIn: number; volume24h: number; source: 'pool' | 'net_flow'; evidence: { kind: 'address'; ref: string; label: string }[] };
 }
 
 /** Where a coin trades now: a launchpad's bonding curve before graduation, a v4 pool after. */

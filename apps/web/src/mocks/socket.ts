@@ -10,6 +10,14 @@ import { createRadarCard } from './demo/radar';
 import { onMissionEvent } from './demo/mission';
 import { advancePairs, advanceFeed } from './demo/market';
 
+/**
+ * Alerts on the alerts channel are spaced out: each one is a "New watch alert" toast, and several features' examples
+ * arrive when the channel opens. The first goes out at once, the rest one every ALERT_GAP_MS, at most ALERT_QUEUE waiting
+ * (the oldest dropped), so a page opens with one toast and a film keeps a clean screen.
+ */
+export const ALERT_GAP_MS = 20_000;
+const ALERT_QUEUE = 12;
+
 export class MockChannelSocket implements ChannelTransport {
   state: WsState = 'closed';
   private listeners = new Set<(m: WsServer) => void>();
@@ -25,8 +33,26 @@ export class MockChannelSocket implements ChannelTransport {
   private off?: () => void;
   /** Feature folders' demo pushes per channel (features.ts `demo`), for features whose flag is on. */
   private featureStops = new Map<string, (() => void)[]>();
+  private alertQueue: WsServer[] = [];
+  private alertTimer?: ReturnType<typeof setInterval>;
+  private lastAlertAt = -Infinity;
   constructor(private readonly flags?: Partial<Flags>) {}
-  private emit(m: WsServer) { this.listeners.forEach((l) => l(m)); }
+  private emit(m: WsServer) {
+    if (m.t === 'ev' && m.ch === 'alerts' && m.kind === 'alert') { this.paceAlert(m); return; }
+    this.listeners.forEach((l) => l(m));
+  }
+  private paceAlert(m: WsServer) {
+    const send = (e: WsServer) => { this.lastAlertAt = Date.now(); this.listeners.forEach((l) => l(e)); };
+    if (!this.alertQueue.length && Date.now() - this.lastAlertAt >= ALERT_GAP_MS) { send(m); return; }
+    this.alertQueue.push(m);
+    if (this.alertQueue.length > ALERT_QUEUE) this.alertQueue.shift();
+    this.alertTimer ??= setInterval(() => {
+      const next = this.alertQueue.shift();
+      if (next && this.channels.has('alerts')) send(next);
+      if (!this.alertQueue.length) { clearInterval(this.alertTimer); this.alertTimer = undefined; }
+    }, ALERT_GAP_MS);
+  }
+  private stopAlerts() { this.alertQueue = []; if (this.alertTimer) clearInterval(this.alertTimer); this.alertTimer = undefined; }
   private startFeatures(ch: string) {
     if (this.featureStops.has(ch)) return;
     const stops: (() => void)[] = [];
@@ -57,11 +83,11 @@ export class MockChannelSocket implements ChannelTransport {
     this.emit({ t: 'hello', serverTime: Date.now(), session: 'anon', delayedSec: 0 });
   }
   private stopRadar() { this.radarSubscribed = false; if (this.radarTimer) clearInterval(this.radarTimer); this.radarTimer = undefined; }
-  close() { this.off?.(); this.off = undefined; this.stopRadar(); this.stopFeatures(); if (this.coinTimer) clearInterval(this.coinTimer); this.coinTimer = undefined; this.marketTimers.forEach(clearInterval); this.marketTimers.clear(); this.channels.clear(); this.state = 'closed'; this.states.forEach((l) => l('closed')); }
+  close() { this.off?.(); this.off = undefined; this.stopRadar(); this.stopFeatures(); this.stopAlerts(); if (this.coinTimer) clearInterval(this.coinTimer); this.coinTimer = undefined; this.marketTimers.forEach(clearInterval); this.marketTimers.clear(); this.channels.clear(); this.state = 'closed'; this.states.forEach((l) => l('closed')); }
   reconnect() { this.close(); this.connect(); }
   send(m: WsClient) {
     if (m.op === 'ping') { this.emit({ t: 'pong', serverTime: Date.now() }); return; }
-    if (m.op === 'unsub') { m.ch.forEach((ch) => { this.channels.delete(ch); this.stopFeatures(ch); const timer = this.marketTimers.get(ch); if (timer) clearInterval(timer); this.marketTimers.delete(ch); }); if (m.ch.includes('radar')) this.stopRadar(); return; }
+    if (m.op === 'unsub') { m.ch.forEach((ch) => { this.channels.delete(ch); this.stopFeatures(ch); if (ch === 'alerts') this.stopAlerts(); const timer = this.marketTimers.get(ch); if (timer) clearInterval(timer); this.marketTimers.delete(ch); }); if (m.ch.includes('radar')) this.stopRadar(); return; }
     const map = createWsEventMap();
     map.feed.item.block = MOCK_HEAD_BLOCK;
     // The shared sample alert is a shape placeholder ('fixture' text, no time): in the drawer it read as one. Give it a
@@ -70,7 +96,7 @@ export class MockChannelSocket implements ChannelTransport {
       const coin = createRadarRows()[0]!;
       map.alerts.alert = { ...map.alerts.alert, id: 'al_3f81c09d', ts: new Date(Date.now() - 4 * 60_000).toISOString(), kind: 'verdict_change', level: 'monitor',
         coin: coin.address, symbol: coin.symbol, agentId: undefined, wallet: undefined, crewId: undefined, sizeUsd: undefined,
-        title: `$${coin.symbol.text} moved to Monitor`, body: 'Holder concentration: the top 10 wallets now hold 34% of supply.', url: `/coin/${coin.address}`, read: false } as typeof map.alerts.alert;
+        title: `$${coin.symbol.text} moved to Monitor`, body: 'Top-heavy holders: the top 10 wallets now hold 34% of supply.', url: `/coin/${coin.address}`, read: false } as typeof map.alerts.alert;
     }
     for (const ch of m.ch) {
       this.channels.add(ch);

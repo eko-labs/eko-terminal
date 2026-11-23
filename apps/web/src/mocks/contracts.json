@@ -1159,7 +1159,12 @@
       "dev_sell_alerts": false,
       "launch_alerts": false,
       "linked_devs": false,
-      "price_alerts": false
+      "price_alerts": false,
+      "launch_map": false,
+      "top_traders": false,
+      "holders_in_profit": false,
+      "bonding_alerts": false,
+      "quant": false
     },
     "tiers": [
       {
@@ -2233,7 +2238,12 @@
     "dev_sell_alerts": false,
     "launch_alerts": false,
     "linked_devs": false,
-    "price_alerts": false
+    "price_alerts": false,
+    "launch_map": false,
+    "top_traders": false,
+    "holders_in_profit": false,
+    "bonding_alerts": false,
+    "quant": false
   },
   "OpsSwitch": "trading_live",
   "WsEventMap": {

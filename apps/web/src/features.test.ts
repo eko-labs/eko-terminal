@@ -27,3 +27,13 @@ describe('feature folders', () => {
     expect(featureLink('deployer', '0xabc', {}, [])).toBeNull();
   });
 });
+
+describe('feature places', () => {
+  it('fills a place outside the coin page only while the flag is on', async () => {
+    const { activePlaceSlots } = await import('./components/placeSlots');
+    const Tool = () => null;
+    const found = featuresFrom({ './features/leaderboards/index.ts': { default: { places: { launchFilter: Tool } } } });
+    expect(activePlaceSlots(found, {})).toEqual([]);
+    expect(activePlaceSlots(found, { leaderboards: true })[0]).toEqual({ launchFilter: Tool });
+  });
+});

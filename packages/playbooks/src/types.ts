@@ -98,12 +98,15 @@ export interface CardSources {
    */
   runUp?: { outShare: number; hourShare: number; ageSec: number; evidence: EvidenceRef[] };
   /**
-   * What backs the price of a coin whose pool opened with only the coin in it and that is followed from its launch:
-   * the market cap (price × supply), the native currency buyers paid into the pool on net (all of it the pool holds),
-   * the 24-hour volume, all in USD, and the holders (wallets with a balance; pool, launcher and burn addresses excluded).
-   * Absent where that is not known (a bonding curve, a pool seeded with quote, a coin first seen after its launch).
+   * What backs the price of a coin trading in a pool: the market cap (price × supply) and the quote the pool holds
+   * (`backingUsd`: for a pool that opened with only the coin in it and is followed from its launch, what buyers paid in on
+   * net; where the chain can read it, the quote side of the pool itself), all in USD, with how much it trades: volume in
+   * the last 24 hours and the last hour, and distinct buyers in 24 hours (null when EKO's trades do not cover the whole
+   * window), and the holders (wallets with a balance; pool, launcher and burn addresses excluded; null when EKO does not
+   * hold the coin's transfers from launch). Absent where nothing backs a price yet (a bonding curve) or it is not known.
    */
-  marketCap?: { mcapUsd: number; backingUsd: number; volume24hUsd: number; holders: number; evidence: EvidenceRef[] };
+  marketCap?: { mcapUsd: number; backingUsd: number; volume24hUsd: number | null; volume1hUsd?: number | null; buyers24h?: number | null;
+    holders: number | null; evidence: EvidenceRef[] };
   /**
    * Launch-block snipers: wallets other than the deployer that bought within the first blocks of the launch (about a
    * second on Elysium, 3.5 seconds on Robinhood Chain), with the supply share each bought then and holds now, and the highest priority fee (gwei) any

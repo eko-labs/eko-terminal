@@ -400,25 +400,49 @@ export const launchSnipers: Rule<'launch_snipers'> = {
   },
 };
 /**
- * A market cap nothing backs: price × supply far above the native currency buyers have paid into a pool that opened
- * with only the coin in it. The creator picked the price; a holder can only sell into what other buyers paid in. Danger
- * when hardly anyone trades it or holds it as well (thresholds set from Pangea's launches, config v1); Monitor when it
- * trades and is held but the price still rests on almost nothing.
+ * What a coin's market cap rests on (playbook fake_mcap), in one of three readings, or null when there is nothing to say
+ * (no market-cap source, under the floor, or a backing share that is not small for a coin that trades):
+ * - `fake`: the pool holds a thin share of the market cap (under maxBackingShare) and hardly anything trades against it
+ *   (24-hour volume under maxVolumeShare of the market cap, or dangerHolders or fewer holders or buyers in 24 hours),
+ *   while the coin is young (under youngH) or the share is tiny (under tinyBackingShare): a creator-set price, or one run
+ *   up so far that selling any real amount would take it back down.
+ * - `thin`: under maxBackingShare otherwise: an older coin whose pool is small for its size, or a young one still trading.
+ * - `quiet`: an older coin at maxBackingShare or more that simply trades little. Context, never a flag.
+ * Holders, volume and buyers that are not known (null) never count towards a reading.
+ */
+export function readMarketCap(s: CardSources, cfg: PlaybookConfig['fake_mcap'] = CONFIG_V1.fake_mcap) {
+  const m = s.marketCap;
+  if (!m || !(m.mcapUsd >= cfg.minMcapUsd)) return null;
+  const backingShare = Math.max(0, m.backingUsd) / m.mcapUsd;
+  const volumeShare = m.volume24hUsd == null ? null : Math.max(0, m.volume24hUsd) / m.mcapUsd;
+  const ageSec = Math.max(0, s.asOfSec - s.createdAtSec), young = ageSec < cfg.youngH * 3600;
+  const idle = (volumeShare !== null && volumeShare < cfg.maxVolumeShare) || (m.buyers24h != null && m.buyers24h <= cfg.dangerHolders);
+  const few = m.holders != null && m.holders <= cfg.dangerHolders;
+  const kind: 'fake' | 'thin' | 'quiet' | null = backingShare < cfg.maxBackingShare
+    ? (idle || few) && (young || backingShare < cfg.tinyBackingShare) ? 'fake' : 'thin'
+    : !young && idle ? 'quiet' : null;
+  return kind ? { kind, backingShare, volumeShare, ageSec } : null;
+}
+/**
+ * A market cap nothing backs: price × supply far above the quote its pool holds; a holder can only sell into what is
+ * in the pool. Danger when the price rests on almost nothing and hardly anything trades against it (readMarketCap
+ * `fake`), Monitor when the pool is thin for the coin's size (`thin`). A quiet older coin is no match: its context line
+ * comes from marketCapContext.
  */
 export const fakeMcap: Rule<'fake_mcap'> = {
   id: 'fake_mcap', evaluate(s, h, cfg) {
-    const m = s.marketCap;
-    if (!m || !(m.mcapUsd >= cfg.minMcapUsd)) return null;
-    const backing = Math.max(0, m.backingUsd) / m.mcapUsd, volume = Math.max(0, m.volume24hUsd) / m.mcapUsd;
-    if (backing >= cfg.maxBackingShare) return null;
-    const level = volume < cfg.maxVolumeShare || m.holders <= cfg.dangerHolders ? 'danger' : 'monitor';
+    const read = readMarketCap(s, cfg), m = s.marketCap;
+    if (!read || read.kind === 'quiet' || !m) return null;
     const round = (v: number, d: number) => Math.round(v * d) / d;
-    return match(s, h, this.id, level, [
+    return match(s, h, this.id, read.kind === 'fake' ? 'danger' : 'monitor', [
       stat(s, this.id, 'mcap', 'Market cap, price × supply (USD)', round(m.mcapUsd, 1)),
-      stat(s, this.id, 'backing', 'Paid into the pool on net (USD)', round(Math.max(0, m.backingUsd), 100)),
-      stat(s, this.id, 'backingShare', 'Paid in as a share of market cap', round(backing, 1_000_000)),
-      stat(s, this.id, 'volume', '24h volume (USD)', round(Math.max(0, m.volume24hUsd), 100)),
-      stat(s, this.id, 'holders', 'Holders', m.holders), ...m.evidence,
+      stat(s, this.id, 'backing', 'In its pool (USD)', round(Math.max(0, m.backingUsd), 100)),
+      stat(s, this.id, 'backingShare', 'In its pool as a share of market cap', round(read.backingShare, 1_000_000)),
+      ...(m.volume24hUsd != null ? [stat(s, this.id, 'volume', '24h volume (USD)', round(Math.max(0, m.volume24hUsd), 100))] : []),
+      ...(m.volume1hUsd != null ? [stat(s, this.id, 'volume1h', 'Last hour volume (USD)', round(Math.max(0, m.volume1hUsd), 100))] : []),
+      ...(m.buyers24h != null ? [stat(s, this.id, 'buyers', 'Buyers in 24 hours', m.buyers24h)] : []),
+      ...(m.holders != null ? [stat(s, this.id, 'holders', 'Holders', m.holders)] : []),
+      stat(s, this.id, 'age', 'Coin age (seconds)', Math.round(read.ageSec)), ...m.evidence,
     ]);
   },
 };
