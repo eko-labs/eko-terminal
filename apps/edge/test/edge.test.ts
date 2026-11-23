@@ -234,6 +234,12 @@ describe('server', () => {
     const share = await app.inject({ method: 'GET', url: `/v1/share-meta?path=${encodeURIComponent(`/coin/${token}`)}`, headers: { host: 'ekoterminal.test' } });
     expect(share.statusCode).toBe(200);
     expect(share.json()).toMatchObject({ title: expect.stringMatching(/^\$.+ · No flags · EKO$/), url: `http://ekoterminal.test/coin/${token}` });
+    // A Clear grade on part of the coin's history reads as the coin page's chip does, not "No flags".
+    const graded = edge.assessment(token)!, partly = { ...graded, verdict: { ...graded.verdict, historyPartial: { since: '2026-01-01T00:00:00.000Z' } } };
+    const spy = vi.spyOn(edge, 'assessment').mockReturnValue(partly);
+    const partlyShare = await app.inject({ method: 'GET', url: `/v1/share-meta?path=${encodeURIComponent(`/coin/${token}`)}` });
+    expect(partlyShare.json()).toMatchObject({ title: expect.stringMatching(/^\$.+ · Partly checked · EKO$/), description: expect.stringMatching(/^Partly checked on EKO's checks/) });
+    spy.mockRestore();
     expect((await app.inject({ method: 'GET', url: '/v1/share-meta?path=/scan/x' })).statusCode).toBe(204);
     // The RFC 9116 contact file: plain text, pointing at the public repository's private reporting.
     const sec = await app.inject({ method: 'GET', url: '/.well-known/security.txt' });

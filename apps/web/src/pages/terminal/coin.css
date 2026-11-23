@@ -241,11 +241,14 @@
  .coin-page .supply-row{grid-template-columns:96px minmax(30px,1fr) auto}
 }
 
-/* Layout shift: the coin header keeps the height it has once the coin loads (tag row and figure row), so the chart and
-   panels below do not jump. Desktop: one tag row and one figure row. Phones: the tag row and the figures each wrap to
-   two lines, with 44px touch targets in the tag row. */
+/* Layout shift: while the coin loads, the header holds the height it will have (tag row and figure row), so the chart
+   and panels below do not jump. Desktop and wide phones: one tag row (44px touch targets) and one figure row. Narrow
+   phones: each wraps to two lines. Once the coin's facts are in, the header takes its own height: a reserve that
+   outlives the load only leaves a gap where the rows fit on one line. */
 .coin-id-meta{min-height:72px}
-@media(max-width:700px){.coin-id-meta{min-height:148px}}
+@media(max-width:700px){.coin-id-meta{min-height:84px}}
+@media(max-width:480px){.coin-id-meta{min-height:148px}}
+.coin-id-meta:has(.coin-facts){min-height:0}
 
 
 /* Chart settings (volume, log scale, moving averages): a small menu beside the timeframes. */

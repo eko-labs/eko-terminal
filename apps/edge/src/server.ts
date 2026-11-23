@@ -205,7 +205,10 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
     if (!coin) return reply.code(204).send();
     const a = edge.assessment(coin.token), level = a?.verdict.level ?? 'pending';
     const symbol = (a?.symbol ?? coin.symbol ?? '').replace(/[^\p{L}\p{N} ._$-]/gu, '').slice(0, 24) || coin.token.slice(0, 10);
-    const word = ({ clear: 'No flags', monitor: 'Monitor', danger: 'Danger' } as Record<string, string>)[level] ?? 'Being checked';
+    // A Clear grade on part of the coin's history (EKO joined after launch) is not "No flags": the holder checks never
+    // ran. Same word as the coin page's chip.
+    const word = level === 'clear' && a?.verdict.historyPartial ? 'Partly checked'
+      : ({ clear: 'No flags', monitor: 'Monitor', danger: 'Danger' } as Record<string, string>)[level] ?? 'Being checked';
     const site = `${req.protocol}://${String(req.headers['x-forwarded-host'] ?? req.headers.host)}`;
     return { title: `$${symbol} · ${word} · EKO`, url: `${site}/coin/${coin.token}`,
       description: `${word} on EKO's checks for $${symbol} (${edge.chain.profile.name}). Buyer risk at one block, not a buy recommendation. DYOR.` };
