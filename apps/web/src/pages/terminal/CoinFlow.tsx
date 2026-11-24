@@ -2,6 +2,7 @@ import { CHAIN_NETWORK, NETWORKS, type ChartMarker, type Flow, type FlowActivity
 import { WALLET_LABEL_WORD } from '../../components/ui';
 import { Glyph } from '../../components/chart/FlowLayer';
 import { CHAIN_KEY } from '../../lib/chain';
+import { uniqueKeys } from '../../lib/keys';
 import { NOT_CHECKED } from '../../copy/availability';
 import { FlowBar, WINDOW_WORD, buyShare, flowUsd } from './FlowBar';
 import { WalletSlots } from '../../components/coinSlots';
@@ -95,13 +96,13 @@ function MarkerTable({ markers }: { markers: ChartMarker[] }) {
 /** Trades tab: labelled markers when served, else the latest trades of the 24h flow. */
 export function CoinTrades({ markers, flows, labelsUnavailable }: { markers: ChartMarker[]; flows: Flow[]; labelsUnavailable?: boolean }) {
   const day = flows.find(f => f.window === '24h'), recent: FlowTrade[] = day?.activity?.recent ?? [];
-  const labelled = !labelsUnavailable && markers.length > 0;
+  const labelled = !labelsUnavailable && markers.length > 0, recentKeys = uniqueKeys(recent, t => `${t.tx}:${t.side}:${t.ts}`);
   return <section className="panel coin-card-panel"><div className="panel-head coin-section-head"><h3>Latest trades</h3><span className="muted">{labelled ? 'Labelled wallets' : 'Last 24 hours, newest first'}</span></div><div className="panel-body">
     {labelled ? <MarkerTable markers={markers.slice(-32).reverse()} />
       : !day ? <div className="skel coin-flow-skel" aria-label="Loading trades" />
       : !day.activity ? <p className="coin-empty">{NOT_CHECKED} · trades are not listed for this coin.</p>
       : !recent.length ? <p className="coin-empty">No trades in the last 24 hours.</p>
-      : <div className="coin-table-wrap"><table className="table coin-trades"><thead><tr><th>Time (UTC)</th><th>Side</th><th>Wallet</th><th className="r">Size</th><th className="r">Tx</th></tr></thead><tbody>{recent.map(t => <tr key={`${t.tx}:${t.side}:${t.ts}`}>
+      : <div className="coin-table-wrap"><table className="table coin-trades"><thead><tr><th>Time (UTC)</th><th>Side</th><th>Wallet</th><th className="r">Size</th><th className="r">Tx</th></tr></thead><tbody>{recent.map((t, i) => <tr key={recentKeys[i]}>
         <td className="num muted">{clock(t.ts)}</td><td><Side side={t.side} /></td><td>{t.wallet ? <Wallet address={t.wallet} /> : <span className="muted">Not matched</span>}</td><td className="r num">{flowUsd(t.usd)}</td>
         <td className="r"><a className="addr" href={`${EXPLORER}/tx/${t.tx}`} target="_blank" rel="noopener noreferrer" title={t.tx}>{t.tx.slice(0, 8)}…</a></td></tr>)}</tbody></table></div>}
     <p className="note">{RAW_TRADES_NOTE}</p>
