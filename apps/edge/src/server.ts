@@ -9,7 +9,7 @@ import type { ErrorCode, PairRow } from '@eko/shared';
 import { barsFromTrades, MAX_BARS, TIMEFRAMES, type Timeframe } from './market.js';
 import type { Edge } from './service.js';
 import type { CoinState, Rpc } from './tracker.js';
-import { coinCard, feedItem, flowView, pairColumn, pairRow, pendingVerdict, progressBps, publicConfig, radarRow, unitScale } from './views.js';
+import { coinCard, coinSummary, feedItem, flowView, pairColumn, pairRow, pendingVerdict, progressBps, publicConfig, radarRow, unitScale } from './views.js';
 import type { HistoryStore } from './history.js';
 import type { LoadedFeature } from './features/index.js';
 import type { AlertInbox } from './alerts.js';
@@ -26,7 +26,7 @@ import { RelayBusy, relayFromRpc, type RelayClient } from './relay.js';
 import { registerSecurityTxt } from './security-txt.js';
 
 const fail = (reply: FastifyReply, status: number, error: ErrorCode, message: string) => reply.code(status).send({ error, message });
-const LIMIT = 100;
+const LIMIT = 100, SEARCH_LIMIT = 8;
 
 /** Text responses worth compressing; video, images and woff2 are compressed already. */
 const COMPRESSIBLE = /^(?:text\/|application\/(?:json|javascript|xml|manifest\+json)|image\/svg\+xml)/;
@@ -129,6 +129,24 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
     const firstScan = today.map(c => c.firstScanSec !== undefined && c.firstScanSec >= 0 ? c.firstScanSec - c.ts : null).filter((v): v is number => v !== null && v >= 0).sort((a, b) => a - b);
     return { rows, cursor: null, delayedSec: 0, today: { launches: today.length, medianFirstScanSec: firstScan.length ? Math.round(firstScan[Math.floor(firstScan.length / 2)]!) : null,
       refused: edge.counters.honeypotsRefused } };
+  });
+
+  // The header search box: a ticker or name among the coins the edge follows, best match first (exact address, exact
+  // ticker, ticker prefix, name prefix, then either containing it), newest first within each. A pasted address opens
+  // the coin page without asking; it comes here only to be matched like any other text.
+  app.get<{ Querystring: { q?: string } }>('/v1/search', async (req) => {
+    const q = String(req.query.q ?? '').trim().replace(/^\$/, '').toLowerCase().slice(0, 64);
+    if (!q) return { rows: [] };
+    const rank = (c: CoinState) => {
+      // The probe's name and symbol first, as the pages show them (a launch event can leave the tracker's empty).
+      const p = edge.probes.get(c.token.toLowerCase());
+      const sym = (p?.symbol || c.symbol || '').toLowerCase(), name = (p?.name || c.name || '').toLowerCase();
+      return c.token.toLowerCase() === q ? 0 : sym === q ? 1 : sym.startsWith(q) ? 2 : name.startsWith(q) ? 3 : sym.includes(q) || name.includes(q) ? 4 : -1;
+    };
+    const ctx = edge.ctx();
+    const rows = [...edge.tracker.coins.values()].map(c => [rank(c), c] as const).filter(([r]) => r >= 0)
+      .sort((a, b) => a[0] - b[0] || b[1].ts - a[1].ts).slice(0, SEARCH_LIMIT).map(([, c]) => coinSummary(c, edge.assessment(c.token), ctx));
+    return { rows };
   });
 
   const feed = async (req: { query: { kinds?: string } }) => {

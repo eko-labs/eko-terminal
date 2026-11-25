@@ -241,6 +241,14 @@ describe('server', () => {
     expect(partlyShare.json()).toMatchObject({ title: expect.stringMatching(/^\$.+ · Partly checked · EKO$/), description: expect.stringMatching(/^Partly checked on EKO's checks/) });
     spy.mockRestore();
     expect((await app.inject({ method: 'GET', url: '/v1/share-meta?path=/scan/x' })).statusCode).toBe(204);
+    // The header search: the ticker (with or without $), a prefix of it, the address; nothing for no match or no query.
+    const sym = 'TEST';
+    for (const q of [sym, '$' + sym.toLowerCase(), sym.slice(0, 2), token]) {
+      const found = (await get('/v1/search?q=' + encodeURIComponent(q))).body.rows as { address: string }[];
+      expect(found.map(r => r.address.toLowerCase())).toEqual([token.toLowerCase()]);
+    }
+    expect((await get('/v1/search?q=zzzz-nothing')).body.rows).toEqual([]);
+    expect((await get('/v1/search')).body.rows).toEqual([]);
     // The RFC 9116 contact file: plain text, pointing at the public repository's private reporting.
     const sec = await app.inject({ method: 'GET', url: '/.well-known/security.txt' });
     expect(sec.statusCode).toBe(200);

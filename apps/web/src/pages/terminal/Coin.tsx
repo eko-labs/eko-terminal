@@ -76,7 +76,7 @@ function CoinPage({address}:{address:string}){
  // TODO(spec): CoinCard has no price/change fields. Use its RadarRow for 1h/24h; derive the current price from candles/ticks, and hide unavailable changes.
 
  useEffect(()=>{if((phone||!card?.signal)&&tab==='Signal')setTab('Overview');},[phone,card?.signal,tab]);
- if(data.unknown&&!card&&!verdict&&!guardData.card&&!guardData.assessment)return <div className="shell-page coin-page"><div className="empty"><h1>{NOT_INDEXED}</h1><p>{data.error || CARD_WAIT}</p><button className="btn" onClick={()=>void api(MOCKS ? '/scan' : `/scan?q=${encodeURIComponent(address)}`,MOCKS ? {body:{query:address}} : undefined).then(()=>data.retry()).catch(()=>toast({kind:'error',title:'Could not scan. Try again.'}))}>Scan</button></div><AnalysisPolicyNotice /></div>;
+ if(data.unknown&&!card&&!verdict&&!guardData.card&&!guardData.assessment)return <div className="shell-page coin-page"><div className="empty"><h1>{NOT_INDEXED}</h1><p>{data.error || CARD_WAIT}</p><button className="btn" onClick={()=>data.retry()}>Check again</button></div><AnalysisPolicyNotice /></div>;
  const top=verdict?.playbooks.find(p=>p.level==='danger')??verdict?.playbooks.find(p=>p.level==='monitor');
  const featureTabs=[...(whosIn?["Who's in"]:[]),...(odds?['Odds']:[])];
  const tabs=phone?['Overview',...featureTabs,'Flow','Trades']:['Overview',...featureTabs,...(card?.signal?['Signal']:[]),'Flow','Trades'];

@@ -30,11 +30,11 @@ describe('coin card and signal copy',()=>{
    expect(html.match(/Too many requests from this browser/g)).toHaveLength(1);
    expect(html).toContain('Retrying in 24 s.'); expect(html).not.toContain('Retry Guard'); expect(html).not.toContain('Retry quote');
  });
- it('offers Scan for an unindexed coin and retains an existing card after a partial 404',()=>{
+ it('offers a fresh check for an unindexed coin and retains an existing card after a partial 404',()=>{
    const data={candlesUnavailable:false,candlesLoading:false,lastTradeTs:null,labelsUnavailable:true,card:null,verdict:null,bars:[],markers:[],flows:[],error:'Coin not found.',unknown:true,ageSec:0,retry:()=>{}};
    const hook=vi.spyOn(coinData,'useCoin').mockReturnValue(data);
    const missing=renderToStaticMarkup(<Coin params={{address:row.address}}/>);
-   expect(missing).toContain('<h1>Not indexed yet</h1>');expect(missing).toContain('>Scan</button>');
+   expect(missing).toContain('<h1>Not indexed yet</h1>');expect(missing).toContain('>Check again</button>');
    hook.mockReturnValue({...data,card,verdict:card.verdict});
    const retained=renderToStaticMarkup(<Coin params={{address:row.address}}/>);
    expect(retained).not.toContain('<h1>Not indexed yet</h1>');expect(retained).toContain('>Amount<');expect(retained).toContain('Coin not found.');

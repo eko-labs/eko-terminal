@@ -32,6 +32,22 @@ html,body,#root{height:auto;min-height:100%;overflow:visible}body{overflow:auto;
 .scanbox button:hover{border-color:var(--btn-edge-hi);background:var(--btn-hover)}.scanbox button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .scanbox input:placeholder-shown~button,.scanbox:focus-within kbd,.scanbox input:not(:placeholder-shown)~kbd{display:none}
 .scanbox:focus-within{border-color:var(--btn-edge)}
+/* Matches for a ticker or name, under the box: ticker, name, verdict, then the address and age to tell copycats apart. */
+.scanbox{position:relative}
+.scanbox-results{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:60;background:var(--panel);border:1px solid var(--rule2);border-radius:var(--r2);box-shadow:var(--shadow-pop);padding:6px}
+.scanbox-results ul{list-style:none;margin:0;padding:0;max-height:min(380px,60vh);overflow:auto}
+.scanbox-head{margin:4px 6px 6px;font-size:12px;line-height:1.4;color:var(--muted);text-wrap:pretty}
+.scanbox .scanbox-results button{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"sym verdict" "name name" "meta meta";place-items:center start;gap:2px 8px;width:100%;height:auto;min-width:0;min-height:44px;padding:8px;border:0;border-radius:var(--r1);background:none;text-align:left;color:var(--ink)}
+.scanbox-results li+li{border-top:1px solid var(--rule)}
+/* In the phone's Scan sheet the matches sit under the box in the sheet's own flow (the sheet would clip a popover). */
+.shell-sheet .scanbox{flex-wrap:wrap}.shell-sheet .scanbox input{flex:1 1 0;width:auto}
+.shell-sheet .scanbox-results{position:static;flex-basis:100%;margin:6px -8px -9px;border-width:1px 0 0;border-radius:0 0 var(--r2) var(--r2);box-shadow:none}
+.shell-sheet .scanbox-results ul{max-height:none}
+.scanbox .scanbox-results button:hover,.scanbox .scanbox-results button:focus-visible{background:var(--btn-hover)}
+.scanbox-sym{grid-area:sym;font:600 13px var(--mono)}
+.scanbox-name{grid-area:name;max-width:100%;font-size:12px;color:var(--muted);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.scanbox-results button>:nth-child(3){grid-area:verdict}
+.scanbox-meta{grid-area:meta;font-size:11px;color:var(--faint)}
 .side-nav{position:relative;display:flex;flex-direction:column;gap:18px}.side-ind{position:absolute;left:0;right:0;top:0;background:var(--dither-dots) 0 0/var(--dither-size),var(--raise);box-shadow:inset 2px 0 0 var(--accent);transition:transform .42s var(--e-out),height .42s var(--e-out);pointer-events:none;border-radius:var(--r2)}
 .side-group{position:relative;display:flex;flex-direction:column;gap:1px}.side-gt{padding:0 10px 6px 14px;font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
 .side-item{position:relative;display:flex;align-items:center;gap:10px;min-height:34px;padding:0 10px;font-size:14px;color:var(--muted);font-weight:400}.side-item:hover{color:var(--ink);background:var(--hover)}.side-item[aria-current=page]{color:var(--ink)}

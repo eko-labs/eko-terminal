@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { ScanResultSchema } from '@eko/shared';
+import { CoinSummarySchema, type CoinSummary } from '@eko/shared';
+import { z } from 'zod';
 import ekoMark from '../../../../landing/src/assets/eko-mark.svg';
 import '../../../../landing/src/header-brand.css';
 import { BUILT_ON, DYOR, NON_AFFILIATION } from '../../copy';
@@ -15,7 +16,9 @@ import { useShell } from '../../store/shell';
 import { useUi } from '../../store/ui';
 import { WalletButton } from '../Header';
 import { useNow } from '../hooks';
-import { Seg } from '../ui';
+import { Seg, UntrustedText } from '../ui';
+import { CompactVerdictChip } from '../GuardCompact';
+import { formatAge } from '../../lib/format';
 import { PolicyLinks } from '../PolicyLinks';
 import { IconRadar, IconPairs, IconSearch, IconAgent, IconMenu } from '../icons';
 import { navGroups, breadcrumbTrail } from './navigation';
@@ -25,9 +28,26 @@ import { TokenCa } from './TokenCa';
 export function BrandLink({ compact = false }: { compact?: boolean }) {
   return <a href="/" className={`apphdr-brand eko-header-brand${compact ? ' eko-header-brand--compact' : ''}`} aria-label={`${APP_NAME}: back to the site`}><img src={ekoMark} alt="" /><span className="eko-brand-text">{APP_NAME}</span></a>;
 }
+const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
+const shortAddress = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+const SearchSchema = z.object({ rows: z.array(CoinSummarySchema) });
+/**
+ * The header search. A pasted contract address opens its coin page straight away (the page says if EKO does not
+ * follow it). Anything else is matched against the coins EKO follows by ticker or name: one match opens it, several
+ * are listed under the box to pick from (copycats share tickers, so EKO never guesses), none says so.
+ */
 export function ScanBox({ focus = false, onDone }: { focus?: boolean; onDone?: () => void }) {
   const [query, setQuery] = useState(''); const [busy, setBusy] = useState(false);
-  const input = useRef<HTMLInputElement>(null);
+  const [found, setFound] = useState<{ q: string; rows: CoinSummary[] } | null>(null);
+  const input = useRef<HTMLInputElement>(null), form = useRef<HTMLFormElement>(null);
+  const open = (address: string) => { navigate(`/coin/${address}`); setQuery(''); setFound(null); onDone?.(); };
+  useEffect(() => {
+    if (!found) return;
+    const away = (e: PointerEvent) => { if (!form.current?.contains(e.target as Node)) setFound(null); };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { setFound(null); input.current?.focus(); } };
+    window.addEventListener('pointerdown', away); window.addEventListener('keydown', esc);
+    return () => { window.removeEventListener('pointerdown', away); window.removeEventListener('keydown', esc); };
+  }, [found]);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement;
@@ -37,12 +57,23 @@ export function ScanBox({ focus = false, onDone }: { focus?: boolean; onDone?: (
     };
     window.addEventListener('keydown', key); return () => window.removeEventListener('keydown', key);
   }, []);
-  return <form data-tour="scan" className="scanbox" onSubmit={async (e) => {
-    e.preventDefault(); if (!query.trim() || busy) return; setBusy(true);
-    try { const result = await fetchParsed(MOCKS ? '/scan' : `/scan?q=${encodeURIComponent(query.trim())}`, ScanResultSchema, MOCKS ? { body: { query: query.trim() } } : undefined); navigate(`/scan/${encodeURIComponent(result.id)}`); setQuery(''); onDone?.(); }
-    catch (err) { useApp.getState().toast({ kind: 'error', title: 'Scan failed', body: (err as Error).message }); }
+  return <form ref={form} data-tour="scan" className="scanbox" role="search" onSubmit={async (e) => {
+    e.preventDefault(); const q = query.trim(); if (!q || busy) return;
+    if (ADDRESS.test(q)) { open(q); return; }
+    setBusy(true);
+    try {
+      const { rows } = await fetchParsed(`/search?q=${encodeURIComponent(q)}`, SearchSchema);
+      if (rows.length === 1) open(rows[0]!.address); else setFound({ q, rows });
+    } catch (err) { useApp.getState().toast({ kind: 'error', title: 'Search failed', body: (err as Error).message }); }
     finally { setBusy(false); }
-  }}><input ref={input} autoFocus={focus} aria-label={C.search} placeholder={C.search} value={query} onChange={(e) => setQuery(e.target.value)} enterKeyHint="go" /><button type="submit" disabled={busy || !query.trim()} aria-label={C.scan}>{busy ? '…' : '↗'}</button><kbd>/</kbd></form>;
+  }}><input ref={input} autoFocus={focus} aria-label={C.search} placeholder={C.search} value={query} onChange={(e) => { setQuery(e.target.value); setFound(null); }} enterKeyHint="go" autoComplete="off" spellCheck={false} /><button type="submit" disabled={busy || !query.trim()} aria-label={C.scan}>{busy ? '…' : '↗'}</button><kbd>/</kbd>
+    {found && <div className="scanbox-results" role="status">{found.rows.length
+      ? <><p className="scanbox-head">{found.rows.length} coins match “{found.q}”. Check the address before you trade.</p><ul>{found.rows.map(r => <li key={r.address}><button type="button" onClick={() => open(r.address)}>
+          <span className="scanbox-sym">$<UntrustedText value={r.symbol} /></span><span className="scanbox-name"><UntrustedText value={r.name} /></span>
+          <CompactVerdictChip level={r.verdict} pending={r.verdictPending} priceMove={r.priceMove} guard={r.guardV2} linked={false} historyPartial={r.historyPartial} />
+          <span className="scanbox-meta num">{shortAddress(r.address)} · {formatAge(r.ageSec)} old</span></button></li>)}</ul></>
+      : <p className="scanbox-head">No coin called “{found.q}” on EKO yet. Paste its contract address to open it.</p>}</div>}
+  </form>;
 }
 export function PlanChip({ compact = false }: { compact?: boolean }) {
   const config = useShell((s) => s.config), me = useShell((s) => s.me), now = useNow();

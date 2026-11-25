@@ -94,6 +94,10 @@ export function createMockTransport(opts: { flags?: Partial<Flags> } = {}) {
       preferenceStore.delete(wallet); journalOptIn.delete(wallet);
       return json({ deletedAt: '2026-10-13T12:00:00.000Z' });
     }
+    if (route === '/search' && method === 'GET') {
+      const q = (query.get('q') ?? '').trim().replace(/^\$/, '').toLowerCase();
+      return json({ rows: q ? pairSnapshot().filter((r) => r.address.toLowerCase() === q || r.symbol.text.toLowerCase().includes(q) || r.name.text.toLowerCase().includes(q)).slice(0, 8) : [] });
+    }
     if (route === '/pairs' && method === 'GET') return json({ rows: pairSnapshot().filter((r) => !query.has('stage') || r.column === query.get('stage')).slice(0, 100), cursor: null, delayedSec: 0 });
     if (route === '/feed' && method === 'GET') {
       const kinds = query.get('kinds')?.split(','), rows = feedSnapshot().filter((r) => !kinds || kinds.includes(r.kind));
