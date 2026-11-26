@@ -16,7 +16,7 @@ import { useSimple } from './choice';
 import { LENSES, SORTS, isSort, matches, sortRows, trenchTags } from './trench';
 import { answerOf, dollars, moveText, type Answer } from './model';
 import { AnswerChip, CoinSearch, Ticker } from './parts';
-import { LIST_WALK, Walkthrough } from './Walkthrough';
+import { LIST_FINISH, LIST_WALK, Walkthrough } from './Walkthrough';
 import '../../pages/terminal/radar.css';
 import '../../pages/terminal/coin.css';
 import './simple.css';
@@ -143,6 +143,6 @@ export default function SimpleCoins() {
           </ol>
         </div>}
     </section>
-    <Walkthrough walk="list" steps={LIST_WALK} ready={shown.length > 0} />
+    <Walkthrough walk="list" steps={LIST_WALK} ready={shown.length > 0} finish={LIST_FINISH} onFinish={() => { useSimple.setState({ tryFull: true }); useSimple.getState().choose('full'); }} />
   </div>;
 }

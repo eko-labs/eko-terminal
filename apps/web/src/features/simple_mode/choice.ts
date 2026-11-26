@@ -40,6 +40,8 @@ interface State {
   walked: Walk[];
   /** The walkthrough running now, if any. */
   walk: Walk | null;
+  /** Full was just opened from the walkthrough's "Show me Full": it shows one card on the switch (Walkthrough.tsx FullIntro). */
+  tryFull: boolean;
   choose(choice: ViewChoice): void;
   setOnlyOk(onlyOk: boolean): void;
   startWalk(walk: Walk): void;
@@ -54,6 +56,7 @@ export const useSimple = create<State>((set, get) => ({
   setSort: (sort) => { write(SORT_KEY, sort); set({ sort }); },
   walked: savedWalks(read(WALKED_KEY)),
   walk: null,
+  tryFull: false,
   choose: (choice) => { write(CHOICE_KEY, choice); set({ choice, ...(choice === 'full' ? { walk: null } : {}) }); },
   setOnlyOk: (onlyOk) => { write(ONLY_OK_KEY, onlyOk ? '1' : '0'); set({ onlyOk }); },
   startWalk: (walk) => set({ walk }),

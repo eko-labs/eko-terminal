@@ -198,6 +198,8 @@ export interface SpotlightProps {
   onStep(step: number): void;
   /** Finished or skipped. */
   onDone(): void;
+  /** The last step's main button was pressed (default: onDone), so a walkthrough can end on an action of its own. */
+  onFinish?(): void;
   isMobile: boolean;
   /**
    * Phones: 'sheet' docks the card as a sheet and rings the element without darkening the screen; 'float' keeps the
@@ -216,7 +218,7 @@ export interface SpotlightProps {
 }
 const TOUR_LABELS = { skip: 'Skip tour', back: 'Back', next: 'Next', finish: 'Finish' };
 
-export function Spotlight({ steps, step, onStep, onDone, isMobile, phone = 'sheet', progress = 'bar', labels = TOUR_LABELS, waitMs = (i) => (i === 0 ? 2500 : 900), className = '', name = 'tour' }: SpotlightProps) {
+export function Spotlight({ steps, step, onStep, onDone, onFinish, isMobile, phone = 'sheet', progress = 'bar', labels = TOUR_LABELS, waitMs = (i) => (i === 0 ? 2500 : 900), className = '', name = 'tour' }: SpotlightProps) {
   const dir = useRef<1 | -1>(1);
   const cardRef = useRef<HTMLDivElement>(null);
   const nextRef = useRef<HTMLButtonElement>(null);
@@ -231,10 +233,10 @@ export function Spotlight({ steps, step, onStep, onDone, isMobile, phone = 'shee
       dir.current = d;
       const to = stepTo(idx, d, total);
       if (to === null) return;
-      if (to === 'done') onDone();
+      if (to === 'done') (onFinish ?? onDone)();
       else onStep(to);
     },
-    [idx, total, onDone, onStep],
+    [idx, total, onDone, onFinish, onStep],
   );
 
   useEffect(() => {
