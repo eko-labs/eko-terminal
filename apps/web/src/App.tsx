@@ -27,6 +27,8 @@ import { SkipLink } from './components/SkipLink';
 import { useShareMeta } from './lib/share';
 import { deploymentMismatch } from './lib/deployment';
 import { TradeProvider } from './components/trade/TradeContext';
+import { FEATURES, type FeatureViews } from './features';
+import { ViewChain, mayHaveView, viewPage } from './components/views';
 
 const pages = new Map([...ROUTES, ...INTERNAL_ROUTES].map((route) => [route, lazy(route.load)]));
 /** Wallet-gated Mission Control pages still say what they are before asking for a wallet. */
@@ -93,18 +95,27 @@ export function App({ walletEnabled = false, pageNeedsWallet = false }: { wallet
     }, resync);
   }, [sharedRealtime, config?.flags.approvals, signedIn]);
   const resolved = resolveRoute(path, config?.flags);
-  const Page = resolved ? pages.get(resolved.route)! : null;
   // The title follows the resolved route, which can change after /config loads its flags; focus moves only on navigation.
   const pageTitle = resolved?.route.title ?? C.notFound;
   // A server on another chain than this build: wallet signing is blocked in lib/wallet; say why on every page.
   const mismatch = deploymentMismatch(config);
   useShareMeta(path, pageTitle);
   const gatedMission = !!resolved && resolved.route.workspace === 'mission' && resolved.route.auth === 'siwe' && !signedIn && !MOCKS && (path.startsWith('/mission/agents/') || path === '/mission/approvals' || path.startsWith('/approve/'));
-  // Connect stays readable signed out: its steps are the pitch; only creating the agent or key needs a wallet. The
-  // page carries its own heading and intro, so no gate heading is added above it (it showed "Connect an agent" twice).
-  const page = Page && resolved ? <>{gatedMission ? <GatedHead title={pageTitle} intro={C.missionGate} /> : <Page params={resolved.params} />}{resolved.route.auth === 'siwe' && path !== '/bags' && path !== '/watch' && !signedIn && !(MOCKS && resolved.route.workspace === 'mission') ? <div className="connect-card"><p>{C.connect}</p><button className="btn" onClick={() => window.dispatchEvent(new Event('eko:open-wallet'))}>{C.wallet}</button></div> : null}
+  // A feature's alternate view of this route while it is in use (components/views.tsx), else the route's own page. A
+  // route that a built-in feature could show its own way waits for the flags, so the other view never flashes first.
+  const waitForFlags = !config && !error && mayHaveView(FEATURES, resolved?.route.path);
+  // Meanwhile the route's own page starts loading, so the wait runs beside its download, not before it.
+  useEffect(() => { if (waitForFlags && resolved) void resolved.route.load().catch(() => undefined); }, [waitForFlags, resolved?.route]); // eslint-disable-line react-hooks/exhaustive-deps
+  const renderPage = (views: FeatureViews[]) => {
+    if (waitForFlags) return <div className="shell-page"><div className="skel" style={{ height: 200 }} /></div>;
+    const Page = resolved ? viewPage(views, resolved.route.path) ?? pages.get(resolved.route)! : null;
+    // Connect stays readable signed out: its steps are the pitch; only creating the agent or key needs a wallet. The
+    // page carries its own heading and intro, so no gate heading is added above it (it showed "Connect an agent" twice).
+    return Page && resolved ? <>{gatedMission ? <GatedHead title={pageTitle} intro={C.missionGate} /> : <Page params={resolved.params} />}{resolved.route.auth === 'siwe' && path !== '/bags' && path !== '/watch' && !signedIn && !(MOCKS && resolved.route.workspace === 'mission') ? <div className="connect-card"><p>{C.connect}</p><button className="btn" onClick={() => window.dispatchEvent(new Event('eko:open-wallet'))}>{C.wallet}</button></div> : null}
     {['/scan/', '/bags/r/', '/receipt/'].some(prefix => path.startsWith(prefix)) && <div className="shell-note"><p>{DYOR}</p><p>{NON_AFFILIATION}</p></div>}
   </> : <NotFound />;
+  };
+  const page = <ViewChain>{renderPage}</ViewChain>;
   return <RealtimeContext.Provider value={sharedRealtime}><WatchRuntime owner={MOCKS ? 'demo-account' : signedIn ? account!.walletAddress : null} /><AlertsDrawer /><div className="eko-shell" data-style="desk" data-density={density}><SkipLink /><Header /><div className="shell-frame"><Sidebar /><MobileBar /><main className="shell-main" id="main" tabIndex={-1}><RateNotice />
     {mismatch && <div className="shell-error" role="alert" data-testid="deployment-error">{mismatch}</div>}
     {error && <div className="shell-error" role="status">{C.configError} <button className="btn" onClick={() => void loadConfig()}>{C.retry}</button></div>}

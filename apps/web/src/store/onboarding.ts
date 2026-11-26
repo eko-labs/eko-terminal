@@ -114,12 +114,21 @@ interface State {
   checklistOpen: boolean;
   /** Which help section to scroll to when the help centre opens. */
   helpSection: string | null;
+  /**
+   * Another walkthrough in charge of first-run guidance, set by whoever runs one (components/onboarding/Spotlight.tsx)
+   * and cleared when it stops: while set, the tour offer, the tour and the checklist stay hidden, and "Replay the
+   * tour" replays this one instead. Null by default: the tour behaves as it always has.
+   */
+  guide: { replay(): void } | null;
 }
 
 interface Actions {
   openWelcome(): void;
   closeWelcome(): void;
   startTour(): void;
+  /** "Replay the tour": the walkthrough in charge (`guide`) if there is one, else the tour. */
+  replayTour(): void;
+  setGuide(guide: { replay(): void } | null): void;
   setTourStep(step: number): void;
   endTour(): void;
   openHelp(section?: string): void;
@@ -164,11 +173,19 @@ export const useOnboarding = create<State & Actions>((set, get) => ({
   pointer: null,
   checklistOpen: readOpen(),
   helpSection: null,
+  guide: null,
 
   openWelcome: () => set({ welcomeOpen: true, tour: null, pointer: null, helpOpen: false }),
   closeWelcome: () => set({ welcomeOpen: false, welcomeDone: true, version: Math.max(get().version, ONBOARDING_VERSION) }),
   startTour: () =>
     set({ tour: { step: 0 }, welcomeOpen: false, helpOpen: false, liveSetupOpen: false, pointer: null, welcomeDone: true, version: Math.max(get().version, ONBOARDING_VERSION) }),
+  replayTour: () => {
+    const guide = get().guide;
+    if (!guide) { get().startTour(); return; }
+    set({ helpOpen: false, pointer: null, tour: null, welcomeOpen: false });
+    guide.replay();
+  },
+  setGuide: (guide) => set(guide ? { guide, tour: null, pointer: null } : { guide: null }),
   setTourStep: (step) => set({ tour: { step } }),
   endTour: () => {
     if (!get().tour) return;

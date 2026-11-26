@@ -68,6 +68,8 @@ export interface TradePanelProps {
   stale?: boolean; visible?: boolean; guard?: GuardAssessmentV2 | null; antiSnipeEndsAt?: number;
   /** A side chosen outside the panel (the phone sheet's Buy and Sell): applied each time it changes. */
   sideRequest?: { side: 'buy' | 'sell'; at: number };
+  /** A buy amount in dollars chosen outside the panel: applied each time it changes. */
+  amountRequest?: { usd: number; at: number };
   /** The coin's symbol, for "of your 1.2M FROG". */
   symbol?: string;
 }
@@ -131,7 +133,7 @@ export function TradePanelView({ gate, tier, phase, priceUsd, priceUnavailable, 
     <div className="tp-fine"><span>{REAL_FUNDS}</span><AnalysisPolicyNotice /></div>
   </>;
 }
-export function TradePanel({ coin, stale = false, visible = true, sideRequest, symbol, ...display }: TradePanelProps) {
+export function TradePanel({ coin, stale = false, visible = true, sideRequest, amountRequest, symbol, ...display }: TradePanelProps) {
   const config = useShell(s => s.config), wallet = useShell(s => s.me?.account.wallet), tier = useShell(s => s.me?.entitlements.tier), ws = useShell(s => s.wsState);
   const mode = useUi(s => s.riskMode), presets = useApp(s => s.preferences), panel = useRef<HTMLDivElement>(null);
   const [side, setSide] = useState<'buy' | 'sell'>('buy'), [amount, setAmount] = useState(100), [slippage, setSlippage] = useState(presets.defaultSlippageBps);
@@ -156,6 +158,7 @@ export function TradePanel({ coin, stale = false, visible = true, sideRequest, s
   const [review, setReview] = useState<QuoteSnapshot | null>(null), [confirm, setConfirm] = useState(false), [lastOrder, setLastOrder] = useState<string | null>(null);
   const activeRequest = useRef('');
   useEffect(() => { if (sideRequest) setSide(sideRequest.side); }, [sideRequest]);
+  useEffect(() => { if (amountRequest) { setSide('buy'); setAmount(amountRequest.usd); } }, [amountRequest]);
   const execution = useTradeExecution();
   const input: TradeQuoteRequest = { coin: coin as TradeQuoteRequest['coin'], side, amountUsd: side === 'sell' ? sellUsd : amount, slippageBps: slippage, riskMode: mode, ...(wallet ? { account: wallet } : {}) };
   activeRequest.current = `${execution.adapter?.identity ?? ''}:${tradeRequestKey(input)}`;

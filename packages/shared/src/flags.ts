@@ -18,7 +18,7 @@ export const FLAG_STAGES = {
   Updates:  ['wallet_tags', 'dev_profile', 'more_launchpads', 'wallet_tracker',
              'exit_check', 'dev_sell_alerts', 'launch_alerts', 'linked_devs', 'price_alerts',
              'launch_map', 'top_traders', 'holders_in_profit', 'bonding_alerts', 'quant',
-             'size_check', 'multichart', 'paper_trading'],
+             'size_check', 'multichart', 'paper_trading', 'simple_mode'],
 } as const;
 export type FlagName = (typeof FLAG_STAGES)[keyof typeof FLAG_STAGES][number];
 export const FLAG_NAMES = Object.values(FLAG_STAGES).flat() as [FlagName, ...FlagName[]];

@@ -9,7 +9,7 @@ its code to the public repository as one commit.
 | Folder | What goes there |
 |---|---|
 | `apps/edge/src/features/<flag>/index.ts` | The server side. Default-export `{ register({ app, edge, store, accounts, auth }) }` and add routes under `/v1` or `/v2`. Loaded only while the flag is on. |
-| `apps/web/src/features/<flag>/index.ts` | The pages. Default-export a `Feature` (`apps/web/src/features.ts`): its `routes`, its menu entries (`nav`) and any places it fills on the coin page (`coin`: over the chart, under it, next to a wallet; `components/coinSlots.tsx`). Shown only while the flag is on. |
+| `apps/web/src/features/<flag>/index.ts` | The pages. Default-export a `Feature` (`apps/web/src/features.ts`): its `routes`, its menu entries (`nav`) and any places it fills on the coin page (`coin`: over the chart, under it, next to a wallet; `components/coinSlots.tsx`), elsewhere (`places`, including the top bar; `components/placeSlots.tsx`) and in the trade panel (`trade`). It can also offer its own view of existing pages while a choice it reads at run time says so (`views`: its page for a route, menu entries and shell parts hidden meanwhile; `components/views.tsx`), and run a walkthrough with the shared spotlight (`components/onboarding/Spotlight.tsx`, setting the onboarding store's `guide` while it is in charge). Shown only while the flag is on. |
 | `apps/edge/test/features/<flag>/`, `apps/web/src/features/<flag>/*.test.ts` | Its tests. |
 
 `<flag>` is the flag's exact name, for example `leaderboards`. Both apps find these folders by themselves, so a feature
@@ -55,3 +55,4 @@ none), then `node scripts/public/publish.mjs --push --flags leaderboards,referra
 | Size check | `size_check` | nothing: a line under a buy's amount (trade panel `amount` place) |
 | Multichart | `multichart` | nothing: up to six coins live side by side, each in its own colour |
 | Paper trading | `paper_trading` | nothing: practice trades at real prices beside real trading (trade panel `mode` place) |
+| Simple view | `simple_mode` | nothing: a beginner view, the default on a first visit, with a Simple \| Full switch in the top bar (alternate `views` of /radar and /coin/:address, the top bar place, a walkthrough). Demo: `VITE_MOCKS=1 VITE_FLAGS=simple_mode` |

@@ -10,6 +10,7 @@ import type { ChartCore } from './components/chart/chartCore';
  * A folder's index.ts default-exports a `Feature`: its pages (shown only while the flag is on) and its menu entries.
  * Pages load lazily, so a feature that is off costs one small module. A feature may also fill places on the coin page
  * (`coin`: components/coinSlots.tsx) and places elsewhere (`places`: components/placeSlots.tsx); make those lazy too.
+ * And it may offer its own view of existing pages, used while it says so at run time (`views`: components/views.tsx).
  */
 export type FeaturePage = () => Promise<{ default: ComponentType<{ params: Record<string, string> }> }>;
 export interface FeatureRoute {
@@ -66,6 +67,8 @@ export interface PlaceSlots {
   /** Next to a launch filter being edited. `filter` is the form's filter as the launch filter API takes it (name,
    *  launchpads, maxVerdict, minimums, quotes, noDevSells), or null while what is typed is not a filter yet: parse it. */
   launchFilter?: ComponentType<{ filter: unknown }>;
+  /** In the top bar on every page, desktop and phone (`compact` on the phone bar): a short control, never a menu. */
+  header?: ComponentType<{ compact: boolean }>;
 }
 /**
  * Places in the trade panel a feature can fill, shown only while its flag is on (components/trade/tradeSlots.tsx).
@@ -82,7 +85,30 @@ export interface TradeSlots {
    */
   mode?: { label: string; panel: ComponentType<{ coin: string; symbol?: string; priceUsd?: number; back: () => void }> };
 }
-export interface Feature { routes?: FeatureRoute[]; nav?: FeatureNav[]; coin?: CoinSlots; places?: PlaceSlots; trade?: TradeSlots; links?: FeatureLinks; mocks?: FeatureMocks; demo?: () => Promise<{ default: FeatureDemo }> }
+/**
+ * Parts of the shell an alternate view can hide while it is in use (FeatureViews.hideShell): the search box atop the side
+ * menu, the plan box, the risk mode switch, and the breadcrumb in the top bar.
+ */
+export const SHELL_PARTS = ['search', 'plan', 'risk', 'crumb'] as const;
+export type ShellPart = (typeof SHELL_PARTS)[number];
+/**
+ * Alternate views of existing pages (components/views.tsx). While the feature's flag is on and `useActive` says so, a
+ * route whose path is a key of `pages` renders the feature's page instead of its own; every other route is unchanged,
+ * and with `useActive` false the site is exactly as without the feature. Pages load lazily, once.
+ */
+export interface FeatureViews {
+  /** Whether the views are in use now. A hook: called once per render, in its own small component (one per feature). */
+  useActive(): boolean;
+  /** Its own page for a route, keyed by the route's path pattern (as in routes.ts, e.g. `/coin/:address`). */
+  pages: Partial<Record<string, FeaturePage>>;
+  /** Menu entries hidden while the views are in use, by the entry's path. The pages still open by URL. */
+  hideNav?: (to: string) => boolean;
+  /** Other names for menu entries while the views are in use, by the entry's path. */
+  navLabels?: Partial<Record<string, string>>;
+  /** Parts of the shell hidden while the views are in use. */
+  hideShell?: readonly ShellPart[];
+}
+export interface Feature { views?: FeatureViews; routes?: FeatureRoute[]; nav?: FeatureNav[]; coin?: CoinSlots; places?: PlaceSlots; trade?: TradeSlots; links?: FeatureLinks; mocks?: FeatureMocks; demo?: () => Promise<{ default: FeatureDemo }> }
 
 /** The feature folders in a glob result, keyed by flag. Folders not named after a flag are skipped. */
 export function featuresFrom(modules: Record<string, { default: Feature }>): ({ flag: FlagName } & Feature)[] {

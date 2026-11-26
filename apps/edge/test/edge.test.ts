@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { encodeAbiParameters, encodeEventTopics, getAddress, keccak256, toHex, type Hex } from 'viem';
 import { loadElysiumRegistry } from '@eko/chain';
-import { CoinCardSchema, PairRowSchema, PublicConfigSchema, RadarResponseSchema, ScoreboardResponseSchema, VerdictSchema } from '@eko/shared';
+import { CoinCardSchema, PairRowSchema, PublicConfigSchema, RadarResponseSchema, ScanResultSchema, ScoreboardResponseSchema, VerdictSchema } from '@eko/shared';
 import launch from '../../../packages/chain/test/fixtures/99901/montra-launch.json' with { type: 'json' };
 import { barsFromTrades, changePct, priceHypeFromSqrt, spark, tradeFromSwap, type Trade } from '../src/market.js';
 import { hookBits, judge, type Assessment } from '../src/assess.js';
@@ -249,6 +249,21 @@ describe('server', () => {
     }
     expect((await get('/v1/search?q=zzzz-nothing')).body.rows).toEqual([]);
     expect((await get('/v1/search')).body.rows).toEqual([]);
+    // A scan by address, ticker or name answers with the coin's card; GET, POST and a share link agree.
+    for (const res of [await get(`/v1/scan?q=${token}`), await get('/v1/scan?q=%24TEST'), await get(`/v1/scan/${token}`),
+      { status: 200, body: (await app.inject({ method: 'POST', url: '/v1/scan', payload: { query: 'test' } })).json() }]) {
+      const result = ScanResultSchema.parse(res.body);
+      expect(result).toMatchObject({ status: 'ready', id: expect.stringMatching(new RegExp(`^${token}$`, 'i')) });
+      expect(result.card?.identity.address.toLowerCase()).toBe(token.toLowerCase());
+    }
+    // A coin the edge does not follow, or no match at all, says why plainly (never the catch-all "not available").
+    const stranger = ScanResultSchema.parse((await get('/v1/scan?q=0x000000000000000000000000000000000000dEaD')).body);
+    expect(stranger).toMatchObject({ status: 'not_found', message: expect.stringMatching(/last 24 hours/) });
+    expect(ScanResultSchema.parse((await get('/v1/scan?q=zzzz-nothing')).body).status).toBe('not_found');
+    expect((await get('/v1/scan')).status).toBe(400);
+    // The web app's usage pings and the grades panel get empty answers, not 404s.
+    expect((await app.inject({ method: 'POST', url: '/v1/telemetry', payload: { events: [] } })).statusCode).toBe(204);
+    expect((await app.inject({ method: 'GET', url: '/v1/scoreboard/grades' })).statusCode).toBe(204);
     // The RFC 9116 contact file: plain text, pointing at the public repository's private reporting.
     const sec = await app.inject({ method: 'GET', url: '/.well-known/security.txt' });
     expect(sec.statusCode).toBe(200);

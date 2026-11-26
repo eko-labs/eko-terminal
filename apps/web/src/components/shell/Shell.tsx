@@ -23,6 +23,8 @@ import { PolicyLinks } from '../PolicyLinks';
 import { IconRadar, IconPairs, IconSearch, IconAgent, IconMenu } from '../icons';
 import { navGroups, breadcrumbTrail } from './navigation';
 import { TokenCa } from './TokenCa';
+import { HeaderSlots } from '../placeSlots';
+import { navHidden, navLabel, shellHidden, useActiveViews } from '../views';
 
 // A real link, not a router Link: "/" is the landing, served by the host (and by vite.config.ts in dev), not the SPA.
 export function BrandLink({ compact = false }: { compact?: boolean }) {
@@ -94,7 +96,7 @@ export function LegalLine({ pageHasAnalysis = false }: { pageHasAnalysis?: boole
   return <div className="side-legal"><p><Link to="/drops">Drops</Link> · <Link to="/settings">Settings</Link> · <Link to="/legal/terms">Legal</Link> · <Link to="/official">Official project links</Link> · <Link to="/transparency">Transparency</Link> · <Link to="/security">Security</Link></p><PolicyLinks />{!pageHasAnalysis && <><p>{BUILT_ON}</p><p>{NON_AFFILIATION}</p><p>{DYOR}</p></>}</div>;
 }
 function Navigation({ onDone }: { onDone?: () => void }) {
-  const path = usePath(), flags = useShell((s) => s.config?.flags), approvals = useShell((s) => s.approvalIds.length);
+  const path = usePath(), flags = useShell((s) => s.config?.flags), approvals = useShell((s) => s.approvalIds.length), views = useActiveViews();
   const ref = useRef<HTMLElement>(null); const [indicator, setIndicator] = useState<{ transform: string; height: number; opacity: number }>({ transform: '', height: 0, opacity: 0 });
   useLayoutEffect(() => {
     const place = () => {
@@ -102,9 +104,11 @@ function Navigation({ onDone }: { onDone?: () => void }) {
       setIndicator(item ? { transform: `translateY(${item.offsetTop + item.parentElement!.offsetTop}px)`, height: item.offsetHeight, opacity: 1 } : { transform: '', height: 0, opacity: 0 });
     };
     place(); const observer = new ResizeObserver(place); if (ref.current) observer.observe(ref.current); return () => observer.disconnect();
-  }, [path, flags]);
-  return <nav className="side-nav" aria-label="Main" ref={ref}><i className="side-ind" style={indicator} aria-hidden="true" />{navGroups().map(([group, items], index) => <div className="side-group" key={group}><span className="side-gt"><span className="num">0{index + 1}</span> / {group}</span>
-    {items.filter(([to]) => resolveRoute(to, flags)).map(([to, label, Icon]) => { return <Link data-tour={to === "/mission" ? "mission" : undefined} to={to} key={to} className="side-item" onClick={onDone} aria-current={isCurrent(to, path) ? 'page' : undefined}><Icon size={16} />{label}{to === '/mission/approvals' && approvals > 0 && <b className="side-badge" aria-label={`${approvals} waiting`}>{approvals}</b>}</Link>; })}
+  }, [path, flags, views]);
+  // Entries whose page is on, less any an alternate view in use hides (components/views.tsx); a group left empty is not shown.
+  const groups = navGroups().map(([group, items]) => [group, items.filter(([to]) => resolveRoute(to, flags) && !navHidden(views, to))] as const).filter(([, items]) => items.length);
+  return <nav className="side-nav" aria-label="Main" ref={ref}><i className="side-ind" style={indicator} aria-hidden="true" />{groups.map(([group, items], index) => <div className="side-group" key={group}><span className="side-gt"><span className="num">0{index + 1}</span> / {group}</span>
+    {items.map(([to, label, Icon]) => { return <Link data-tour={to === "/mission" ? "mission" : undefined} to={to} key={to} className="side-item" onClick={onDone} aria-current={isCurrent(to, path) ? 'page' : undefined}><Icon size={16} />{navLabel(views, to, label)}{to === '/mission/approvals' && approvals > 0 && <b className="side-badge" aria-label={`${approvals} waiting`}>{approvals}</b>}</Link>; })}
   </div>)}</nav>;
 }
 /** One to three rising bars: how much risk a mode accepts, relative to the others. Decorative; the label names the mode. */
@@ -112,8 +116,8 @@ function RiskLevel({ level }: { level: number }) {
   return <span className="risk-level" aria-hidden="true">{[1, 2, 3].map((n) => <i key={n} className={n <= level ? 'on' : undefined} />)}</span>;
 }
 export function Sidebar() {
-  const risk = useUi((s) => s.riskMode), setUi = useUi((s) => s.set), path = usePath();
-  return <aside className="side"><ScanBox /><Navigation /><div className="side-foot"><PlanChip /><div data-tour="mode" className="side-risk"><span className="side-label">{C.risk}</span><Seg options={RISK_OPTIONS.map((o, i) => ({ value: o.value, label: <><RiskLevel level={i + 1} />{o.label}</> }))} value={risk} onChange={(value) => setUi({ riskMode: value as typeof risk })} label={C.risk} /></div><button className="btn" onClick={() => window.dispatchEvent(new Event('eko:open-alerts'))}>Alerts</button><WalletButton /><LegalLine pageHasAnalysis={path.startsWith('/coin/')} /></div></aside>;
+  const risk = useUi((s) => s.riskMode), setUi = useUi((s) => s.set), path = usePath(), views = useActiveViews();
+  return <aside className="side">{!shellHidden(views, 'search') && <ScanBox />}<Navigation /><div className="side-foot">{!shellHidden(views, 'plan') && <PlanChip />}{!shellHidden(views, 'risk') && <div data-tour="mode" className="side-risk"><span className="side-label">{C.risk}</span><Seg options={RISK_OPTIONS.map((o, i) => ({ value: o.value, label: <><RiskLevel level={i + 1} />{o.label}</> }))} value={risk} onChange={(value) => setUi({ riskMode: value as typeof risk })} label={C.risk} /></div>}<button className="btn" onClick={() => window.dispatchEvent(new Event('eko:open-alerts'))}>Alerts</button><WalletButton /><LegalLine pageHasAnalysis={path.startsWith('/coin/')} /></div></aside>;
 }
 /** A first connection gets this long before the header admits it is still connecting, so a normal load shows nothing. */
 export const CONNECT_GRACE_MS = 5000;
@@ -127,29 +131,34 @@ export function streamNotice(state: WsState, delayedSec: number, waitedMs: numbe
   return state === 'closed' ? C.offline : C.reconnecting;
 }
 export function Header() {
-  const path = usePath(), config = useShell((s) => s.config), state = useShell((s) => s.wsState), delay = useShell((s) => s.delayedSec), now = useNow();
+  const path = usePath(), config = useShell((s) => s.config), state = useShell((s) => s.wsState), delay = useShell((s) => s.delayedSec), now = useNow(), views = useActiveViews();
   const [mounted] = useState(() => Date.now());
   const trail = breadcrumbTrail(path, config?.flags);
   const notice = streamNotice(state, delay, Date.now() - mounted);
   // Healthy: the status stays readable to assistive tech (and to the e2e checks) but is not drawn; the clock stands alone.
   const status = notice ?? (state === 'open' ? C.live : C.connecting);
-  return <header className="apphdr" onClick={onHeaderBackgroundClick}><BrandLink /><nav className="apphdr-crumb" aria-label="Breadcrumb">{trail.map((label, i) => <span key={`${i}-${label}`} aria-current={i === trail.length - 1 ? 'page' : undefined}>{label}</span>)}</nav><span className="apphdr-end"><TokenCa /><span role="status" data-testid="stream-status" data-state={state} className={notice ? `apphdr-badge${state === 'open' ? ' delayed' : ''}` : 'sr'}>{notice && <i aria-hidden="true" />}{status}</span><span className="num apphdr-clock" aria-hidden="true">{new Date(now).toISOString().slice(11, 19)} UTC</span></span></header>;
+  return <header className="apphdr" onClick={onHeaderBackgroundClick}><BrandLink /><HeaderSlots />{!shellHidden(views, 'crumb') && <nav className="apphdr-crumb" aria-label="Breadcrumb">{trail.map((label, i) => <span key={`${i}-${label}`} aria-current={i === trail.length - 1 ? 'page' : undefined}>{label}</span>)}</nav>}<span className="apphdr-end"><TokenCa /><span role="status" data-testid="stream-status" data-state={state} className={notice ? `apphdr-badge${state === 'open' ? ' delayed' : ''}` : 'sr'}>{notice && <i aria-hidden="true" />}{status}</span><span className="num apphdr-clock" aria-hidden="true">{new Date(now).toISOString().slice(11, 19)} UTC</span></span></header>;
 }
-export function MobileBar() { return <header className="mbar" onClick={onHeaderBackgroundClick}><BrandLink compact /><div className="mbar-r"><TokenCa compact /><PlanChip compact /><WalletButton /></div></header>; }
+export function MobileBar() {
+  const views = useActiveViews();
+  return <header className="mbar" onClick={onHeaderBackgroundClick}><BrandLink compact /><HeaderSlots compact /><div className="mbar-r"><TokenCa compact />{!shellHidden(views, 'plan') && <PlanChip compact />}<WalletButton /></div></header>;
+}
 function Sheet({ title, children, close }: { title: string; children: ReactNode; close: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => { const dialog = ref.current!; dialog.showModal(); return () => dialog.close(); }, []);
   return <dialog ref={ref} className="shell-sheet" aria-label={title} onCancel={(e) => { e.preventDefault(); close(); }}><div className="sheet-head"><h2>{title}</h2><button className="btn" onClick={close}>Close</button></div>{children}</dialog>;
 }
 export function MobileTabs() {
-  const path = usePath(), approvals = useShell((s) => s.approvalIds.length); const [sheet, setSheet] = useState<'scan' | 'more' | null>(null);
+  const path = usePath(), approvals = useShell((s) => s.approvalIds.length), views = useActiveViews(); const [sheet, setSheet] = useState<'scan' | 'more' | null>(null);
+  // Tabs an alternate view in use hides (components/views.tsx); the bar's columns follow the tabs left.
+  const pairs = !navHidden(views, '/pairs'), mission = !navHidden(views, '/mission'), tabs = 3 + Number(pairs) + Number(mission);
   const close = useCallback(() => setSheet(null), []);
   useEffect(() => setSheet(null), [path]);
   useEffect(() => {
     const key = (e: KeyboardEvent) => { if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName) && !((e.target as HTMLElement).isContentEditable) && matchMedia('(max-width: 899px)').matches) { e.preventDefault(); setSheet('scan'); } };
     window.addEventListener('keydown', key); return () => window.removeEventListener('keydown', key);
   }, []);
-  return <><nav className="mtab" aria-label="Mobile navigation"><Link to="/radar" aria-current={isCurrent('/radar', path) ? 'page' : undefined}><IconRadar size={18} /><span>Radar</span></Link><Link to="/pairs" aria-current={isCurrent('/pairs', path) ? 'page' : undefined}><IconPairs size={18} /><span>Pairs</span></Link><button onClick={() => setSheet('scan')} aria-expanded={sheet === 'scan'}><IconSearch size={18} /><span>{C.scan}</span></button><Link to="/mission" aria-current={isCurrent('/mission', path) ? 'page' : undefined}><span className="mtab-icon"><IconAgent size={18} />{approvals > 0 && <b className="side-badge" aria-label={`${approvals} waiting`}>{approvals}</b>}</span><span>Mission</span></Link><button onClick={() => setSheet('more')} aria-expanded={sheet === 'more'}><IconMenu size={18} /><span>{C.more}</span></button></nav>
+  return <><nav className="mtab" aria-label="Mobile navigation" style={tabs === 5 ? undefined : { gridTemplateColumns: `repeat(${tabs},1fr)` }}><Link to="/radar" aria-current={isCurrent('/radar', path) ? 'page' : undefined}><IconRadar size={18} /><span>{navLabel(views, '/radar', 'Radar')}</span></Link>{pairs && <Link to="/pairs" aria-current={isCurrent('/pairs', path) ? 'page' : undefined}><IconPairs size={18} /><span>Pairs</span></Link>}<button onClick={() => setSheet('scan')} aria-expanded={sheet === 'scan'}><IconSearch size={18} /><span>{C.scan}</span></button>{mission && <Link to="/mission" aria-current={isCurrent('/mission', path) ? 'page' : undefined}><span className="mtab-icon"><IconAgent size={18} />{approvals > 0 && <b className="side-badge" aria-label={`${approvals} waiting`}>{approvals}</b>}</span><span>Mission</span></Link>}<button onClick={() => setSheet('more')} aria-expanded={sheet === 'more'}><IconMenu size={18} /><span>{C.more}</span></button></nav>
     {sheet && <Sheet title={sheet === 'scan' ? C.scan : C.more} close={close}>{sheet === 'scan' ? <ScanBox focus onDone={close} /> : <><Navigation onDone={close} /><button className="btn" onClick={() => { close(); requestAnimationFrame(() => window.dispatchEvent(new Event('eko:open-alerts'))); }}>Alerts</button><LegalLine pageHasAnalysis={path.startsWith('/coin/')} /></>}</Sheet>}
   </>;
 }

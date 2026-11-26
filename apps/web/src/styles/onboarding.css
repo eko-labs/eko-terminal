@@ -2113,3 +2113,9 @@
 .ob-cl-pill.is-bump, .ob-cl-item .ob-status--ok { animation: none; }
 
 .tour[data-anchor='trade'] .tour-hole { animation: none; transition: none; }
+
+/* Spotlight walkthroughs with a dot per step (Spotlight.tsx `progress="dots"`): the open step is lit, past steps dim. */
+.tour-dots { display: inline-flex; align-items: center; gap: 6px; }
+.tour-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--bg-4, var(--off)); transition: background var(--dur-2), width var(--dur-3) var(--ease-out); }
+.tour-dots i.past { background: var(--rule3); }
+.tour-dots i.on { width: 20px; border-radius: 4px; background: var(--sky); }

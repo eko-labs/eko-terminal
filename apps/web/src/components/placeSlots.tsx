@@ -5,7 +5,7 @@ import { useShell } from '../store/shell';
 
 /**
  * Places outside the coin page that post-launch features (features.ts `places`) can fill: tools next to a launch filter
- * being edited. A place shows only while its feature's flag is on; with none on, these render nothing and the page is
+ * being edited, and a control in the top bar. A place shows only while its feature's flag is on; with none on, these render nothing and the page is
  * unchanged. Places may be lazy components: each waits for them quietly.
  */
 export function activePlaceSlots(features: readonly ({ flag: keyof Flags } & { places?: PlaceSlots })[], flags: Partial<Flags> | undefined): PlaceSlots[] {
@@ -21,4 +21,11 @@ export function LaunchFilterSlots({ filter }: { filter: unknown }) {
   const slots = usePlaceSlots().filter(s => s.launchFilter);
   if (!slots.length) return null;
   return <Suspense fallback={null}>{slots.map((s, i) => { const Tool = s.launchFilter!; return <Tool key={i} filter={filter} />; })}</Suspense>;
+}
+
+/** In the top bar on every page (`compact` on the phone bar). Renders nothing while no feature fills it. */
+export function HeaderSlots({ compact = false }: { compact?: boolean }) {
+  const slots = usePlaceSlots().filter(s => s.header);
+  if (!slots.length) return null;
+  return <Suspense fallback={null}>{slots.map((s, i) => { const Control = s.header!; return <Control key={i} compact={compact} />; })}</Suspense>;
 }

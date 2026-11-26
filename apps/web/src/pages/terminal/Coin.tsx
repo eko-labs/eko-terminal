@@ -50,7 +50,7 @@ function CoinPage({address}:{address:string}){
  const sheetRef=useRef<HTMLElement>(null),[sheetHeight,setSheetHeight]=useState(140);
 
  const data=useCoin(address,tf,fullHistory),config=useShell(s=>s.config),ws=useShell(s=>s.wsState),delayed=useShell(s=>s.delayedSec),me=useShell(s=>s.me),phone=useMedia('(max-width:700px)'),toast=useApp(s=>s.toast);
- useEffect(()=>{if(!phone||!sheetRef.current)return;const measure=()=>setSheetHeight(sheetRef.current!.getBoundingClientRect().height);measure();const observer=new ResizeObserver(measure);observer.observe(sheetRef.current);return()=>observer.disconnect();},[phone,sheet]);
+ useEffect(()=>{if(!phone||!sheetRef.current)return;const measure=()=>{const el=sheetRef.current;if(el)setSheetHeight(el.getBoundingClientRect().height);};measure();const observer=new ResizeObserver(measure);observer.observe(sheetRef.current);return()=>observer.disconnect();},[phone,sheet]);
  const {card,verdict,bars,markers}=data;
  const guardData=useGuardCoin(address);
  // Detail tabs features fill (features.ts CoinSlots.section): shown only when something fills them.

@@ -31,7 +31,7 @@ export function Settings() {
     <Section id="plan" title={C.plan}><div className="panel panel-body"><PlanStatus /><Link className="btn" to="/settings/plan">{C.viewPlan}</Link></div></Section>
     <Section id="display" title={C.display}><Display /><InstallSettings /></Section>
     <Section id="privacy" title={C.privacy}>{owner ? <><JournalConsentSetting key={`journal-${owner}`} owner={owner} /><PrivacySettings key={owner} owner={owner} /></> : <SettingsConnect />}</Section>
-    <Section id="about" title={C.about}><div className="panel panel-body"><button className="btn" onClick={() => { navigate('/radar'); useOnboarding.getState().startTour(); }}>{C.replayTour}</button><p>{C.version} {version}</p><div className="settings-links">{['terms', 'privacy', 'risk', 'ai'].map(doc => <Link key={doc} to={`/legal/${doc}`}>{C.legal[doc as keyof typeof C.legal]}</Link>)}</div><p>{BUILT_ON}</p><p>{NON_AFFILIATION}</p></div></Section>
+    <Section id="about" title={C.about}><div className="panel panel-body"><button className="btn" onClick={() => { navigate('/radar'); useOnboarding.getState().replayTour(); }}>{C.replayTour}</button><p>{C.version} {version}</p><div className="settings-links">{['terms', 'privacy', 'risk', 'ai'].map(doc => <Link key={doc} to={`/legal/${doc}`}>{C.legal[doc as keyof typeof C.legal]}</Link>)}</div><p>{BUILT_ON}</p><p>{NON_AFFILIATION}</p></div></Section>
   </div>;
 }
 export function openSettingsWallet() { window.dispatchEvent(new Event('eko:open-wallet')); }
