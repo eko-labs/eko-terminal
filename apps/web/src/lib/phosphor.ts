@@ -5,7 +5,15 @@ export interface PlotGeometry {
 }
 export interface AreaGeometry extends PlotGeometry { x:(index:number)=>number; series:readonly number[]; hot?:boolean; halos?:readonly {i:number}[]; base?:number }
 export interface BarsGeometry extends PlotGeometry { series:readonly number[]; zero?:boolean; lo?:number; tone?:'warm'|'dim' }
-export interface CandlesGeometry extends PlotGeometry { x:(index:number)=>number; candles:readonly {o:number;h:number;l:number;c:number}[]; slot:number; noHalo?:boolean }
+export interface CandlesGeometry extends PlotGeometry { x:(index:number)=>number; candles:readonly {o:number;h:number;l:number;c:number}[]; slot:number; noHalo?:boolean; palette?:CandlePalette }
+/**
+ * Candle colours other than the default phosphor tones, as #rrggbb. Direction stays in the shape: a rising candle is
+ * filled with `up`, a falling one is outlined in `down` with `hollow` inside (default: the chart's dark plate). Volume
+ * bars and the newest candle's glow take the same colours. Absent, a chart paints exactly as before.
+ */
+export interface CandlePalette { up:string; down:string; hollow?:string }
+/** A #rrggbb colour at an alpha, as rgba(). */
+export function withAlpha(hex:string,a:number){const n=parseInt(hex.replace('#','').slice(0,6),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;}
 // Phosphor light layer, ported from the site's signal desk.
 // Charts are an SVG (labels, markers, interaction) over a canvas that carries the light:
 // an LCD cell grid, an ordered-dither exposure under the trace, a bloomed beam with a
@@ -23,7 +31,7 @@ function setup(canvas:HTMLCanvasElement,W:number,H:number){
 /** Limit drawing to the plot when a chart is zoomed or panned: g.clip = {x,y,w,h}. */
 function clipTo(c:CanvasRenderingContext2D,g:PlotGeometry){if(!g.clip)return;c.beginPath();c.rect(g.clip.x,g.clip.y,g.clip.w,g.clip.h);c.clip();}
 function scan(c:CanvasRenderingContext2D,W:number,H:number,a=.3){c.globalCompositeOperation='destination-out';c.fillStyle=`rgba(0,0,0,${a})`;for(let y=0;y<H;y+=3)c.fillRect(0,y,W,1);c.globalCompositeOperation='source-over';}
-function halo(c:CanvasRenderingContext2D,x:number,y:number,r:number,a:number){const g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,`rgba(228,246,255,${a})`);g.addColorStop(.22,`rgba(116,194,248,${a*.4})`);g.addColorStop(1,'rgba(40,110,200,0)');c.fillStyle=g;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();}
+function halo(c:CanvasRenderingContext2D,x:number,y:number,r:number,a:number,tint?:string){const g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,tint?withAlpha(tint,a):`rgba(228,246,255,${a})`);g.addColorStop(.22,tint?withAlpha(tint,a*.4):`rgba(116,194,248,${a*.4})`);g.addColorStop(1,tint?withAlpha(tint,0):'rgba(40,110,200,0)');c.fillStyle=g;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();}
 
 /** Area/line: g = {W,H,L,R,T,B,x(i),y(v),series,mini?,hot?,halos?:[{i}],base?} */
 export function paintArea(canvas:HTMLCanvasElement,g:AreaGeometry,progress=1){
@@ -93,18 +101,21 @@ export function paintCandles(canvas:HTMLCanvasElement,g:CandlesGeometry,progress
  // Every candle is drawn once on an offscreen layer, then the layer is glowed with a single blur and laid on sharp.
  // A shadow per candle cost one blur pass each: ~180 ms a frame with 1-second candles at 2x, the chart lagged on hover.
  const layer=layerFor(canvas),k2=layer.getContext('2d')!;k2.setTransform(dpr,0,0,dpr,0,0);k2.clearRect(0,0,W,H);
- const bw=Math.max(1,candleWidth(g.slot)),thin=bw<3;
+ const bw=Math.max(1,candleWidth(g.slot)),thin=bw<3,ink=g.palette;
+ // With a palette a thin falling candle (too narrow to show hollow) is filled at half strength, so it still reads as down.
+ const tone=ink?{upWick:withAlpha(ink.up,.85),downWick:withAlpha(ink.down,.8),upBody:withAlpha(ink.up,.92),thinDown:withAlpha(ink.down,.5),hollow:ink.hollow??'rgba(20,34,46,.95)',downEdge:withAlpha(ink.down,.9)}
+  :{upWick:'rgba(200,232,252,.85)',downWick:'rgba(96,130,156,.8)',upBody:'rgba(190,228,251,.92)',thinDown:'rgba(96,130,156,.9)',hollow:'rgba(20,34,46,.95)',downEdge:'rgba(96,130,156,.9)'};
  for(let i=0;i<n;i++){
   if(i/n>progress)break;const k=g.candles[i],x=g.x(i),up=k.c>=k.o,top=g.y(Math.max(k.o,k.c)),bot=g.y(Math.min(k.o,k.c)),h=Math.max(1,bot-top);
-  k2.strokeStyle=up?'rgba(200,232,252,.85)':'rgba(96,130,156,.8)';k2.lineWidth=1;k2.beginPath();k2.moveTo(x,g.y(k.h));k2.lineTo(x,g.y(k.l));k2.stroke();
-  if(up){k2.fillStyle='rgba(190,228,251,.92)';k2.fillRect(x-bw/2,top,bw,h);}
-  else if(thin){k2.fillStyle='rgba(96,130,156,.9)';k2.fillRect(x-bw/2,top,bw,h);}
-  else{k2.fillStyle='rgba(20,34,46,.95)';k2.fillRect(x-bw/2,top,bw,h);k2.strokeStyle='rgba(96,130,156,.9)';k2.strokeRect(x-bw/2+.5,top+.5,bw-1,Math.max(0,h-1));}
+  k2.strokeStyle=up?tone.upWick:tone.downWick;k2.lineWidth=1;k2.beginPath();k2.moveTo(x,g.y(k.h));k2.lineTo(x,g.y(k.l));k2.stroke();
+  if(up){k2.fillStyle=tone.upBody;k2.fillRect(x-bw/2,top,bw,h);}
+  else if(thin){k2.fillStyle=tone.thinDown;k2.fillRect(x-bw/2,top,bw,h);}
+  else{k2.fillStyle=tone.hollow;k2.fillRect(x-bw/2,top,bw,h);k2.strokeStyle=tone.downEdge;k2.strokeRect(x-bw/2+.5,top+.5,bw-1,Math.max(0,h-1));}
  }
  c.globalCompositeOperation='lighter';
  if(g.slot>=4){c.save();c.filter=`blur(${3*dpr}px)`;c.globalAlpha=.6;c.drawImage(layer,0,0,W,H);c.restore();}
  c.drawImage(layer,0,0,W,H);
- const last=g.candles[Math.min(n-1,Math.floor(progress*n))];if(last&&!g.noHalo)halo(c,g.x(Math.min(n-1,Math.floor(progress*n))),g.y(last.c),22,.55);
+ const last=g.candles[Math.min(n-1,Math.floor(progress*n))];if(last&&!g.noHalo)halo(c,g.x(Math.min(n-1,Math.floor(progress*n))),g.y(last.c),22,.55,ink?.up);
  c.restore();scan(c,W,H,.3);
 }
 
@@ -123,5 +134,5 @@ export const sweepDelay=(e:number,dur=1000)=>Math.round((1-Math.cbrt(1-Math.min(
 /** Volume plate under the candles, using the same phosphor bars without clearing their light. */
 export function paintVolume(canvas:HTMLCanvasElement,g:CandlesGeometry & {volumes:readonly number[]},progress=1){
  const c=canvas.getContext('2d');if(!c)return;let max=1;for(const v of g.volumes)max=Math.max(max,v);const bw=Math.max(1,candleWidth(g.slot));c.save();clipTo(c,g);c.globalCompositeOperation='lighter';
- g.volumes.forEach((v,i)=>{if(i/g.volumes.length>progress)return;const x=g.x(i)-bw/2,top=g.B-v/max*32;c.fillStyle=g.candles[i].c>=g.candles[i].o?'rgba(150,210,250,.35)':'rgba(96,130,156,.25)';for(let y=g.B-2;y>=top;y-=3)c.fillRect(x,y,bw,2);});c.restore();
+ g.volumes.forEach((v,i)=>{if(i/g.volumes.length>progress)return;const x=g.x(i)-bw/2,top=g.B-v/max*32;c.fillStyle=g.candles[i].c>=g.candles[i].o?(g.palette?withAlpha(g.palette.up,.35):'rgba(150,210,250,.35)'):(g.palette?withAlpha(g.palette.down,.2):'rgba(96,130,156,.25)');for(let y=g.B-2;y>=top;y-=3)c.fillRect(x,y,bw,2);});c.restore();
 }

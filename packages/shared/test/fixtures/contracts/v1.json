@@ -1164,7 +1164,10 @@
       "top_traders": false,
       "holders_in_profit": false,
       "bonding_alerts": false,
-      "quant": false
+      "quant": false,
+      "size_check": false,
+      "multichart": false,
+      "paper_trading": false
     },
     "tiers": [
       {
@@ -2287,7 +2290,10 @@
     "top_traders": false,
     "holders_in_profit": false,
     "bonding_alerts": false,
-    "quant": false
+    "quant": false,
+    "size_check": false,
+    "multichart": false,
+    "paper_trading": false
   },
   "OpsSwitch": "trading_live",
   "WsEventMap": {

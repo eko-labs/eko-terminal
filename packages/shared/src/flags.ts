@@ -17,7 +17,8 @@ export const FLAG_STAGES = {
   // TODO(spec): post-launch updates (docs/FLAGS.md) that §21.4 does not list; each ships from its feature folders.
   Updates:  ['wallet_tags', 'dev_profile', 'more_launchpads', 'wallet_tracker',
              'exit_check', 'dev_sell_alerts', 'launch_alerts', 'linked_devs', 'price_alerts',
-             'launch_map', 'top_traders', 'holders_in_profit', 'bonding_alerts', 'quant'],
+             'launch_map', 'top_traders', 'holders_in_profit', 'bonding_alerts', 'quant',
+             'size_check', 'multichart', 'paper_trading'],
 } as const;
 export type FlagName = (typeof FLAG_STAGES)[keyof typeof FLAG_STAGES][number];
 export const FLAG_NAMES = Object.values(FLAG_STAGES).flat() as [FlagName, ...FlagName[]];

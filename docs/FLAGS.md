@@ -52,3 +52,6 @@ none), then `node scripts/public/publish.mjs --push --flags leaderboards,referra
 | Wallet tags on the chart | `wallet_tags` | nothing: built (dev, snipers, bundles, top 10, fresh; `/v2/coins/:address/tags`) |
 | Dev profile | `dev_profile` | review: `/dev/<address>` and `/v2/devs/:address` from the history store (HISTORY_DB) |
 | Every launchpad (Robinhood Chain) | `more_launchpads` | nothing: built. Unlike the others it has no feature folder: the Robinhood adapter reads it (`apps/edge/src/chains/robinhood/`), so its code is public before it is on. Set it on `eko-edge-robinhood` (the pop-up writes to `eko-edge`). Demo data: `VITE_MOCKS=1 VITE_FLAGS=more_launchpads pnpm --filter @eko/web dev` adds three example long.xyz coins (quoted in TTWO, WETH and USDG; apps/web/src/mocks/demo/launchpads.ts). docs/robinhood/CHAIN-FACTS.md §9 |
+| Size check | `size_check` | nothing: a line under a buy's amount (trade panel `amount` place) |
+| Multichart | `multichart` | nothing: up to six coins live side by side, each in its own colour |
+| Paper trading | `paper_trading` | nothing: practice trades at real prices beside real trading (trade panel `mode` place) |

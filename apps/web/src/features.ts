@@ -67,7 +67,22 @@ export interface PlaceSlots {
    *  launchpads, maxVerdict, minimums, quotes, noDevSells), or null while what is typed is not a filter yet: parse it. */
   launchFilter?: ComponentType<{ filter: unknown }>;
 }
-export interface Feature { routes?: FeatureRoute[]; nav?: FeatureNav[]; coin?: CoinSlots; places?: PlaceSlots; links?: FeatureLinks; mocks?: FeatureMocks; demo?: () => Promise<{ default: FeatureDemo }> }
+/**
+ * Places in the trade panel a feature can fill, shown only while its flag is on (components/trade/tradeSlots.tsx).
+ */
+export interface TradeSlots {
+  /**
+   * Under the amount of a buy being entered: one short line about that amount, updating as it is typed. `onLimit`
+   * names the largest amount the line considers sound, or null for none; the panel marks the amount buttons above it.
+   */
+  amount?: ComponentType<{ coin: string; amountUsd: number; onLimit: (usd: number | null) => void }>;
+  /**
+   * Another way to trade beside real trading. The panel shows a switch (Real, then `label`) and, while it is chosen,
+   * renders `panel` in place of its own. The panel must make plain on its face that it is not real trading.
+   */
+  mode?: { label: string; panel: ComponentType<{ coin: string; symbol?: string; priceUsd?: number; back: () => void }> };
+}
+export interface Feature { routes?: FeatureRoute[]; nav?: FeatureNav[]; coin?: CoinSlots; places?: PlaceSlots; trade?: TradeSlots; links?: FeatureLinks; mocks?: FeatureMocks; demo?: () => Promise<{ default: FeatureDemo }> }
 
 /** The feature folders in a glob result, keyed by flag. Folders not named after a flag are skipped. */
 export function featuresFrom(modules: Record<string, { default: Feature }>): ({ flag: FlagName } & Feature)[] {

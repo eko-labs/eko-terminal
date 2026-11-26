@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useAmountSlots, useTradeModes } from './tradeSlots';
 import { AddressSchema, type GuardAssessmentV2, type PublicConfig, type TradeQuote, type TradeQuoteRequest, type Entitlements } from '@eko/shared';
 import { useShell } from '../../store/shell';
 import { useUi } from '../../store/ui';
@@ -72,7 +73,7 @@ export interface TradePanelProps {
 }
 /** Presentational surface exported for offline contract-state fixtures. */
 export function TradePanelView({ gate, tier, phase, priceUsd, priceUnavailable, priceFormat = formatCoinPrice, guard, busy = false, result, confirm = false,
-  changeSide, changeAmount, changeSlippage, acknowledge, submit, retry, verification, sell }: {
+  changeSide, changeAmount, changeSlippage, acknowledge, submit, retry, verification, sell, amountNote }: {
   gate: PanelGate; tier?: Entitlements['tier']; phase?: PublicConfig['phase']; priceUsd?: number; priceUnavailable?: boolean; priceFormat?: (value: number) => string; guard?: GuardAssessmentV2 | null;
   busy?: boolean; result?: string | null; confirm?: boolean; changeSide: (side: 'buy' | 'sell') => void; changeAmount: (amount: string) => void; changeSlippage: (percent: string) => void;
   acknowledge: () => void; submit: () => void; retry: () => void;
@@ -80,6 +81,8 @@ export function TradePanelView({ gate, tier, phase, priceUsd, priceUnavailable, 
   /** Selling a share of the wallet's bag: the share, the holding read from the chain, and whether the per-trade cap
    *  cut it. Without it a sell is entered in dollars. */
   sell?: { pct: number; changePct: (pct: string) => void; holding: Holding; symbol?: string; capped: boolean };
+  /** Lines features add under a buy's amount (tradeSlots.tsx), and the largest amount they call sound: buttons above it are marked. */
+  amountNote?: { lines: ReactNode; limit: number | null };
 }) {
   const [connectOpened, setConnectOpened] = useState(false);
   const connect = () => {
@@ -104,8 +107,9 @@ export function TradePanelView({ gate, tier, phase, priceUsd, priceUnavailable, 
           <p className="tp-hold">{h!.noWallet ? 'Connect a wallet to sell a share of your bag.' : h!.loading ? 'Reading your balance…' : h!.tokens === null ? 'Your balance could not be read.' : h!.tokens === 0 ? 'Your wallet holds none of this coin.'
             : <>≈ <b>{Number.isFinite(input.amountUsd) ? dollars(Math.round(input.amountUsd * 100) / 100) : '—'}</b> of your {shortTokens(h!.tokens)}{sell!.symbol ? ` ${sell!.symbol}` : ''}{sell!.capped && gate.cap !== undefined ? ` · capped at ${dollars(gate.cap)} a trade` : ''}</>}</p></>
         : <><label className="tp-amount tp-amount-big"><span className="tp-label">{L.amount}</span><span className="tp-big"><span className="tp-unit" aria-hidden="true">$</span><input className="input num" type="number" min="0" step="any" inputMode="decimal" value={Number.isFinite(input.amountUsd) ? input.amountUsd : ''} onChange={e => changeAmount(e.target.value)} /></span></label>
-          <div className="tp-amounts">{[25, 50, 100, 250].map(n => <button type="button" className="btn btn-sm" key={n} disabled={gate.cap === undefined || n > gate.cap} title={gate.cap === undefined ? C.config : C.cap(gate.cap)} aria-pressed={input.amountUsd === n} onClick={() => changeAmount(String(n))}>{dollars(n)}</button>)}</div>
-          {gate.cap !== undefined && input.amountUsd > gate.cap && <p className="note tp-cap">{C.cap(gate.cap)}</p>}</>}
+          <div className="tp-amounts">{[25, 50, 100, 250].map(n => <button type="button" className={`btn btn-sm${amountNote?.limit != null && n > amountNote.limit ? ' tp-amount-over' : ''}`} key={n} disabled={gate.cap === undefined || n > gate.cap} title={gate.cap === undefined ? C.config : C.cap(gate.cap)} aria-pressed={input.amountUsd === n} onClick={() => changeAmount(String(n))}>{dollars(n)}</button>)}</div>
+          {gate.cap !== undefined && input.amountUsd > gate.cap && <p className="note tp-cap">{C.cap(gate.cap)}</p>}
+          {input.side === 'buy' && amountNote?.lines}</>}
     </fieldset>
     {q && <FeeKey quote={q} phase={phase} />}
     {q && guardLoud && <QuoteGuard quote={q} mode={input.riskMode ?? 'safe'} />}
@@ -131,6 +135,9 @@ export function TradePanel({ coin, stale = false, visible = true, sideRequest, s
   const config = useShell(s => s.config), wallet = useShell(s => s.me?.account.wallet), tier = useShell(s => s.me?.entitlements.tier), ws = useShell(s => s.wsState);
   const mode = useUi(s => s.riskMode), presets = useApp(s => s.preferences), panel = useRef<HTMLDivElement>(null);
   const [side, setSide] = useState<'buy' | 'sell'>('buy'), [amount, setAmount] = useState(100), [slippage, setSlippage] = useState(presets.defaultSlippageBps);
+  // Features' lines under a buy's amount, and the other ways to trade they add beside real trading (tradeSlots.tsx).
+  const amountNote = useAmountSlots(coin, amount), modes = useTradeModes(), [modeLabel, setModeLabel] = useState<string | null>(null);
+  const altMode = modes.find(m => m.label === modeLabel);
   // Selling is a share of the bag. Its dollar size follows from the holding and the price; 100% asks a little over the
   // bag so the edge sells exactly the balance (it caps a sell at the wallet's balance) and leaves no dust.
   const [sellPct, setSellPct] = useState(50), [heldAt, setHeldAt] = useState(0);
@@ -185,7 +192,9 @@ export function TradePanel({ coin, stale = false, visible = true, sideRequest, s
   const feedbackMatches = feedback?.order?.coin.toLowerCase() === coin.toLowerCase() && (!lastOrder || lastOrder === feedback.order.id);
   const displayedResult = feedbackMatches && feedback?.order && ['confirmed', 'failed', 'rejected', 'expired'].includes(feedback.order.status) ? feedback.message : result ?? (feedbackMatches || !feedback?.order ? feedback?.message : null);
   // TODO(spec): CA-9 has no venue-link allowlist or per-wallet cap field. Do not trust quote.route.linkOut or parse caps from server prose; display the configured cap and current refusal.
-  return <div data-tour="trade" className="tpanel guarded-trade-panel" ref={panel}><TradePanelView gate={gate} tier={tier} phase={config?.phase} {...display} busy={execution.busy} confirm={confirm} result={displayedResult} verification={visible ? execution.adapter?.verification : undefined}
+  const modeSwitch = modes.length > 0 && <div className="tp-modes" role="radiogroup" aria-label="Trade with">{[null, ...modes.map(m => m.label)].map(l => <button type="button" role="radio" key={l ?? 'real'} aria-checked={modeLabel === l} onClick={() => setModeLabel(l)}>{l ?? 'Real'}</button>)}</div>;
+  if (altMode) { const Alt = altMode.panel; return <div data-tour="trade" className="tpanel guarded-trade-panel" ref={panel}>{modeSwitch}<Suspense fallback={null}><Alt coin={coin} {...(symbol ? { symbol } : {})} {...(display.priceUsd !== undefined ? { priceUsd: display.priceUsd } : {})} back={() => setModeLabel(null)} /></Suspense></div>; }
+  return <div data-tour="trade" className="tpanel guarded-trade-panel" ref={panel}>{modeSwitch}<TradePanelView amountNote={amountNote} gate={gate} tier={tier} phase={config?.phase} {...display} busy={execution.busy} confirm={confirm} result={displayedResult} verification={visible ? execution.adapter?.verification : undefined}
     changeSide={v => { reset(); setSide(v); }} changeAmount={v => { reset(); setAmount(v === '' ? NaN : Number(v)); }} changeSlippage={v => { reset(); setSlippage(v === '' ? NaN : Math.round(Number(v) * 100)); }}
     sell={{ pct: sellPct, changePct: v => { reset(); setSellPct(v === '' ? NaN : Math.min(100, Math.max(0, Number(v)))); }, holding, capped: sellCapped, ...(symbol ? { symbol } : {}) }}
     acknowledge={() => { setResult(null); if (review) setReview({ ...review, acknowledged: [...new Set(review.quote!.guard.checks.filter(c => c.status === 'warn').map(c => c.code))] }); else quote.acknowledge(); }} submit={() => void submit()} retry={() => { reset(); quote.refresh(); }} /></div>;

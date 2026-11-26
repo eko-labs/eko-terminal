@@ -123,3 +123,9 @@
 .guarded-trade-panel .tp-guard details>summary::before{content:"";width:5px;height:5px;border-right:1.4px solid currentColor;border-bottom:1.4px solid currentColor;transform:rotate(-45deg);transition:transform .15s}
 .guarded-trade-panel .tp-guard details[open]>summary::before{transform:rotate(45deg) translate(-1px,-1px)}
 .guarded-trade-panel .tp-guard details>summary:hover{color:var(--ink)}
+/* Ways to trade that features add beside real trading (tradeSlots.tsx): a quiet switch above the panel. */
+.guarded-trade-panel .tp-modes{display:flex;gap:2px;margin-bottom:10px;padding:2px;border:1px solid var(--rule2);border-radius:var(--r1);width:max-content}
+.guarded-trade-panel .tp-modes button{min-height:28px;padding:0 12px;border:0;border-radius:var(--r1);background:none;color:var(--muted);font:12px var(--sans);cursor:pointer}
+.guarded-trade-panel .tp-modes button[aria-checked=true]{background:var(--raise);color:var(--ink)}
+/* An amount above what a feature's line under the amount calls sound. */
+.guarded-trade-panel .tp-amounts .tp-amount-over{border-style:dashed;border-color:var(--warn);color:var(--warn)}
