@@ -22,7 +22,8 @@ export const CHART_THEME = { text: '#7c8997', grid: 'rgba(150,190,235,0.045)', b
 
 /** A market-cap label without trailing zeros where no tick step needs them: $20.7K, $1.2M, $310K. */
 export function formatMc(value: number, step?: number): string {
-  const s = formatCompactUsd(value, step);
+  // At most three decimals: a nearly flat chart's tight tick step otherwise asks for "$20.045870K".
+  const s = formatCompactUsd(value, step).replace(/(\.\d{3})\d+/, '$1');
   return step === undefined && s.includes('.') ? s.replace(/0+(?=[KMB]?$)/, '').replace(/\.(?=[KMB]?$)/, '') : s;
 }
 /** What a viewer can switch on the coin chart (saved per browser: ChartStage). */

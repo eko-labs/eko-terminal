@@ -27,6 +27,10 @@ describe('the answer’s reasons', () => {
   it('puts a failed test sale first', () => {
     expect(reasonsOf(verdict('danger', [{ id: 'dev_dump', level: 'danger' }]), null, card({ refused: true }))[0]).toEqual({ tone: 'bad', text: REASON_PLAIN.SELL_RESTRICTION });
   });
+  it('says a thing once even when two findings say it in other words', () => {
+    const reasons = reasonsOf(verdict('danger', [{ id: 'honeypot', level: 'danger' }, { id: 'fake_mcap', level: 'danger' }]), null, card({ refused: true }));
+    expect(reasons.map(r => r.text)).toEqual([REASON_PLAIN.SELL_RESTRICTION, PLAYBOOK_PLAIN.fake_mcap]);
+  });
   it('names what EKO measured as good for a coin that looks OK', () => {
     expect(reasonsOf(verdict('clear'), null, card()).map(r => r.text)).toEqual([NOTHING_WRONG, SOLD_OK, NO_POWERS]);
     expect(reasonsOf(verdict('clear'), null, card({ powers: true, lp: 'removable' })).map(r => r.text)).toEqual([NOTHING_WRONG, SOLD_OK]);

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Bar, CoinCard, Flow, RadarRow, Verdict } from '@eko/shared';
 import { coinWalk } from './Walkthrough';
-import { STEER, ageShort, changeChips, changeFromBars, countShort, filterTrades, flowBox, headerStats, holderStats, signedPct, stripFacts, totalSupply, tradeRows, usdShort } from './trader';
+import { STEER, ageShort, compact, changeChips, changeFromBars, countShort, filterTrades, flowBox, headerStats, holderStats, signedPct, stripFacts, totalSupply, tradeRows, usdShort } from './trader';
 
 const card = (o: { supply?: Partial<CoinCard['supply']>; missing?: string[]; flags?: string[]; taxes?: [number, number]; stage?: string; curvePct?: number; sellable?: boolean } = {}) => ({
   identity: { stage: o.stage ?? 'graduated', curvePct: o.curvePct, deployer: '0xdddddddddddddddddddddddddddddddddddddddd' },
@@ -17,11 +17,11 @@ describe('the trader strip', () => {
   it('shows the market cap big, then price, liquidity, volume, supply, curve and tax', () => {
     const { marketCap, stats } = headerStats(card({ stage: 'curve', curvePct: 67.456, taxes: [3, 3] }), row(), [], 0.00002075, fmt);
     expect(marketCap).toBe('$20.8K');
-    expect(stats.map(s => [s.label, s.value])).toEqual([['Price', '$0.00002075'], ['Liq', '$8.40K'], ['24h Vol', '$51.3K'], ['Supply', '1.00B'], ['B. Curve', '67.46%'], ['Tax', '3% / 3%']]);
+    expect(stats.map(s => [s.label, s.value])).toEqual([['Price', '$0.00002075'], ['Liq', '$8.4K'], ['24h Vol', '$51.3K'], ['Supply', '1B'], ['B. Curve', '67.46%'], ['Tax', '3% / 3%']]);
   });
   it('leaves out what it did not measure, and works out the market cap without a radar row', () => {
     const { marketCap, stats } = headerStats(card({ missing: [] }), null, [], 0.002, fmt);
-    expect(marketCap).toBe('$2.00M');
+    expect(marketCap).toBe('$2M');
     expect(stats.map(s => s.id)).toEqual(['price', 'supply', 'tax']);
     expect(headerStats(null, null, [], undefined, fmt)).toEqual({ marketCap: null, stats: [] });
     expect(totalSupply(null, row({ unavailable: ['marketCap'] }))).toBeNull();
@@ -36,8 +36,9 @@ describe('the trader strip', () => {
     expect(changeChips(row({ unavailable: ['change'] }), [])).toEqual([]);
   });
   it('writes numbers the way traders do', () => {
-    expect([usdShort(0.4), usdShort(840), usdShort(20_750), usdShort(1_200_000)]).toEqual(['<$1', '$840', '$20.8K', '$1.20M']);
-    expect([countShort(436), countShort(12_345), countShort(1e9)]).toEqual(['436', '12.3K', '1.00B']);
+    expect([usdShort(0.4), usdShort(9.957), usdShort(44.6), usdShort(840), usdShort(20_750), usdShort(1_200_000), usdShort(-6_360)]).toEqual(['<$1', '$9.96', '$45', '$840', '$20.8K', '$1.2M', '−$6.36K']);
+    expect([countShort(436), countShort(12_345), countShort(1e9), countShort(999_999_999), countShort(420e6), countShort(1_234)]).toEqual(['436', '12.3K', '1B', '1B', '420M', '1.23K']);
+    expect([compact(999_999), compact(1_000), compact(12.345), compact(2.5e12)]).toEqual(['1M', '1K', '12.3', '2.5T']);
     expect([signedPct(12.44), signedPct(-3.1), signedPct(148.2), signedPct(0), signedPct(-0.01)]).toEqual(['+12.4%', '−3.1%', '+148%', '0.0%', '0.0%']);
     expect([ageShort(42), ageShort(300), ageShort(7200), ageShort(200_000)]).toEqual(['42s', '5m', '2h', '2d']);
   });
@@ -45,13 +46,21 @@ describe('the trader strip', () => {
 
 describe("EKO's strip and the holder stats", () => {
   it('steers in a word', () => {
-    expect(STEER).toEqual({ ok: 'Looks clean', careful: 'Go careful', dont: 'Steer clear', checking: 'Hold on' });
+    // A supporting line, never the answer's word again at headline size.
+    for (const line of Object.values(STEER)) expect(line).toMatch(/^[A-Z].*\.$/);
+    expect(Object.values(STEER).join(' ')).not.toMatch(/Looks OK|Be careful|Don't buy|Still checking/);
   });
   it('shows can you sell, $100 back, dev, top 10, snipers and bundles with gauges where they read', () => {
     const facts = stripFacts(card(), verdict([{ id: 'launch_snipers', level: 'monitor' }]));
     expect(facts.map(f => [f.label, f.value, f.tone])).toEqual([
       ['Can you sell?', 'Yes', 'good'], ['$100 gets back', '$96', 'good'], ['Dev holds', '2.4%', 'good'], ['Top 10', '34%', 'watch'], ['Snipers', 'Found', 'watch'], ['Bundles', '0%', 'good']]);
     expect(facts.find(f => f.id === 'top10')?.gauge).toBe(34);
+  });
+  it("fills in the owner's powers and the pool's lock, at most six facts", () => {
+    const c = { ...card({ flags: ['history_partial'] }), control: { canMint: false, canPause: false, canBlacklist: false, canChangeTax: true, upgradeable: false }, liquidity: { lpStatus: 'removable' } } as unknown as CoinCard;
+    expect(stripFacts(c, null).filter(f => f.id === 'powers' || f.id === 'lp').map(f => [f.label, f.value, f.tone])).toEqual([['Owner powers', 'Can tax', 'watch'], ['Pool money', 'Can be pulled', 'bad']]);
+    const full = { ...card(), control: { canMint: true, canPause: false, canBlacklist: false, canChangeTax: false, upgradeable: false }, liquidity: { lpStatus: 'burned' } } as unknown as CoinCard;
+    expect(stripFacts(full, verdict([{ id: 'launch_snipers', level: 'monitor' }]))).toHaveLength(6);
   });
   it('never calls the top 10 good news when a reason says a few wallets hold a lot', () => {
     expect(stripFacts(card({ supply: { top10Pct: 12 } }), null).find(f => f.id === 'top10')?.tone).toBe('good');

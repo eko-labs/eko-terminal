@@ -1,5 +1,4 @@
 import type { Bar, CoinCard, Flow, FlowTrade, RadarRow, Verdict } from '@eko/shared';
-import { formatCompactUsd } from '../../lib/format';
 import { canSell, hundredBack, SELL_WORDS, type AnswerKind, type Tone } from './model';
 
 /**
@@ -9,19 +8,37 @@ import { canSell, hundredBack, SELL_WORDS, type AnswerKind, type Tone } from './
  * "not checked".
  */
 
-/** The one-word steer beside the answer. */
-export const STEER: Record<AnswerKind, string> = { ok: 'Looks clean', careful: 'Go careful', dont: 'Steer clear', checking: 'Hold on' };
+/** The supporting line under the answer: what to do about it, in a few words. It never repeats the answer's word. */
+export const STEER: Record<AnswerKind, string> = {
+  ok: 'No warning signs EKO can see. Still, only put in what you can lose.',
+  careful: 'Read the reasons before you buy, and keep it small.',
+  dont: 'EKO thinks this one is a trap. Find a safer coin.',
+  checking: 'EKO is still checking it. Wait a minute before you buy.',
+};
 
-/** Dollars as traders write them: $20.75K, $1.2M, $840. */
-export const usdShort = (v: number) => (v > 0 && v < 1 ? '<$1' : Math.abs(v) < 1000 ? `$${Math.round(v).toLocaleString('en-US')}` : formatCompactUsd(v));
-/** A count as traders write it: 1,234 · 12.3K · 4.5M. */
-export function countShort(v: number): string {
-  const a = Math.abs(v);
-  if (a >= 1e9) return `${(v / 1e9).toFixed(2)}B`;
-  if (a >= 1e6) return `${(v / 1e6).toFixed(2)}M`;
-  if (a >= 1e4) return `${(v / 1e3).toFixed(1)}K`;
-  return Math.round(v).toLocaleString('en-US');
+/**
+ * One compact number for the whole page, three significant figures with trailing zeros dropped: 1B, 420M, 1.23K, 840.
+ * A value that rounds up to the next unit moves to it (999,999,999 is 1B, never 1000M).
+ */
+export function compact(v: number): string {
+  if (!Number.isFinite(v)) return '—';
+  const a = Math.abs(v), sign = v < 0 ? '−' : '';
+  if (a < 1000) return `${sign}${a >= 100 ? Math.round(a) : Number(a.toPrecision(3))}`;
+  const units = [[1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']] as const;
+  for (let i = units.length - 1; i >= 0; i--) {
+    const [unit, suffix] = units[i]!;
+    const next = units[i - 1];
+    if (next && a >= next[0]) continue;
+    const n = Number((a / unit).toPrecision(3));
+    if (n >= 1000 && next) return `${sign}${Number((a / next[0]).toPrecision(3))}${next[1]}`;
+    return `${sign}${n}${suffix}`;
+  }
+  return `${sign}${a}`;
 }
+/** Dollars on the same scale: $20.8K, $1.9M, $840, and under a dollar "<$1". */
+export const usdShort = (v: number): string => (v > 0 && v < 1 ? '<$1' : v < 0 ? `−${usdShort(-v)}` : v < 10 ? `$${v.toFixed(2)}` : v < 1000 ? `$${Math.round(v)}` : `$${compact(v)}`);
+/** A count on the same scale: 436, 12.3K, 1B. */
+export const countShort = (v: number) => (Math.abs(v) < 1000 ? Math.round(v).toLocaleString('en-US') : compact(v));
 /** "+12.4%" / "−3.1%" with a real minus. */
 export const signedPct = (v: number) => `${v >= 0.05 ? '+' : v <= -0.05 ? '−' : ''}${Math.abs(v) >= 100 ? Math.round(Math.abs(v)).toLocaleString('en-US') : Math.abs(v).toFixed(1)}%`;
 /** A trade's age: 12s, 4m, 3h, 2d. */
@@ -121,7 +138,14 @@ export function stripFacts(card: CoinCard | null | undefined, verdict: Verdict |
   const sn = snipers(verdict);
   if (sn) out.push(sn);
   if (card && supplyMeasured(card, 'bundlesHeldPct')) out.push({ id: 'bundles', label: 'Bundles', value: `${round1(card.supply.bundlesHeldPct)}%`, tone: ownTone(card.supply.bundlesHeldPct, 5, 15), gauge: card.supply.bundlesHeldPct });
-  return out;
+  // When holder shares were not counted (EKO joined late), the owner's powers and the pool's lock still read at a glance.
+  if (card && !card.meta?.control?.unavailable && card.control) {
+    const c = card.control, hard = c.canMint || c.canPause || c.canBlacklist, any = hard || c.canChangeTax || c.upgradeable;
+    out.push({ id: 'powers', label: 'Owner powers', value: !any ? 'None' : c.canMint ? 'Can mint' : c.canPause ? 'Can pause' : c.canBlacklist ? 'Can block' : c.canChangeTax ? 'Can tax' : 'Upgradeable', tone: hard ? 'bad' : any ? 'watch' : 'good' });
+  }
+  const lp = card?.liquidity?.lpStatus;
+  if (lp && !card?.meta?.liquidity?.unavailable) out.push({ id: 'lp', label: 'Pool money', value: lp === 'removable' ? 'Can be pulled' : 'Locked', tone: lp === 'removable' ? 'bad' : 'good' });
+  return out.slice(0, 6);
 }
 const topTone = (pct: number, flagged: boolean): Tone => { const t = ownTone(pct, 25, 50); return flagged && t === 'good' ? 'watch' : t; };
 const round1 = (v: number) => (Math.round(v * 10) / 10).toLocaleString('en-US');

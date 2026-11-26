@@ -140,13 +140,18 @@ function goodFacts(card: CoinCard | null | undefined): string[] {
   return out;
 }
 
+const SAME_MEANING = new Set([REASON_PLAIN.SELL_RESTRICTION, PLAYBOOK_PLAIN.honeypot]);
+
 /**
  * Up to three (`limit`) plain reasons under the answer, the strongest first: a failed test sale, what the guard or the checks
  * found (dangers before cautions), and for a coin that looks OK the good things EKO measured. Never two the same.
  */
 export function reasonsOf(verdict: Pick<Verdict, 'level' | 'playbooks' | 'historyPartial'> | null | undefined, guard?: GuardAssessmentV2 | null, card?: CoinCard | null, limit = 3): Reason[] {
   const out: Reason[] = [];
-  const add = (tone: Tone, text: string) => { if (!out.some(r => r.text === text)) out.push({ tone, text }); };
+  // Two findings that say the same thing in other words count once (a failed test sale and a honeypot both mean you may
+  // not get out).
+  const same = (a: string, b: string) => a === b || (SAME_MEANING.has(a) && SAME_MEANING.has(b));
+  const add = (tone: Tone, text: string) => { if (!out.some(r => same(r.text, text))) out.push({ tone, text }); };
   const kind = answerOf({ level: verdict?.level ?? 'pending', historyPartial: verdict?.historyPartial, guard }).kind;
   if (canSell(card) === 'no') add('bad', REASON_PLAIN.SELL_RESTRICTION);
   if (guard?.mode === 'active') { for (const r of guard.reasons) add(kind === 'dont' ? 'bad' : 'watch', REASON_PLAIN[r.code]); }

@@ -4,7 +4,6 @@ import { CHAIN_NETWORK, NETWORKS, RadarRowSchema, type EkoScore, type Flow, type
 import { ChartStage } from '../../components/chart/ChartStage';
 import type { CoinTimeframe } from '../../components/chart/coinMath';
 import { CoinDetailScope, CoinSlotScope, TabSections, WalletSlots, useTabSections } from '../../components/coinSlots';
-import { PixelGauge } from '../../components/GlanceTile';
 import { IconAlert, IconCheck, IconCopy, IconInfo, IconOct, IconOut } from '../../components/icons';
 import { TradePanel } from '../../components/trade/TradePanel';
 import { antiSnipeDeadline } from '../../components/trade/tradePanelModel';
@@ -29,7 +28,7 @@ import { useApp } from '../../store/app';
 import { useShell } from '../../store/shell';
 import { useSimple } from './choice';
 import { answerOf, holdersFlagged, reasonsOf, type Reason, type Tone } from './model';
-import { AnswerChip, Ticker } from './parts';
+import { Ticker } from './parts';
 import { STEER, TRADE_FILTERS, ageShort, changeChips, countShort, filterTrades, flowBox, headerStats, holderStats, signedPct, stripFacts, totalSupply, tradeRows, usdShort, type Glance, type TradeFilter } from './trader';
 import { Walkthrough, coinWalk } from './Walkthrough';
 import '../../pages/terminal/radar.css';
@@ -72,7 +71,8 @@ function SimpleCoinPage({ address }: { address: string }) {
   const px = row?.priceUnavailable ? undefined : bars.at(-1)?.c ?? row?.priceUsd;
   const symbol = identity ? inertText(identity.symbol.text) : undefined;
   const head = headerStats(card, row, flows, px, formatCoinPrice), chips = changeChips(row, bars);
-  const flagged = holdersFlagged(allReasons), facts = stripFacts(card, verdict, flagged), holders = holderStats(card, verdict, flagged);
+  const score = card?.ekoScore ?? row?.ekoScore;
+  const flagged = holdersFlagged(allReasons), facts = stripFacts(card, verdict, flagged), holders = holderStats(card, verdict, flagged).filter(h => !facts.some(f => f.id === h.id));
   const supply = totalSupply(card, row);
   const antiSnipeEndsAt = useMemo(() => antiSnipeDeadline(card, guardData.card, serverNow()), [card, guardData.card]);
   const steps = useMemo(() => coinWalk(dont), [dont]);
@@ -98,42 +98,41 @@ function SimpleCoinPage({ address }: { address: string }) {
       {data.error && <div role="status" className="coin-error">{data.error} <button className="btn" onClick={data.retry}>Retry</button></div>}
 
       <header className="sv-tr-head">
-        <div className="sv-tr-id">
-          <h1 className="sv-tr-sym">{identity ? <Ticker symbol={identity.symbol} address={address} /> : short(address)}</h1>
-          <div className="sv-tr-idline">
-            {identity && <span className="sv-tr-name"><UntrustedText value={identity.name} /></span>}
-            {ageSec !== undefined && <span className="sv-tr-age num">{ageShort(ageSec)}</span>}
-            <button type="button" className="sv-tr-ca num" onClick={copy} title={`Copy ${address}`} aria-label={`Copy contract address ${address}`}>{short(address)}<IconCopy size={12} /></button>
+        <div className="sv-tr-top">
+          <div className="sv-tr-id">
+            <h1 className="sv-tr-sym">{identity ? <Ticker symbol={identity.symbol} address={address} /> : short(address)}</h1>
+            <div className="sv-tr-idline">
+              {identity && <span className="sv-tr-name"><UntrustedText value={identity.name} /></span>}
+              {ageSec !== undefined && <span className="sv-tr-tag num" title="Age">{ageShort(ageSec)}</span>}
+              {identity && <span className="sv-tr-tag">{launchpadLabel(identity.launchpad, identity.stage === 'graduated')}</span>}
+              <button type="button" className="sv-tr-tag sv-tr-ca num" onClick={copy} title={`Copy ${address}`} aria-label={`Copy contract address ${address}`}>{short(address)}<IconCopy size={12} /></button>
+              {elsewhere && <a className="sv-tr-link" href={elsewhere.href} target="_blank" rel="noopener noreferrer">{elsewhere.label}<IconOut size={11} /></a>}
+              {devLink && <Link className="sv-tr-link" to={devLink}>Dev</Link>}
+            </div>
           </div>
-          <div className="sv-tr-links">
-            {identity && <span className="sv-tr-pad">{launchpadLabel(identity.launchpad, identity.stage === 'graduated')}</span>}
-            {elsewhere && <a href={elsewhere.href} target="_blank" rel="noopener noreferrer">{elsewhere.label}<IconOut size={11} /></a>}
-            {devLink && <Link to={devLink}>Dev</Link>}
-            <WatchButton kind="coin" target={address} />
-          </div>
+          <div className="sv-tr-actions"><WatchButton kind="coin" target={address} /></div>
         </div>
-        <div className="sv-tr-mc"><span className="sv-tr-label">MC</span><b className="num">{head.marketCap ?? '—'}</b></div>
-        <dl className="sv-tr-stats">
-          {head.stats.map(s => <div key={s.id} className={`sv-tr-stat${s.tone ? ` tone-${s.tone}` : ''}`}><dt>{s.label}</dt><dd className="num">{s.id === 'price' ? <Roll value={s.value} /> : s.value}</dd></div>)}
-        </dl>
-        {chips.length > 0 && <ul className="sv-tr-chips" aria-label="Price change">
-          {chips.map(c => <li key={c.label} className={c.pct >= 0.05 ? 'up' : c.pct <= -0.05 ? 'down' : ''}><span>{c.label}</span><b className="num">{signedPct(c.pct)}</b></li>)}
-        </ul>}
+        <div className="sv-tr-bar">
+          <div className="sv-tr-mc"><span className="sv-tr-label">Market cap</span><b>{head.marketCap ?? '—'}</b></div>
+          <dl className="sv-tr-stats">
+            {head.stats.map(s => <div key={s.id} className={`sv-tr-stat${s.tone ? ` tone-${s.tone}` : ''}`}><dt>{s.label}</dt><dd className="num">{s.id === 'price' ? <Roll value={s.value} /> : s.value}</dd></div>)}
+          </dl>
+          {chips.length > 0 && <ul className="sv-tr-chips" aria-label="Price change">
+            {chips.map(c => <li key={c.label} className={c.pct >= 0.05 ? 'up' : c.pct <= -0.05 ? 'down' : ''}><span>{c.label}</span><b className="num">{signedPct(c.pct)}</b></li>)}
+          </ul>}
+        </div>
       </header>
 
-      <section className={`sv-strip sv-strip-${answer.kind}`} aria-label="EKO says" aria-live="polite">
-        <div className="sv-strip-answer">
+      <section className={`sv-strip sv-strip-${answer.kind}${score ? ' has-score' : ''}`} aria-label="EKO says" aria-live="polite">
+        <div className="sv-strip-col sv-strip-answer">
           <span className="sv-tr-label">EKO says</span>
-          <div className="sv-strip-line">
-            <AnswerChip answer={answer} size="lg" walk="answer" />
-            <span className="sv-steer">{STEER[answer.kind]}</span>
-            {/* The EKO score (the card's, else the radar row's); the old Signal score never shows in Simple. */}
-            <StripScore score={card?.ekoScore ?? row?.ekoScore} />
-
-          </div>
+          <span className={`sv-verdict sv-verdict-${answer.kind}`} data-walk="answer"><AnswerIcon kind={answer.kind} />{answer.word}</span>
+          <p className="sv-steer">{STEER[answer.kind]}</p>
           <ul className="sv-pills">{keystones.map(r => <Pill key={r.text} reason={r} />)}</ul>
         </div>
-        {facts.length > 0 && <ul className="sv-strip-facts">{facts.map(f => <StripFact key={f.id} fact={f} />)}</ul>}
+        {/* The EKO score (the card's, else the radar row's); the old Signal score never shows in Simple. */}
+        {score && <StripScore score={score} />}
+        {facts.length > 0 && <div className="sv-strip-col sv-strip-factcol"><span className="sv-tr-label">Key facts</span><ul className="sv-strip-facts">{facts.map(f => <StripFact key={f.id} fact={f} />)}</ul></div>}
       </section>
 
       <div className="sv-tr-grid">
@@ -161,16 +160,15 @@ function SimpleCoinPage({ address }: { address: string }) {
         </section>
         </div>
         <div className="sv-tr-right">
-        <FlowCard flows={flows} />
         <div className="sv-tr-trade" data-walk="buy">
           {dont ? <DontBuy symbol={symbol} panel={<TradeBox address={address} px={px} row={row} guard={guardData.assessment ?? verdict?.guardV2} stale={stale} symbol={symbol} antiSnipeEndsAt={antiSnipeEndsAt} />} />
             : <TradeBox address={address} px={px} row={row} guard={guardData.assessment ?? verdict?.guardV2} stale={stale} symbol={symbol} antiSnipeEndsAt={antiSnipeEndsAt} />}
         </div>
+        <FlowCard flows={flows} />
         {holders.length > 0 && <section className="sv-box sv-holders" aria-labelledby="sv-holders-h">
-          <h2 id="sv-holders-h" className="sv-box-title">Holders</h2>
-          <ul className="sv-hgrid">{holders.map(h => { const Icon = TONE_ICON[h.tone]; return <li key={h.id} className={`tone-${h.tone}`}><span className="sv-hlabel">{h.label}</span><b className="num">{h.value}</b><Icon size={14} /></li>; })}</ul>
+          <div className="sv-box-head"><h2 id="sv-holders-h" className="sv-box-title">Holders</h2></div>
+          <ul className="sv-hgrid">{holders.map(h => { const Icon = TONE_ICON[h.tone]; return <li key={h.id} className={`tone-${h.tone}`}><Icon size={14} /><span className="sv-hlabel">{h.label}</span><b className="num">{h.value}</b></li>; })}</ul>
         </section>}
-
         </div>
       </div>
       <button type="button" className="sv-more" onClick={() => { useSimple.getState().choose('full'); window.scrollTo({ top: 0 }); }}>Open the full terminal for this coin</button>
@@ -179,28 +177,38 @@ function SimpleCoinPage({ address }: { address: string }) {
   </CoinDetailScope></CoinSlotScope>;
 }
 
-/** Where the EKO score goes in EKO's strip. Renders nothing until the score's field is on the card and row. */
-/** The EKO score after the steer: the figure, its band word and a gauge; the title says why it sits in its band. */
-const SCORE_WORD: Record<EkoScore['band'], string> = { danger: 'Danger', careful: 'Careful', ok: 'OK' };
-const SCORE_TONE = { danger: 'bad', careful: 'watch', ok: 'good' } as const;
-function StripScore({ score }: { score: EkoScore | undefined }): ReactNode {
-  if (!score) return null;
-  const why = score.cappedBy ? `Capped at ${score.cap}: EKO says ${SCORE_WORD[score.band]}, ${score.cappedBy.toLowerCase()}.` : 'Inside its band a coin sits by its setup: momentum, money behind it, holder spread, how easy it is to exit.';
-  return <span className={`sv-strip-score band-${score.band}`} title={`EKO score. Danger is always 0-39, Be careful 40-69, Looks OK 70-100. ${why}`}>
-    <span className="sv-tr-label">EKO score</span><b className="num">{score.value}</b><i>{SCORE_WORD[score.band]}</i>
-    <PixelGauge pct={score.value} tone={SCORE_TONE[score.band]} height={10} columns={20} />
-  </span>;
+const ANSWER_ICON = { ok: IconCheck, careful: IconAlert, dont: IconOct, checking: IconInfo } as const;
+function AnswerIcon({ kind }: { kind: keyof typeof ANSWER_ICON }) { const Icon = ANSWER_ICON[kind]; return <Icon size={24} />; }
+
+/**
+ * The EKO score, the strip's second focal point: big numerals, the band's word, and a 0-100 bar split into the three
+ * bands (Don't buy 0-39, Be careful 40-69, Looks OK 70-100) with a marker at the coin's score, so the score's place
+ * beside the verdict reads at a glance. The title says why it sits in its band.
+ */
+const SCORE_WORD: Record<EkoScore['band'], string> = { danger: "Don't buy", careful: 'Be careful', ok: 'Looks OK' };
+function StripScore({ score }: { score: EkoScore }): ReactNode {
+  const why = score.cappedBy ? `Capped at ${score.cap}: ${score.cappedBy.toLowerCase()}.` : 'Inside its band a coin sits by its setup: momentum, money behind it, holder spread, how easy it is to exit.';
+  return <div className={`sv-strip-col sv-score band-${score.band}`} title={`EKO score. Don't buy is always 0-39, Be careful 40-69, Looks OK 70-100. ${why}`}>
+    <span className="sv-tr-label">EKO score</span>
+    <div className="sv-score-figure"><b>{score.value}</b><span>/100</span></div>
+    <div className="sv-score-bar" role="img" aria-label={`${score.value} out of 100, in the ${SCORE_WORD[score.band]} band`}>
+      <i className="seg danger" /><i className="seg careful" /><i className="seg ok" />
+      <span className="sv-score-mark" style={{ left: `${Math.max(0, Math.min(100, score.value))}%` }} />
+    </div>
+    <div className="sv-score-scale" aria-hidden="true"><span>0</span><span style={{ left: '40%' }}>40</span><span style={{ left: '70%' }}>70</span><span style={{ left: '100%' }}>100</span></div>
+    <span className="sv-score-band">{SCORE_WORD[score.band]} band{score.cappedBy ? ` · capped at ${score.cap}` : ''}</span>
+  </div>;
 }
 
 function Pill({ reason }: { reason: Reason }) {
   const Icon = TONE_ICON[reason.tone];
-  return <li className={`sv-pill tone-${reason.tone}`}><Icon size={13} /><span>{reason.text}</span></li>;
+  return <li className={`sv-pill tone-${reason.tone}`}><Icon size={14} /><span>{reason.text}</span></li>;
 }
 function StripFact({ fact }: { fact: Glance }) {
+  const Icon = TONE_ICON[fact.tone];
   return <li className={`sv-sfact tone-${fact.tone}`} data-walk={fact.id === 'sell' ? 'sell' : undefined}>
-    <span className="sv-tr-label">{fact.label}</span>
+    <span className="sv-sfact-label"><Icon size={13} />{fact.label}</span>
     <b className="num">{fact.value}</b>
-    {fact.gauge !== undefined ? <PixelGauge pct={fact.gauge} tone={fact.tone} height={10} columns={16} /> : <span className="sv-sfact-blank" aria-hidden="true" />}
   </li>;
 }
 
@@ -217,8 +225,8 @@ function DontBuy({ symbol, panel }: { symbol: string | undefined; panel: ReactNo
   const [anyway, setAnyway] = useState<'no' | 'asked' | 'yes'>('no');
   if (anyway === 'yes') return <>{panel}</>;
   return <section className="sv-box sv-dont-box" aria-label="EKO says steer clear">
-    <span className="sv-tr-label">Steer clear</span>
-    <p>EKO says don't buy {symbol ? `$${symbol}` : 'this coin'}. Most people who buy coins like this lose money.</p>
+    <div className="sv-box-head"><h2 className="sv-box-title">EKO says don&apos;t buy</h2></div>
+    <p>Most people who buy coins like {symbol ? `$${symbol}` : 'this one'} lose money. EKO can show you coins that look safer.</p>
     <button type="button" className="sv-btn sv-btn-big" onClick={() => { useSimple.getState().setOnlyOk(true); navigate('/radar'); }}>Find a safer coin</button>
     {anyway === 'no' && <button type="button" className="sv-btn-link" onClick={() => setAnyway('asked')}>Buy anyway</button>}
     {anyway === 'asked' && <div className="sv-warn" role="alert">
