@@ -1136,6 +1136,9 @@ input:focus-visible + .switch {
   font-size: var(--fs-xs);
   color: var(--text-2);
 }
+.toasts-clear {
+  justify-self: end;
+}
 .toast-action {
   margin-top: 8px;
 }

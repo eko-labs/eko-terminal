@@ -92,6 +92,8 @@ interface Actions {
   upsertOrder(o: Order): void;
   toast(t: Omit<State['toasts'][number], 'id'>): void;
   dismissToast(id: number): void;
+  /** Clears every notification on screen at once. */
+  dismissAllToasts(): void;
   set(p: Partial<State>): void;
 }
 
@@ -219,6 +221,10 @@ export const useApp = create<State & Actions>((set, get) => ({
 
   dismissToast(id) {
     set({ toasts: get().toasts.filter((t) => t.id !== id) });
+  },
+
+  dismissAllToasts() {
+    set({ toasts: [] });
   },
 
 }));

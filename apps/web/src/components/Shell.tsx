@@ -86,8 +86,10 @@ export function StatusBar() {
 export function Toasts() {
   const toasts = useApp((s) => s.toasts);
   const dismiss = useApp((s) => s.dismissToast);
+  const dismissAll = useApp((s) => s.dismissAllToasts);
   return (
     <div className="toasts" role="region" aria-live="polite" aria-label="Notifications">
+      {toasts.length > 1 ? <button className="btn sm toasts-clear" onClick={dismissAll}>Dismiss all ({toasts.length})</button> : null}
       {toasts.map((t) => (
         <div key={t.id} className={`toast toast--${t.kind}`}>
           <span className="toast-ico">{t.kind === 'ok' ? <IconCheck size={14} /> : t.kind === 'info' ? <IconInfo size={14} /> : <IconAlert size={14} />}</span>

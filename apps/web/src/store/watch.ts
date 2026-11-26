@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { AddressSchema, AlertSchema, AlertSettingsSchema, WatchBodySchema, type Alert, type AlertSettings, type WatchBody, type WsEvent } from '@eko/shared';
 import { useApp } from './app';
 import { api, fetchParsed, type ApiOptions } from '../lib/api';
+import { alertSummary } from '../lib/alertSummary';
 
 const WatchList = z.object({ items: z.array(WatchBodySchema) });
 // TODO(spec): Use task 114's private /alerts cursor envelope until CA-28 freezes a history contract.
@@ -101,7 +102,8 @@ export function createWatchStore(client: WatchClient, notify: (alert: Alert) => 
     };
   });
 }
-export const useWatch = createWatchStore({ parse: fetchParsed, request: api }, () => {
-  // Notifications contain only first-party kind labels; the drawer renders all source text as UntrustedText.
-  useApp.getState().toast({ kind: 'info', title: 'New watch alert', action: { label: 'View alerts', run: () => window.dispatchEvent(new Event('eko:open-alerts')) } });
+export const useWatch = createWatchStore({ parse: fetchParsed, request: api }, (alert) => {
+  // The pop-up says what happened: a first-party label for the kind and the coin, then the alert's sentence, made
+  // plain and short (lib/alertSummary). The drawer still renders all source text as UntrustedText.
+  useApp.getState().toast({ kind: alert.level === 'danger' ? 'warn' : 'info', ...alertSummary(alert), action: { label: 'View alerts', run: () => window.dispatchEvent(new Event('eko:open-alerts')) } });
 });

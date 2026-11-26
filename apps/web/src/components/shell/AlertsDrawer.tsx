@@ -14,10 +14,29 @@ export function AlertList({ alerts }: { alerts: Alert[] }) {
     {alert.coin && <Link to={`/coin/${alert.coin}`}>Open coin</Link>}
   </li>)}</ul> : <p className="empty">No alerts yet. Watch a coin or wallet to follow its events.</p>;
 }
+/**
+ * "Clear all" hides every alert up to now in this browser (the server keeps no read state): the time is kept per
+ * wallet, and alerts that arrive later show as usual. Storage is optional; without it the clear lasts this visit.
+ */
+const CLEARED_KEY = 'eko.alerts.cleared';
+function readCleared(): Record<string, string> {
+  try { const v: unknown = JSON.parse(localStorage.getItem(CLEARED_KEY) ?? '{}'); return v && typeof v === 'object' ? v as Record<string, string> : {}; } catch { return {}; }
+}
+/** The alerts still shown after a clear at `clearedAt` (an ISO time), newest first as given. */
+export function afterClear(alerts: readonly Alert[], clearedAt: string | undefined): Alert[] {
+  return clearedAt ? alerts.filter(a => a.ts > clearedAt) : [...alerts];
+}
 function Drawer({ close }: { close: () => void }) {
   const ref = useRef<HTMLDivElement>(null), owner = useWatch(s => s.owner), alerts = useWatch(s => s.alerts), error = useWatch(s => s.alertError);
+  const [cleared, setCleared] = useState(readCleared);
+  const key = owner?.toLowerCase() ?? '', shown = afterClear(alerts, cleared[key]);
+  const clearAll = () => {
+    const at = alerts.reduce((m, a) => (a.ts > m ? a.ts : m), new Date().toISOString()), next = { ...cleared, [key]: at };
+    setCleared(next);
+    try { localStorage.setItem(CLEARED_KEY, JSON.stringify(next)); } catch { /* storage unavailable: cleared for this visit */ }
+  };
   useDialog(ref, { onEscape: close });
-  return <div className="watch-overlay" onClick={e => { if (e.target === e.currentTarget) close(); }}><div ref={ref} className="watch-drawer" role="dialog" aria-modal="true" aria-labelledby="alerts-title" tabIndex={-1}><div className="watch-inline"><h2 id="alerts-title">Alerts</h2><button className="btn" data-autofocus onClick={close}>Close alerts</button></div>{!owner ? <ConnectWatch /> : <>{error && <p role="alert">{error} <button className="btn" onClick={() => void useWatch.getState().resyncAlerts().catch(() => {})}>Retry alerts</button></p>}<AlertList alerts={alerts} /><Link to="/watch" onClick={close}>Manage watches and notifications</Link></>}</div></div>;
+  return <div className="watch-overlay" onClick={e => { if (e.target === e.currentTarget) close(); }}><div ref={ref} className="watch-drawer" role="dialog" aria-modal="true" aria-labelledby="alerts-title" tabIndex={-1}><div className="watch-inline"><h2 id="alerts-title">Alerts</h2>{owner && shown.length > 0 && <button className="btn" onClick={clearAll}>Clear all</button>}<button className="btn" data-autofocus onClick={close}>Close alerts</button></div>{!owner ? <ConnectWatch /> : <>{error && <p role="alert">{error} <button className="btn" onClick={() => void useWatch.getState().resyncAlerts().catch(() => {})}>Retry alerts</button></p>}{shown.length || !alerts.length ? <AlertList alerts={shown} /> : <p className="empty">All caught up. New alerts will show here.</p>}<Link to="/watch" onClick={close}>Manage watches and notifications</Link></>}</div></div>;
 }
 export function AlertsDrawer() {
   const [open, setOpen] = useState(false);
