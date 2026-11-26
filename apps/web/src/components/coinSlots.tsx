@@ -6,8 +6,8 @@ import type { ChartCore } from './chart/chartCore';
 
 /**
  * Places on the coin page that post-launch features (features.ts) can fill: the glance row at the top, over the price
- * chart, in the chart's key row, the tool row under the chart, sections in the detail tabs, and next to a wallet in the
- * Flow and Trades tabs. A slot shows only while its feature's flag is on; with none
+ * chart, in the chart's key row, the tool row under the chart, sections in the detail tabs, next to a wallet in the
+ * Flow and Trades tabs, and a page's list of key facts. A slot shows only while its feature's flag is on; with none
  * on, these render nothing and the page is unchanged. Slots may be lazy components: each place waits for them quietly.
  */
 const CoinAddress = createContext<string | null>(null);
@@ -89,10 +89,21 @@ export function ToolRow() {
 export function useTabSections(tab: CoinDetailTab) {
   return useCoinSlots().flatMap(s => s.section && s.section.tab === tab ? [s.section] : []).sort((a, b) => a.order - b.order);
 }
-export function TabSections({ tab }: { tab: CoinDetailTab }) {
-  const coin = useContext(CoinAddress), sections = useTabSections(tab);
+/** A tab's sections; `part` keeps those above the tab's own content (`lead`, order below 0) or after it (`rest`). */
+export function TabSections({ tab, part }: { tab: CoinDetailTab; part?: 'lead' | 'rest' }) {
+  const coin = useContext(CoinAddress), sections = useTabSections(tab).filter(s => part === undefined || (part === 'lead') === (s.order < 0));
   if (!coin || !sections.length) return null;
   return <>{sections.map(sec => { const Body = sec.component; return <section key={sec.id} id={sectionAnchor(sec.id)} tabIndex={-1} className="coin-section" aria-labelledby={`${sectionAnchor(sec.id)}-h`}>
     <h3 id={`${sectionAnchor(sec.id)}-h`} className="coin-section-title">{sec.title}</h3>
     <Suspense fallback={null}><Body coin={coin} /></Suspense></section>; })}</>;
+}
+
+/** The features' key facts, by order, as list items for a page's list of facts (components/KeyFact.tsx). */
+export function useFactSlots() {
+  return useCoinSlots().flatMap(s => s.fact ? [s.fact] : []).sort((a, b) => a.order - b.order);
+}
+export function FactSlots() {
+  const coin = useContext(CoinAddress), facts = useFactSlots();
+  if (!coin || !facts.length) return null;
+  return <Suspense fallback={null}>{facts.map((f, i) => { const Fact = f.component; return <Fact key={i} coin={coin} />; })}</Suspense>;
 }

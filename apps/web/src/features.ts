@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { FlagNameSchema, type FlagName, type Flags } from '@eko/shared';
+import { FlagNameSchema, type FlagName, type Flags, type RadarRow } from '@eko/shared';
 import type { ChartCore } from './components/chart/chartCore';
 
 /**
@@ -38,9 +38,16 @@ export interface CoinSlots {
   tool?: { label: string; order: number; panel: ComponentType<{ coin: string; close: () => void }> };
   /**
    * A section in one of the coin page's detail tabs (a tab shows only when something fills it). Lead with one plain
-   * sentence; tables and long lists go under it, collapsed or short. `id` lets a glance tile jump to it.
+   * sentence; tables and long lists go under it, collapsed or short. `id` lets a glance tile jump to it. An order below
+   * 0 puts it above the tab's own content where the page has some (Overview's verdict card), 0 and up after it.
    */
   section?: { tab: CoinDetailTab; id: string; title: string; order: number; component: ComponentType<{ coin: string }> };
+  /**
+   * One key fact in a page's short list of facts about the coin (Simple's coin page, beside its answer), first in the
+   * list, by order. Render a `KeyFact` (components/KeyFact.tsx): a label of a word or two, one short figure, a tone; or
+   * null when there is nothing worth saying.
+   */
+  fact?: { order: number; component: ComponentType<{ coin: string }> };
 }
 /** The coin page's detail tabs that features can add sections to. */
 export const COIN_DETAIL_TABS = ['Overview', "Who's in", 'Odds'] as const;
@@ -58,6 +65,11 @@ export interface FeatureDemo {
   fetch?(req: { method: string; route: string; query: URLSearchParams; body: unknown }): { status?: number; body: unknown } | undefined;
   /** Start pushing events on a channel a page subscribed to; return a stop function, or undefined to pass. */
   channel?(ch: string, push: (kind: string, data: unknown) => void): (() => void) | undefined;
+  /**
+   * Add the feature's own part to an answer another part of mock mode gave (the radar list's rows, say): return the
+   * body with it added, or undefined to leave it. Runs on every JSON answer, after `fetch`.
+   */
+  amend?(req: { method: string; route: string }, body: unknown): unknown;
 }
 /**
  * Places outside the coin page a feature can fill, shown only while its flag is on (components/placeSlots.tsx). A place
@@ -69,6 +81,13 @@ export interface PlaceSlots {
   launchFilter?: ComponentType<{ filter: unknown }>;
   /** In the top bar on every page, desktop and phone (`compact` on the phone bar): a short control, never a menu. */
   header?: ComponentType<{ compact: boolean }>;
+  /**
+   * One short figure in every row of the coin lists (Radar's table, as a column after the verdict; Simple's coins, by
+   * the answer), read from the row the list already has (RadarRow.extras under the feature's flag): no fetch per row.
+   * `cell` renders it (a dash or nothing when the row has none); `value` is what the list sorts by, highest first
+   * (undefined sorts last); `label` heads the column and names the sort.
+   */
+  coinRow?: { id: string; label: string; title?: string; value: (row: RadarRow) => number | undefined; cell: ComponentType<{ row: RadarRow }> };
 }
 /**
  * Places in the trade panel a feature can fill, shown only while its flag is on (components/trade/tradeSlots.tsx).

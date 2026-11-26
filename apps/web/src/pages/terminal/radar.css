@@ -82,6 +82,10 @@
 .rt tbody tr.sel td{background:#8fcaf01c}.rt tbody tr.sel td:first-child{box-shadow:inset 3px 0 var(--lit)}
 .rt tr.pulse td{animation:row-flash 1.6s var(--e-out)}
 @keyframes row-flash{0%{background-color:#8fcaf02a}}
+/* Features' figures (placeSlots.tsx coinRow): a short coloured figure after the verdict. */
+/* On a phone-width table the coin and verdict keep their room: features' columns give way (Simple's list shows them). */
+.rt .c-place{width:72px}
+@container(max-width:440px){.rt .c-place{display:none}}
 @container (max-width:1160px){.rt .c-liq{display:none}}
 @container (max-width:1020px){.rt .c-act{display:none}}
 @container (max-width:940px){.rt .c-flow{display:none}}

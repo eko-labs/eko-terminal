@@ -189,3 +189,6 @@ html,body,#root{height:auto;min-height:100%;overflow:visible}body{overflow:auto;
 .eko-shell .toast .icon-btn:hover{color:var(--ink)}
 /* On a phone the bottom of the screen is the trade sheet's Buy and Sell: notifications sit at the top instead. */
 @media(max-width:899px){.eko-shell .toasts{top:calc(var(--header) + 8px);bottom:auto;left:12px;right:12px;width:auto}}
+/* A control in the top bar (placeSlots HeaderSlots) takes the plan chip's room on narrow phones; the plan stays in More. */
+.hdr-slots{display:contents}
+@media(max-width:560px){.mbar:has(.hdr-slots>*) .mbar-r .trial{display:none}}

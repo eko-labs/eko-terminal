@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { CHAIN_NETWORK, NETWORKS, RadarRowSchema, type EkoScore, type Flow, type RadarRow } from '@eko/shared';
 import { ChartStage } from '../../components/chart/ChartStage';
 import type { CoinTimeframe } from '../../components/chart/coinMath';
-import { CoinDetailScope, CoinSlotScope, TabSections, WalletSlots, useTabSections } from '../../components/coinSlots';
+import { CoinDetailScope, CoinSlotScope, FactSlots, TabSections, WalletSlots, useFactSlots, useTabSections } from '../../components/coinSlots';
 import { IconAlert, IconCheck, IconCopy, IconInfo, IconOct, IconOut } from '../../components/icons';
 import { TradePanel } from '../../components/trade/TradePanel';
 import { antiSnipeDeadline } from '../../components/trade/tradePanelModel';
@@ -76,7 +76,7 @@ function SimpleCoinPage({ address }: { address: string }) {
   const supply = totalSupply(card, row);
   const antiSnipeEndsAt = useMemo(() => antiSnipeDeadline(card, guardData.card, serverNow()), [card, guardData.card]);
   const steps = useMemo(() => coinWalk(dont), [dont]);
-  const whosIn = useTabSections("Who's in").length > 0, odds = useTabSections('Odds').length > 0;
+  const whosIn = useTabSections("Who's in").length > 0, odds = useTabSections('Odds').length > 0, factSlots = useFactSlots().length > 0;
   const trades = useMemo(() => tradeRows(flows, supply, card?.identity.deployer), [flows, supply, card?.identity.deployer]);
   const tabs = ['Trades', ...(whosIn ? ['Holders'] : []), ...(odds ? ['Odds'] : []), 'Why EKO says this'];
   const detail = useMemo(() => ({ open: (name: CoinDetailTab) => setTab(name === "Who's in" ? 'Holders' : name === 'Odds' ? 'Odds' : 'Why EKO says this') }), []);
@@ -132,7 +132,7 @@ function SimpleCoinPage({ address }: { address: string }) {
         </div>
         {/* The EKO score (the card's, else the radar row's); the old Signal score never shows in Simple. */}
         {score && <StripScore score={score} />}
-        {facts.length > 0 && <div className="sv-strip-col sv-strip-factcol"><span className="sv-tr-label">Key facts</span><ul className="sv-strip-facts">{facts.map(f => <StripFact key={f.id} fact={f} />)}</ul></div>}
+        {(facts.length > 0 || factSlots) && <div className="sv-strip-col sv-strip-factcol"><span className="sv-tr-label">Key facts</span><ul className="sv-strip-facts"><FactSlots />{facts.map(f => <StripFact key={f.id} fact={f} />)}</ul></div>}
       </section>
 
       <div className="sv-tr-grid">

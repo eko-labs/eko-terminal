@@ -11,7 +11,7 @@ import type { Edge } from './service.js';
 import type { CoinState, Rpc } from './tracker.js';
 import { coinCard, coinSummary, feedItem, flowView, pairColumn, pairRow, pendingVerdict, progressBps, publicConfig, radarRow, unitScale } from './views.js';
 import type { HistoryStore } from './history.js';
-import type { LoadedFeature } from './features/index.js';
+import type { LoadedFeature, RowExtras } from './features/index.js';
 import type { AlertInbox } from './alerts.js';
 import type { Historian } from './historian.js';
 import type { FunderTracer } from './funders.js';
@@ -119,9 +119,18 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
     if (radarCache && age < RADAR_STALE_MS) { void rebuildRadar(true).catch(() => undefined); return radarCache.body; }
     return rebuildRadar(false);
   };
+  // Features' figures on each row (features/index.ts RowExtras), under their flag; none while no feature adds one.
+  const rowExtras = new Map<string, (coin: CoinState) => unknown>();
+  const rowsPlace: RowExtras = { add: (flag, read) => { rowExtras.set(flag, read); } };
+  const withExtras = <R extends object>(c: CoinState, row: R): R => {
+    if (!rowExtras.size) return row;
+    const extras: Record<string, unknown> = {};
+    for (const [flag, read] of rowExtras) { try { const v = read(c); if (v !== undefined) extras[flag] = v; } catch { /* nothing from this feature */ } }
+    return Object.keys(extras).length ? { ...row, extras } : row;
+  };
   const buildRadar = () => {
     const ctx = edge.ctx();
-    const rows = ranked().slice(0, LIMIT).map((c, i) => radarRow(c, edge.assessment(c.token), ctx, i + 1));
+    const rows = ranked().slice(0, LIMIT).map((c, i) => withExtras(c, radarRow(c, edge.assessment(c.token), ctx, i + 1)));
     // Counts use each coin's last verdict: recomputing every coin's verdict per request stalls the server.
     const levels = [...edge.tracker.coins.values()].map(c => edge.cachedLevel(c.token));
     const count = (l: string) => levels.filter(x => x === l).length;
@@ -285,7 +294,7 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
   });
 
   // Post-launch features that are on (features/index.ts): their routes come before the catch-all below.
-  for (const feature of opts.features ?? []) feature.register({ app, edge, ...(opts.store ? { store: opts.store } : {}), ...(opts.accounts ? { accounts: opts.accounts } : {}), ...(auth ? { auth } : {}), ...(opts.alerts ? { alerts: opts.alerts } : {}), ...(opts.rpc ? { rpc: opts.rpc } : {}), ...(opts.funders ? { funders: opts.funders } : {}) });
+  for (const feature of opts.features ?? []) feature.register({ app, edge, rows: rowsPlace, ...(opts.store ? { store: opts.store } : {}), ...(opts.accounts ? { accounts: opts.accounts } : {}), ...(auth ? { auth } : {}), ...(opts.alerts ? { alerts: opts.alerts } : {}), ...(opts.rpc ? { rpc: opts.rpc } : {}), ...(opts.funders ? { funders: opts.funders } : {}) });
 
   // Everything else under the API is not served yet.
   app.all('/v1/*', async (_req, reply) => fail(reply, 404, 'not_found', `Not available on EKO for ${chain.name} yet.`));

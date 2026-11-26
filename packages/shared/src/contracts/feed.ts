@@ -69,6 +69,10 @@ export const RadarRowSchema = CoinSummarySchema.extend({
   volumeBaselineUsd: z.number().nonnegative().optional(),
   volume24hUsd: z.number().nonnegative().optional(),
   trades24h: z.number().int().nonnegative().optional(),
+  // TODO(spec): additive (2026-11-26). Short figures post-launch features add to each row while their flag is on, keyed
+  // by the feature's flag (docs/FLAGS.md); each feature reads only its own key and checks its own shape. Absent when no
+  // feature that is on has a figure for the coin.
+  extras: z.record(z.string().max(40), z.unknown()).optional(),
 });
 export type RadarRow = z.infer<typeof RadarRowSchema>;
 // CA-36: totals cover every live coin, independent of the loaded page.

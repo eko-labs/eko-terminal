@@ -68,6 +68,12 @@ describe('Radar server order and user sorting', () => {
     expect(next).toEqual([rows[2],changed]); expect(next[0]).toBe(rows[2]); expect(rows[1].change1hPct).not.toBe(99);
     expect(applyRadarEvents(rows,[event('row_upsert',createRadarRows()[3])])).toHaveLength(4);
   });
+  it('keeps a row\'s feature figures (extras) through an update that has none, and takes new ones', () => {
+    const rows=createRadarRows().slice(0,2).map(r=>({...r,extras:{some_flag:{v:1}}}));
+    const plain={...createRadarRows()[1]!,change1hPct:12};
+    expect(applyRadarEvents(rows,[event('row_upsert',plain)])[1]).toEqual({...plain,extras:{some_flag:{v:1}}});
+    expect(applyRadarEvents(rows,[event('row_upsert',{...plain,extras:{some_flag:{v:2}}})])[1]!.extras).toEqual({some_flag:{v:2}});
+  });
 });
 describe('Hot right now strip', () => {
   const rows = () => createRadarRows().map((c, i) => ({ ...c, verdictPending: false, unavailable: ['flow' as const], flow: { ...c.flow, agentPct: 0 },

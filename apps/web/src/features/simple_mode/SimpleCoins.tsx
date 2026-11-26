@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { RadarRow } from '@eko/shared';
 import { PixelGauge } from '../../components/GlanceTile';
+import { sortByPlace, useCoinRowPlaces } from '../../components/placeSlots';
 import { HeatTag, UntrustedText } from '../../components/ui';
 import { Spark } from '../../components/ui/charts';
 import { fetchParsed, isRateLimited, MOCKS } from '../../lib/api';
@@ -64,6 +65,9 @@ export default function SimpleCoins() {
   const onlyOk = useSimple(s => s.onlyOk), setOnlyOk = useSimple(s => s.setOnlyOk);
   const lens = useSimple(s => s.lens), setLens = useSimple(s => s.setLens), sort = useSimple(s => s.sort), setSort = useSimple(s => s.setSort);
   const lensDef = LENSES.find(l => l.id === lens) ?? LENSES[0]!;
+  // Features' figures in each row (placeSlots.tsx coinRow), each also a sort, highest first.
+  const places = useCoinRowPlaces(), [placeSort, setPlaceSort] = useState<string | null>(null);
+  const byPlace = places.find(p => `place:${p.id}` === placeSort);
   const load = useCallback(async (signal?: AbortSignal) => {
     try {
       const data = await fetchParsed(`${MOCKS ? '' : '/v2'}/radar`, RadarResponseSchema, signal ? { signal } : {});
@@ -76,7 +80,8 @@ export default function SimpleCoins() {
   useEffect(() => { const ac = new AbortController(); void load(ac.signal); return () => ac.abort(); }, [load]);
   useEffect(() => rt?.subscribeBatch('radar', (events) => setRows(old => keepTrading(old, applyRadarEvents(old, events))), () => load()), [rt, load]);
   const answers = rows.map(r => ({ row: r, answer: answerFor(r) }));
-  const shown = sortRows(rows.filter(r => matches(r, lens)), sort).map(r => answers.find(a => a.row === r)!)
+  const inLens = rows.filter(r => matches(r, lens));
+  const shown = (byPlace ? sortByPlace(sortRows(inLens, 'hot'), byPlace.value) : sortRows(inLens, sort)).map(r => answers.find(a => a.row === r)!)
     .filter(a => !onlyOk || a.answer.kind === 'ok');
   const counts = { ok: 0, careful: 0, dont: 0, checking: 0 };
   for (const a of answers) counts[a.answer.kind]++;
@@ -112,16 +117,17 @@ export default function SimpleCoins() {
           {LENSES.map(l => <button type="button" key={l.id} role="radio" aria-checked={lens === l.id} title={l.hint} onClick={() => setLens(l.id)}>{l.label}</button>)}
         </div>
         <label className="sv-sort"><span>Sort</span>
-          <select className="input" value={sort} onChange={e => { if (isSort(e.target.value)) setSort(e.target.value); }}>
+          <select className="input" value={byPlace ? placeSort! : sort} onChange={e => { const v = e.target.value; if (v.startsWith('place:')) setPlaceSort(v); else if (isSort(v)) { setPlaceSort(null); setSort(v); } }}>
             {SORTS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+            {places.map(p => <option key={p.id} value={`place:${p.id}`}>{p.label}</option>)}
           </select>
         </label>
       </div>
       <p className="sv-lens-hint">{lensDef.hint}</p>
       {error && !rows.length ? <div className="sv-empty"><p>EKO couldn't load the coins just now.</p><button type="button" className="sv-btn sv-btn-quiet" onClick={() => { setLoading(true); void load(); }}>Try again</button></div>
-        : <div className="sv-list-wrap">
+        : <div className={`sv-list-wrap${places.length ? ' has-place' : ''}`}>
           {spot.height > 0 && <div className="sv-walk-spot" data-walk="list" style={{ top: spot.top, height: spot.height }} />}
-          <div className="sv-list-head" aria-hidden="true"><span>Coin</span><span>Last 8 hours</span><span>Market cap</span><span>Last hour</span><span>EKO says</span></div>
+          <div className="sv-list-head" aria-hidden="true"><span>Coin</span><span>Last 8 hours</span><span>Market cap</span><span>Last hour</span>{places.map(p => <span key={p.id} title={p.title}>{p.label}</span>)}<span>EKO says</span></div>
           <ol ref={list} className="sv-list" aria-busy={loading}>
             {loading && !rows.length && Array.from({ length: 6 }, (_, i) => <li key={i} className="sv-row sv-row-wait" aria-hidden="true"><span className="skel" /></li>)}
             {shown.map(({ row, answer }, i) => {
@@ -134,6 +140,7 @@ export default function SimpleCoins() {
                     ? <><Roll value={usd(row.marketCapUsd)} />{!row.priceUnavailable && <small>{formatCoinPrice(row.priceUsd)}</small>}</>
                     : row.priceUnavailable ? '' : <Roll value={formatCoinPrice(row.priceUsd)} />}</span>
                   <span className={`sv-row-move${change !== null && change > 0 ? ' up' : ''}`}>{change === null ? '' : moveText(change, '')}</span>
+                  {places.map(p => { const Cell = p.cell; return <span key={p.id} className="sv-row-place num"><Suspense fallback={null}><Cell row={row} /></Suspense></span>; })}
                   <span className="sv-row-answer"><AnswerChip answer={answer} size="md" walk={i === 0 ? 'answer' : undefined} /></span>
                 </Link>
               </li>;

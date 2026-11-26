@@ -9,8 +9,9 @@ const KIND: Record<Alert['kind'], string> = {
   verdict_change: 'Verdict changed', playbook: 'Warning sign found', crew_active: 'Crew active', agent_flow_spike: 'Agent buying spike',
   approval: 'Approval needed', order: 'Order update', agent_trade: 'Your agent traded', wallet_trade: 'Tracked wallet traded',
   dev_sell: 'Dev sold', launch_match: 'New coin matches your filter', price: 'Price alert', curve: 'Bonding curve update',
+  dump_risk: 'Dump risk rose',
 };
-const HIDDEN = /[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁠-⁩﻿]/g;
+const HIDDEN = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/g;
 export function plain(text: string, max: number): string {
   const one = text.replace(/\s+/g, ' ').replace(HIDDEN, '').trim();
   return one.length > max ? `${one.slice(0, max - 1).trimEnd()}…` : one;

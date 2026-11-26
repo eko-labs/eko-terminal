@@ -7,7 +7,7 @@ import type { AlertInbox } from '../alerts.js';
 import type { FunderTracer } from '../funders.js';
 import type { HistoryStore } from '../history.js';
 import type { Edge } from '../service.js';
-import type { Rpc } from '../tracker.js';
+import type { CoinState, Rpc } from '../tracker.js';
 
 /**
  * Post-launch features, each in its own folder: src/features/<flag>/index.ts, where <flag> is the feature's flag name
@@ -27,7 +27,15 @@ export interface FeatureContext {
   rpc?: Rpc;
   /** The background funder tracer (funders.ts), when the history store is on and the chain has a funding source (an explorer API, or the archive RPC while linked_devs is on): `want(wallets, 'lookup')` queues a page's wallets behind live work. */
   funders?: FunderTracer;
+  /** Short figures on each Radar row (RadarRow.extras, under the feature's flag). */
+  rows?: RowExtras;
 }
+/**
+ * Figures a feature adds to each Radar row, under its flag: `read(coin)` is asked for every row each time the list is
+ * built (up to 100 coins, shared by every visitor), so it must be synchronous and cheap: return a figure computed
+ * earlier, or undefined for none. A read that throws adds nothing.
+ */
+export interface RowExtras { add(flag: FlagName, read: (coin: CoinState) => unknown): void }
 export interface Feature { register(ctx: FeatureContext): void }
 export interface LoadedFeature extends Feature { flag: FlagName }
 

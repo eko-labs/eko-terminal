@@ -13,7 +13,8 @@ import { AnalysisPolicyNotice } from '../../components/PolicyLinks';
 import { NOT_CHECKED, NOT_FULLY_CHECKED, RUN_UP_LEGEND, SELL_CHECK_NOT_AVAILABLE, SELL_CHECK_TEXT, SELL_FAILS, SELL_FAILS_TITLE } from '../../copy/availability';
 import { runUpScore } from '../../lib/runUp';
 import { exitMeasured, sellCheckNotAvailable, sellCheckOf } from '../../lib/sellCheck';
-import { memo, useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { memo, Suspense, useEffect, useMemo, useRef, type ReactNode } from 'react';
+import type { PlaceSlots } from '../../features';
 import type { CoinCard, RadarRow, Flow } from '@eko/shared';
 import { HeatTag, Info, Seg, UnavailableValue, UntrustedText, VerdictChip } from '../../components/ui';
 import { MiniBars, Spark } from '../../components/ui/charts';
@@ -44,7 +45,10 @@ function CoinTicker({ c }: { c: { symbol: RadarRow['symbol']; address: string } 
   if (!c.symbol.text.trim()) return <span className="noname" title={c.address}>{`${c.address.slice(0, 6)}…${c.address.slice(-4)}`}</span>;
   return <Decode text={`$${c.symbol.text}`}><span>$<UntrustedText value={c.symbol} /></span></Decode>;
 }
-export const RadarRowView = memo(function RadarRowView({ c, selected, select, trade, pulse, confidence, stateLabel = noMatchLabel(c), scanDelayed = false }: { c: RadarRow; selected: boolean; select: (c: RadarRow, el: HTMLElement) => void; trade: (c: RadarRow, el: HTMLElement) => void; pulse: number; confidence?: number; stateLabel?: string; scanDelayed?: boolean }) {
+/** Features' figures in each row (placeSlots.tsx coinRow), as columns after the verdict. */
+type CoinRowPlace = NonNullable<PlaceSlots['coinRow']>;
+const NO_COLS: readonly CoinRowPlace[] = [];
+export const RadarRowView = memo(function RadarRowView({ c, cols = NO_COLS, selected, select, trade, pulse, confidence, stateLabel = noMatchLabel(c), scanDelayed = false }: { c: RadarRow; cols?: readonly CoinRowPlace[]; selected: boolean; select: (c: RadarRow, el: HTMLElement) => void; trade: (c: RadarRow, el: HTMLElement) => void; pulse: number; confidence?: number; stateLabel?: string; scanDelayed?: boolean }) {
   const tradingLive = useShell((st) => st.config?.trading.liveEnabled !== false);
   const el = useRef<HTMLTableRowElement>(null);
   useEffect(() => { const row = el.current; if (!pulse || !row) return; row.classList.remove('pulse'); void row.offsetWidth; row.classList.add('pulse'); }, [pulse]);
@@ -53,6 +57,7 @@ export const RadarRowView = memo(function RadarRowView({ c, selected, select, tr
   return <tr ref={el} data-address={c.address} className={`h-${heatOf(c)} ${markClass(marking(c))}${selected ? ' sel' : ''}`} onClick={(e) => select(c, e.currentTarget.querySelector<HTMLButtonElement>('[data-pick]')!)}>
     <td className="c-coin"><button data-pick className="rt-pick" aria-pressed={selected} aria-controls={selected ? 'radar-inspector' : undefined} onClick={(e) => { e.stopPropagation(); select(c, e.currentTarget); }}><span className="rt-top"><span className="rt-sym" title={`$${c.symbol.text}`}><CoinTicker c={c} /></span><BlueChipBadge value={c.blueChip} /><HeatTag heat={displayHeat(c)} />{c.ekoScore && <ScoreMini score={c.ekoScore} />}</span><span className="rt-name"><UntrustedText value={c.name} /> · <span className="rt-pad">{launchpadLabel(c.launchpad, c.stage === 'graduated')}{c.quoteSymbol ? ` ${quotedIn(c.quoteSymbol)}` : ''}</span> · {age(c.ageSec)}</span></button></td>
     <td className="c-guard"><CompactVerdictChip priceMove={c.priceMove} level={c.verdict} guard={c.guardV2} failed={c.guardRefreshFailed} pending={c.verdictPending} scanDelayed={scanDelayed} evaluatedPlaybooks={c.evaluatedPlaybooks} missing={c.missingChecks} stateLabel={stateLabel} runUp={score} historyPartial={c.historyPartial} /></td>
+    {cols.map(col => { const Cell = col.cell; return <td key={col.id} className="c-place r num"><Suspense fallback={null}><Cell row={c} /></Suspense></td>; })}
     <td className="c-watch">{c.topPlaybook ? <><span className="rt-play">{playbookName(c.topPlaybook, c.verdict)}</span>{confidence !== undefined && <span className="rt-conf">{Math.round(confidence * 100)}% confidence</span>}</> : null}</td>
     <td className="c-sig r">{c.ekoScore && <ScoreCell score={c.ekoScore} />}</td>
     <td className="c-beta r">{c.beta && <span className="rt-sig"><span className="tag">Beta</span>{c.beta.apeScore !== undefined && <b className="num">{c.beta.apeScore}</b>}{c.beta.setupGrade && <span>{c.beta.setupGrade}</span>}</span>}</td>

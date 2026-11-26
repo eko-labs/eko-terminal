@@ -1168,7 +1168,8 @@
       "size_check": false,
       "multichart": false,
       "paper_trading": false,
-      "simple_mode": false
+      "simple_mode": false,
+      "dump_test": false
     },
     "tiers": [
       {
@@ -2295,7 +2296,8 @@
     "size_check": false,
     "multichart": false,
     "paper_trading": false,
-    "simple_mode": false
+    "simple_mode": false,
+    "dump_test": false
   },
   "OpsSwitch": "trading_live",
   "WsEventMap": {

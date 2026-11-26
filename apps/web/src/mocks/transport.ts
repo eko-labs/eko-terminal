@@ -27,7 +27,7 @@ export function createMockTransport(opts: { flags?: Partial<Flags> } = {}) {
   const alertSettings = new Map<string, AlertSettings>();
   const watches=new Map<string,{kind:'coin'|'wallet'|'crew';target:string}>();
   const account = () => ({ id: 'mock-session', kind: wallet ? 'wallet' : 'guest', walletAddress: wallet, displayName: null, role: 'user' });
-  return async (input: string, init: RequestInit = {}): Promise<Response> => {
+  const answer = async (input: string, init: RequestInit = {}): Promise<Response> => {
     if (init.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
     const path = new URL(input, 'http://localhost').pathname;
     const method = init.method ?? 'GET';
@@ -257,6 +257,16 @@ export function createMockTransport(opts: { flags?: Partial<Flags> } = {}) {
     // Public scan deep links should agree with the requested resource id.
     if (route.startsWith('/scan/') && typeof result === 'object' && result) Object.assign(result, { id: route.slice(6), shareUrl: route });
     return json(endpoint.schema.parse(result));
+  };
+  // Feature folders' additions to answers given elsewhere (features.ts FeatureDemo.amend), for features whose flag is on.
+  return async (input: string, init: RequestInit = {}): Promise<Response> => {
+    const res = await answer(input, init);
+    const amenders = (await (demos ??= featureDemos(opts.flags))).filter(d => d.amend);
+    if (!amenders.length || !res.ok || !res.headers.get('content-type')?.includes('application/json')) return res;
+    const req = { method: init.method ?? 'GET', route: new URL(input, 'http://localhost').pathname.replace(/^\/v1/, '') };
+    let body: unknown = await res.json();
+    for (const demo of amenders) body = demo.amend!(req, body) ?? body;
+    return json(body, res.status);
   };
 }
 export const mockFetch = createMockTransport();

@@ -101,7 +101,8 @@ export const filterRows = (rows: readonly RadarRow[], show: string, stage: strin
 export function applyRadarEvents(rows: readonly RadarRow[], events: readonly ChannelEvent<'radar'>[]): RadarRow[] {
   let next = [...rows];
   for (const event of events) {
-    if (event.kind === 'row_upsert') { const index = next.findIndex((c) => c.address === event.data.address); if (index < 0) next.push(event.data); else next[index] = { ...event.data, ...(event.data.guardV2 === undefined && next[index].guardV2 !== undefined ? {guardV2:next[index].guardV2,guardRefreshFailed:next[index].guardRefreshFailed} : {}) }; }
+    // An update without features' figures (extras) keeps the row's last ones until the next list.
+    if (event.kind === 'row_upsert') { const index = next.findIndex((c) => c.address === event.data.address); if (index < 0) next.push(event.data); else next[index] = { ...event.data, ...(event.data.guardV2 === undefined && next[index].guardV2 !== undefined ? {guardV2:next[index].guardV2,guardRefreshFailed:next[index].guardRefreshFailed} : {}), ...(event.data.extras === undefined && next[index].extras !== undefined ? { extras: next[index].extras } : {}) }; }
     else if (event.kind === 'row_remove') next = next.filter((c) => c.address !== event.data.address);
     else { const byAddress = new Map(next.map((c) => [c.address, c])); next = event.data.order.flatMap((a) => byAddress.has(a) ? [byAddress.get(a)!] : []).concat(next.filter((c) => !event.data.order.includes(c.address))); }
   }

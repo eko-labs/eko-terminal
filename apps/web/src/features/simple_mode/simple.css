@@ -142,8 +142,12 @@
 .sv-walk .tour-actions .btn{min-height:46px;padding:0 22px;border-radius:12px;font-size:17px;font-weight:600}
 .sv-walk .tour-actions .btn.primary{background:var(--dither-ink) 0 0/var(--dither-size),var(--lit);color:var(--brand-ink);border:0}
 
+/* Features' figures in each row (placeSlots.tsx coinRow): a short column before the answer. */
+.has-place .sv-list-head,.has-place .sv-row{grid-template-columns:minmax(0,1.5fr) minmax(90px,140px) 120px 100px 76px 150px}
+.sv-row-place{justify-self:end;text-align:right;white-space:nowrap}
 @media(max-width:899px){
   .sv-list-head,.sv-row{grid-template-columns:minmax(0,1fr) 100px 150px}
+  .has-place .sv-list-head,.has-place .sv-row{grid-template-columns:minmax(0,1fr) 100px 70px 150px}
   .sv-list-head span:nth-child(2),.sv-row-spark,.sv-list-head span:nth-child(4),.sv-row-move{display:none}
 }
 @media(max-width:700px){
@@ -156,6 +160,8 @@
   .sv-row-price{grid-area:price;text-align:left;font-size:13px;color:var(--ink2)}
   .sv-row .sv-row-move{display:block;grid-area:move;text-align:left;font-size:13px}
   .sv-row-answer{grid-area:answer}
+  .has-place .sv-list-head,.has-place .sv-row{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:'id id answer' 'price move place'}
+  .sv-row-place{grid-area:place;font-size:13px}
   /* Three counts side by side, each its own share of the list. */
   .sv-counts.head-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;width:100%}
   .sv-counts .pgauge{width:100%}
