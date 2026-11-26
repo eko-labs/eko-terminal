@@ -15,7 +15,7 @@ import { RadarResponseSchema, applyRadarEvents, hotMetrics, hottest, usd, type H
 import { useSimple } from './choice';
 import { LENSES, SORTS, isSort, matches, sortRows, trenchTags } from './trench';
 import { answerOf, dollars, moveText, type Answer } from './model';
-import { AnswerChip, CoinSearch } from './parts';
+import { AnswerChip, CoinSearch, Ticker } from './parts';
 import { LIST_WALK, Walkthrough } from './Walkthrough';
 import '../../pages/terminal/radar.css';
 import '../../pages/terminal/coin.css';
@@ -45,7 +45,7 @@ function Busy({ rows }: { rows: RadarRow[] }) {
     <div className="hot-grid">{coins.map(c => {
       const { volume, change } = hotMetrics(c, window);
       return <Link key={c.address} to={`/coin/${c.address}`} className={`htile ${markClass(marking(c))}`}>
-        <span className="htile-top"><span className="htile-sym"><Decode text={`$${c.symbol.text}`}><span>$<UntrustedText value={c.symbol} /></span></Decode></span><AnswerChip answer={answerFor(c)} /></span>
+        <span className="htile-top"><span className="htile-sym"><Ticker symbol={c.symbol} address={c.address} /></span><AnswerChip answer={answerFor(c)} /></span>
         <span className="htile-spark">{c.spark8h && c.spark8h.length > 1 && <Spark series={c.spark8h} height={46} />}</span>
         <span className="htile-facts">
           <span>Traded<b className="num">{volume === undefined ? '—' : dollars(volume)}</b></span>
@@ -128,7 +128,7 @@ export default function SimpleCoins() {
               const change = changeOf(row);
               return <li key={row.address}>
                 <Link to={`/coin/${row.address}`} className={`sv-row sv-row-${answer.kind} h-${heatOf(row)} ${markClass(marking(row))}`}>
-                  <span className="sv-row-id"><span className="sv-row-top"><b><Decode text={`$${row.symbol.text}`}><span>$<UntrustedText value={row.symbol} /></span></Decode></b><HeatTag heat={displayHeat(row)} />{trenchTags(row).map(t => <span key={t} className="tag sv-tag">{t}</span>)}</span><span className="sv-row-name"><UntrustedText value={row.name} /></span></span>
+                  <span className="sv-row-id"><span className="sv-row-top"><b><Ticker symbol={row.symbol} address={row.address} /></b><HeatTag heat={displayHeat(row)} />{trenchTags(row).map(t => <span key={t} className="tag sv-tag">{t}</span>)}</span><span className="sv-row-name"><UntrustedText value={row.name} /></span></span>
                   <span className="sv-row-spark">{row.spark8h && row.spark8h.length > 1 && !row.unavailable?.includes('spark') && <Spark series={row.spark8h} height={30} />}</span>
                   <span className="sv-row-price num">{row.marketCapUsd !== undefined && !row.unavailable?.includes('marketCap')
                     ? <><Roll value={usd(row.marketCapUsd)} />{!row.priceUnavailable && <small>{formatCoinPrice(row.priceUsd)}</small>}</>

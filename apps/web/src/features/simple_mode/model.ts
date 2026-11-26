@@ -161,6 +161,16 @@ export function reasonsOf(verdict: Pick<Verdict, 'level' | 'playbooks' | 'histor
 
 /** A plain fact in the glance row: a label, one short value, one plain line, a tone and, where Full has one, a gauge. */
 export interface Fact { id: string; label: string; value: string; line: string; tone: Tone; gauge?: number }
+/** Reasons that say holders are concentrated (EKO's checks count it differently from the top 10's plain share). */
+const HOLDER_REASONS = new Set([PLAYBOOK_PLAIN.holder_concentration, PLAYBOOK_PLAIN.bundle_dump, REASON_PLAIN.TOP_HOLDERS, REASON_PLAIN.GROUP_HELD, REASON_PLAIN.EARLY_BUYERS]);
+/**
+ * The tiles agree with the reasons: when a reason above says a few wallets hold a lot, the Top 10 tile never says the
+ * coin is spread across many people. It keeps its number and says EKO flags big holders instead.
+ */
+export function agreeWithReasons(facts: Fact[], reasons: readonly Reason[]): Fact[] {
+  if (!reasons.some(r => HOLDER_REASONS.has(r.text))) return facts;
+  return facts.map(f => (f.id === 'top' && f.tone === 'good' ? { ...f, tone: 'watch', line: 'EKO flags a few big holders' } : f));
+}
 /** "$4K": dollars in a few characters. */
 export const dollars = (v: number) => (v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1000 ? `$${Math.round(v / 1000)}K` : `$${Math.round(v)}`);
 const SELL_LINES: Record<Exclude<SellAnswer, 'unknown'>, { line: string; tone: Tone }> = {

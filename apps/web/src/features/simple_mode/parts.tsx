@@ -6,6 +6,14 @@ import { UntrustedText } from '../../components/ui';
 import { fetchParsed } from '../../lib/api';
 import { navigate } from '../../lib/router';
 import { answerOf, type Answer, type AnswerKind, type Reason, type Tone } from './model';
+import { Decode } from '../../pages/terminal/radarMotion';
+import type { Untrusted } from '@eko/shared';
+
+/** A coin's ticker; a coin that has no name yet (seconds after launch) shows its short address, never a lone "$". */
+export function Ticker({ symbol, address }: { symbol: Untrusted; address: string }) {
+  if (!symbol.text.trim()) return <span className="sv-noname" title={address}>{`${address.slice(0, 6)}…${address.slice(-4)}`}</span>;
+  return <Decode text={`$${symbol.text}`}><span>$<UntrustedText value={symbol} /></span></Decode>;
+}
 
 const ICONS: Record<AnswerKind, ComponentType<{ size?: number }>> = { ok: IconCheck, careful: IconAlert, dont: IconOct, checking: IconEye };
 /** The site's verdict chip classes (styles/ui.css .verdict), so the answer wears the same plate as Full's. */

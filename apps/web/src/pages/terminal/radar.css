@@ -306,3 +306,15 @@
 /* Layout shift: the sort menu is as wide as its longest option ("Market cap", "Agent flow") from the first paint; its
    options arrive with the coins, and the wider menu pushed the Columns button onto a second toolbar row. */
 .toolbar-sort .select{width:9.5rem}
+
+/* Coins with no name yet show a short address in the ticker's place. */
+.radar .noname{font-family:var(--mono);font-size:.62em;letter-spacing:0;color:var(--ink2)}
+/* A narrow hot card drops the beta Signal stat so the other three (volume, market cap, the move) stay inside it. */
+.radar .htile{container-type:inline-size}
+@container (max-width:380px){.radar .htile-facts>span:has(.htile-signal-label){display:none}.radar .htile-facts{gap:4px}}
+@container (max-width:250px){.radar .htile-facts b{font-size:15px}.radar .htile-facts>span{letter-spacing:.04em}}
+/* The ticker comes first on a hot card: it keeps a minimum width, a long state tag is clipped instead, and on a narrow
+   card the Hot tag (the strip's own heading already says it) gives its room to the ticker. */
+.radar .htile-sym{min-width:min(45%,5em)}
+.radar .htile-tags{min-width:0;overflow:hidden}
+@container (max-width:420px){.radar .htile .htile-tags .heat-tag.hot{display:none}}

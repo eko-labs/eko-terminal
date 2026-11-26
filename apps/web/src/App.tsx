@@ -28,14 +28,14 @@ import { useShareMeta } from './lib/share';
 import { deploymentMismatch } from './lib/deployment';
 import { TradeProvider } from './components/trade/TradeContext';
 import { FEATURES, type FeatureViews } from './features';
-import { ViewChain, mayHaveView, viewPage } from './components/views';
+import { ViewChain, lastFlags, mayHaveView, rememberFlags, viewPage } from './components/views';
 
 const pages = new Map([...ROUTES, ...INTERNAL_ROUTES].map((route) => [route, lazy(route.load)]));
 /** Wallet-gated Mission Control pages still say what they are before asking for a wallet. */
 function GatedHead({ title, intro }: { title: string; intro: string }) { return <div className="shell-page gated-head"><div className="page-head"><span className="eyebrow">{C.missionEyebrow}</span><h1>{title}</h1><p>{intro}</p></div></div>; }
 export function NotFound() { return <div className="shell-page"><div className="page-head"><h1>{C.notFound}</h1></div><Link to="/radar" className="btn">{C.back}</Link></div>; }
 async function loadConfig(signal?: AbortSignal) {
-  try { const config = await fetchParsed('/config', PublicConfigSchema, { signal }); useShell.setState({ config, configError: null }); }
+  try { const config = await fetchParsed('/config', PublicConfigSchema, { signal }); useShell.setState({ config, configError: null }); rememberFlags(config.flags); }
   catch (err) { if ((err as Error).name !== 'AbortError' && !isRateLimited(err)) useShell.setState({ configError: (err as Error).message }); }
 }
 const WalletRuntime = lazy(() => import('./WalletRuntime'));
@@ -103,7 +103,8 @@ export function App({ walletEnabled = false, pageNeedsWallet = false }: { wallet
   const gatedMission = !!resolved && resolved.route.workspace === 'mission' && resolved.route.auth === 'siwe' && !signedIn && !MOCKS && (path.startsWith('/mission/agents/') || path === '/mission/approvals' || path.startsWith('/approve/'));
   // A feature's alternate view of this route while it is in use (components/views.tsx), else the route's own page. A
   // route that a built-in feature could show its own way waits for the flags, so the other view never flashes first.
-  const waitForFlags = !config && !error && mayHaveView(FEATURES, resolved?.route.path);
+  // A returning visitor's page is drawn at once with the last visit's flags (components/views.tsx lastFlags).
+  const waitForFlags = !config && !error && !lastFlags() && mayHaveView(FEATURES, resolved?.route.path);
   // Meanwhile the route's own page starts loading, so the wait runs beside its download, not before it.
   useEffect(() => { if (waitForFlags && resolved) void resolved.route.load().catch(() => undefined); }, [waitForFlags, resolved?.route]); // eslint-disable-line react-hooks/exhaustive-deps
   const renderPage = (views: FeatureViews[]) => {

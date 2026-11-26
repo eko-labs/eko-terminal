@@ -103,7 +103,23 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
   } else app.get('/v1/me', async (_req, reply) => fail(reply, 401, 'wallet_auth_required', `Accounts are not open on EKO for ${chain.name} yet.`));
   registerMcp(app, { edge, ...(opts.store ? { store: opts.store } : {}), ...(agents ? { agents } : {}), ...(opts.trading ? { trading: opts.trading } : {}) });
 
+  // The radar list is the same for every visitor and building it judges up to 100 coins, which takes seconds when their
+  // verdicts are due (measured 3.5 s after a quiet spell). So it is shared: a list under RADAR_FRESH_MS old is served as
+  // is; an older one, up to RADAR_STALE_MS, is served at once while one rebuild runs after the response has gone out;
+  // only a missing or very old list is built while the visitor waits.
+  const RADAR_FRESH_MS = 3_000, RADAR_STALE_MS = 60_000;
+  let radarCache: { at: number; body: ReturnType<typeof buildRadar> } | null = null, radarJob: Promise<ReturnType<typeof buildRadar>> | null = null;
+  const rebuildRadar = (defer: boolean) => radarJob ??= new Promise<ReturnType<typeof buildRadar>>((done, failed) => {
+    const run = () => { try { const body = buildRadar(); radarCache = { at: Date.now(), body }; done(body); } catch (e) { failed(e); } };
+    if (defer) setTimeout(run, 0); else run();
+  }).finally(() => { radarJob = null; });
   const radar = async () => {
+    const age = radarCache ? Date.now() - radarCache.at : Infinity;
+    if (radarCache && age < RADAR_FRESH_MS) return radarCache.body;
+    if (radarCache && age < RADAR_STALE_MS) { void rebuildRadar(true).catch(() => undefined); return radarCache.body; }
+    return rebuildRadar(false);
+  };
+  const buildRadar = () => {
     const ctx = edge.ctx();
     const rows = ranked().slice(0, LIMIT).map((c, i) => radarRow(c, edge.assessment(c.token), ctx, i + 1));
     // Counts use each coin's last verdict: recomputing every coin's verdict per request stalls the server.

@@ -28,6 +28,26 @@ export function mayHaveView(features: readonly { views?: FeatureViews }[], path:
 }
 
 const useViewState = create<{ active: readonly FlagName[] }>(() => ({ active: [] }));
+
+/**
+ * The flags /config gave on this browser's last visit, so a returning visitor's page can be drawn at once with the view
+ * it will most likely have, instead of waiting for /config (the live flags replace these the moment they arrive).
+ * Storage is optional; without it every visit waits as before.
+ */
+const FLAGS_KEY = 'eko.flags';
+let lastSeen: Partial<Flags> | null | undefined;
+export function lastFlags(): Partial<Flags> | null {
+  if (lastSeen !== undefined) return lastSeen;
+  try { const v: unknown = JSON.parse(localStorage.getItem(FLAGS_KEY) ?? 'null'); lastSeen = v && typeof v === 'object' ? v as Partial<Flags> : null; }
+  catch { lastSeen = null; }
+  return lastSeen;
+}
+export function rememberFlags(flags: Partial<Flags>) {
+  lastSeen = flags;
+  try { localStorage.setItem(FLAGS_KEY, JSON.stringify(flags)); } catch { /* storage unavailable: the next visit waits for /config */ }
+}
+/** The live flags once /config has answered, else the last visit's. */
+const useFlags = () => useShell(s => s.config?.flags) ?? lastFlags() ?? undefined;
 type Render = (views: FeatureViews[]) => ReactNode;
 
 /** The chain's end: renders with the views in use, and records them for the menu before paint. */
@@ -56,13 +76,13 @@ export function ViewLinks({ chain, children }: { chain: readonly ViewFeature[]; 
 }
 /** Renders `children` with the views in use now. App wraps its page in this, once. */
 export function ViewChain({ children }: { children: Render }) {
-  const flags = useShell(s => s.config?.flags);
+  const flags = useFlags();
   const chain = useMemo(() => viewFeatures(FEATURES, flags), [flags]);
   return <ViewLinks chain={chain}>{children}</ViewLinks>;
 }
 /** The views in use now, for the shell around the page (none while no feature offers one, or none is chosen). */
 export function useActiveViews(): FeatureViews[] {
-  const flags = useShell(s => s.config?.flags), active = useViewState(s => s.active);
+  const flags = useFlags(), active = useViewState(s => s.active);
   return useMemo(() => activeViews(viewFeatures(FEATURES, flags), active), [flags, active]);
 }
 

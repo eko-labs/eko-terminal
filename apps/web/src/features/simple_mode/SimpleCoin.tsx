@@ -16,7 +16,7 @@ import { useCoin } from '../../pages/terminal/useCoin';
 import { useGuardCoin } from '../../pages/terminal/useGuardCoin';
 import { useShell } from '../../store/shell';
 import { useSimple } from './choice';
-import { answerOf, factsOf, moveText, reasonsOf, whoIsBuying, type Tone } from './model';
+import { agreeWithReasons, answerOf, factsOf, moveText, reasonsOf, whoIsBuying, type Tone } from './model';
 import { AnswerChip, Reasons } from './parts';
 import { RANGES, SimpleChart, barsIn, type Range } from './SimpleChart';
 import { Walkthrough, coinWalk } from './Walkthrough';
@@ -53,7 +53,7 @@ function SimpleCoinPage({ address }: { address: string }) {
   const identity = card?.identity ?? guardData.card?.identity ?? knownCoinIdentity(address);
   const guard = guardData.assessment?.mode === 'active' ? guardData.assessment : verdict?.guardV2?.mode === 'active' ? verdict.guardV2 : null;
   const answer = answerOf({ level: verdict?.level ?? 'pending', historyPartial: verdict?.historyPartial, guard });
-  const reasons = reasonsOf(verdict, guard, card), facts = factsOf(card, row), who = whoIsBuying(flows);
+  const reasons = reasonsOf(verdict, guard, card), facts = agreeWithReasons(factsOf(card, row), reasons), who = whoIsBuying(flows);
   const dont = answer.kind === 'dont', checking = answer.kind === 'checking' || !verdict;
   const px = row?.priceUnavailable ? undefined : bars.at(-1)?.c ?? row?.priceUsd;
   const symbol = identity ? inertText(identity.symbol.text) : undefined;

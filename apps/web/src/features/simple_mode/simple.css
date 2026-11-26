@@ -245,3 +245,4 @@
   .sv-sort{justify-content:space-between}.sv-sort select{flex:1;max-width:220px}
 }
 @media(max-width:700px){.sv-row-price{align-items:flex-start}.sv-row-price small{display:none}}
+.sv-noname{font-family:var(--mono);font-size:.8em;color:var(--ink2)}
