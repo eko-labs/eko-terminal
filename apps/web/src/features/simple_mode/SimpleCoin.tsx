@@ -1,156 +1,256 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react';
 import { z } from 'zod';
-import { RadarRowSchema, type RadarRow } from '@eko/shared';
-import { GlanceRow } from '../../components/coinSlots';
-import { GlanceTile } from '../../components/GlanceTile';
+import { CHAIN_NETWORK, NETWORKS, RadarRowSchema, type Flow, type RadarRow } from '@eko/shared';
+import { ChartStage } from '../../components/chart/ChartStage';
+import type { CoinTimeframe } from '../../components/chart/coinMath';
+import { CoinDetailScope, CoinSlotScope, TabSections, WalletSlots, useTabSections } from '../../components/coinSlots';
+import { PixelGauge } from '../../components/GlanceTile';
+import { IconAlert, IconCheck, IconCopy, IconInfo, IconOct, IconOut } from '../../components/icons';
 import { TradePanel } from '../../components/trade/TradePanel';
-import { Seg, UntrustedText, inertText } from '../../components/ui';
+import { antiSnipeDeadline } from '../../components/trade/tradePanelModel';
+import { Seg, TabPanel, Tabs, UntrustedText, inertText } from '../../components/ui';
 import { WatchButton } from '../../components/WatchButton';
+import { launchpadLabel } from '../../copy/chain';
+import { featureLink, type CoinDetailTab } from '../../features';
 import { fetchParsed } from '../../lib/api';
+import { CHAIN_KEY } from '../../lib/chain';
+import { serverNow } from '../../lib/clock';
+import { coinElsewhere } from '../../lib/coinLinks';
 import { knownCoinIdentity } from '../../lib/coinIdentity';
 import { formatCoinPrice } from '../../lib/format';
+import { Link } from '../../lib/Link';
 import { navigate } from '../../lib/router';
-import { Decode, Roll } from '../../pages/terminal/radarMotion';
-import { pct } from '../../pages/terminal/radarModel';
+import { CoinVerdict } from '../../pages/terminal/CoinCard';
+import { Roll } from '../../pages/terminal/radarMotion';
+import { coinVerdictActivity } from '../../pages/terminal/radarModel';
 import { useCoin } from '../../pages/terminal/useCoin';
 import { useGuardCoin } from '../../pages/terminal/useGuardCoin';
+import { useApp } from '../../store/app';
 import { useShell } from '../../store/shell';
 import { useSimple } from './choice';
-import { agreeWithReasons, answerOf, factsOf, moveText, reasonsOf, whoIsBuying, type Tone } from './model';
-import { AnswerChip, Reasons } from './parts';
-import { RANGES, SimpleChart, barsIn, type Range } from './SimpleChart';
+import { answerOf, holdersFlagged, reasonsOf, type Reason, type Tone } from './model';
+import { AnswerChip, Ticker } from './parts';
+import { STEER, TRADE_FILTERS, ageShort, changeChips, countShort, filterTrades, flowBox, headerStats, holderStats, signedPct, stripFacts, totalSupply, tradeRows, usdShort, type Glance, type TradeFilter } from './trader';
 import { Walkthrough, coinWalk } from './Walkthrough';
 import '../../pages/terminal/radar.css';
 import '../../pages/terminal/coin.css';
 import './simple.css';
+import './trader.css';
 
-const AMOUNTS = [10, 25, 50, 100] as const;
-const BAND: Record<string, Tone> = { ok: 'good', careful: 'watch', dont: 'bad', checking: 'neutral' };
+const EXPLORER = NETWORKS[CHAIN_NETWORK[CHAIN_KEY]].explorerUrl;
+const short = (s: string) => `${s.slice(0, 6)}…${s.slice(-4)}`;
+const TONE_ICON: Record<Tone, ComponentType<{ size?: number }>> = { good: IconCheck, watch: IconAlert, bad: IconOct, neutral: IconInfo };
+const WINDOWS: Flow['window'][] = ['5m', '1h', '24h'];
 
 export default function SimpleCoin({ params }: { params: Record<string, string> }) {
   return <SimpleCoinPage key={params.address} address={params.address!} />;
 }
 
 /**
- * Simple's coin page, built from the Full page's own parts: the coin head with its live price, the glance band (the
- * answer and its reasons, then plain facts as Full's gauge tiles), the phosphor chart, who is buying, and one buy panel.
- * "Show me everything" opens the Full page for this coin.
+ * Simple's coin page in the dense layout memecoin traders know: a stats strip (market cap, price, liquidity, volume,
+ * supply, curve, tax, changes), EKO's answer right under it, the coin page's own chart, a flow box, the guarded trade
+ * panel and holder stats beside it, and tabs of trades and reasons under the chart. The head and EKO's strip draw from
+ * the coin card and radar row as soon as they arrive; the chart and the tabs fill in after.
  */
 function SimpleCoinPage({ address }: { address: string }) {
-  const [range, setRange] = useState<Range>('24h');
-  const data = useCoin(address, RANGES[range].tf), guardData = useGuardCoin(address), ws = useShell(s => s.wsState);
+  const [tf, setTf] = useState<CoinTimeframe>('5m'), [tab, setTab] = useState('Trades');
+  const data = useCoin(address, tf), guardData = useGuardCoin(address);
+  const ws = useShell(s => s.wsState), config = useShell(s => s.config), delayed = useShell(s => s.delayedSec), toast = useApp(s => s.toast);
   const [row, setRow] = useState<RadarRow | null>(null);
-  const [buying, setBuying] = useState(false), [anyway, setAnyway] = useState<'no' | 'asked' | 'yes'>('no');
-  const [amount, setAmount] = useState<{ usd: number; at: number } | null>(null);
-  const tradeRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const ac = new AbortController();
     void fetchParsed('/radar', z.object({ rows: z.array(RadarRowSchema) }), { signal: ac.signal })
       .then(r => setRow(r.rows.find(c => c.address.toLowerCase() === address.toLowerCase()) ?? null)).catch(() => undefined);
     return () => ac.abort();
   }, [address]);
-  const { card, verdict, bars, flows } = data;
+  const { card, verdict, bars, markers, flows } = data;
   const identity = card?.identity ?? guardData.card?.identity ?? knownCoinIdentity(address);
   const guard = guardData.assessment?.mode === 'active' ? guardData.assessment : verdict?.guardV2?.mode === 'active' ? verdict.guardV2 : null;
   const answer = answerOf({ level: verdict?.level ?? 'pending', historyPartial: verdict?.historyPartial, guard });
-  const reasons = reasonsOf(verdict, guard, card), facts = agreeWithReasons(factsOf(card, row), reasons), who = whoIsBuying(flows);
-  const dont = answer.kind === 'dont', checking = answer.kind === 'checking' || !verdict;
+  const keystones = reasonsOf(verdict, guard, card), allReasons = reasonsOf(verdict, guard, card, 12);
+  const dont = answer.kind === 'dont';
   const px = row?.priceUnavailable ? undefined : bars.at(-1)?.c ?? row?.priceUsd;
   const symbol = identity ? inertText(identity.symbol.text) : undefined;
-  const shown = useMemo(() => barsIn(bars, range), [bars, range]);
-  const changeOk = !!row && !row.unavailable?.includes('change');
-  const first = shown[0], last = shown.at(-1);
-  // The move over the chart's span; the day's is already in the head and the facts, so the chart names only its span.
-  const move = range === '1h' ? (changeOk ? moveText(row!.change1hPct, '') : null)
-    : range === 'all' && first && last && first.o > 0 ? moveText((last.c / first.o - 1) * 100, '') : null;
-  const span = range === '1h' ? 'Price in the last hour' : range === '24h' ? 'Price today' : 'Price since EKO started watching';
+  const head = headerStats(card, row, flows, px, formatCoinPrice), chips = changeChips(row, bars);
+  const flagged = holdersFlagged(allReasons), facts = stripFacts(card, verdict, flagged), holders = holderStats(card, verdict, flagged);
+  const supply = totalSupply(card, row);
+  const antiSnipeEndsAt = useMemo(() => antiSnipeDeadline(card, guardData.card, serverNow()), [card, guardData.card]);
   const steps = useMemo(() => coinWalk(dont), [dont]);
-  const pick = (usd: number) => { setAmount({ usd, at: Date.now() }); requestAnimationFrame(() => tradeRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })); };
-  const showBuy = buying && (!dont || anyway === 'yes');
+  const whosIn = useTabSections("Who's in").length > 0, odds = useTabSections('Odds').length > 0;
+  const trades = useMemo(() => tradeRows(flows, supply, card?.identity.deployer), [flows, supply, card?.identity.deployer]);
+  const tabs = ['Trades', ...(whosIn ? ['Holders'] : []), ...(odds ? ['Odds'] : []), 'Why EKO says this'];
+  const detail = useMemo(() => ({ open: (name: CoinDetailTab) => setTab(name === "Who's in" ? 'Holders' : name === 'Odds' ? 'Odds' : 'Why EKO says this') }), []);
+  const createdAt = card?.identity.createdAt ? Date.parse(card.identity.createdAt) : NaN;
+  const ageSec = row?.ageSec ?? (Number.isFinite(createdAt) ? Math.max(0, (serverNow() - createdAt) / 1000) : undefined);
+  const elsewhere = coinElsewhere(address, identity?.stage);
+  const devLink = card ? featureLink('deployer', card.identity.deployer, config?.flags) : null;
+  const copy = () => void navigator.clipboard?.writeText(address).then(() => toast({ kind: 'ok', title: 'Address copied' })).catch(() => undefined);
+  const stale = ws !== 'open' || (!!guard && (data.ageSec > 30 || (card?.freshness.ageSec ?? 0) > 30));
+  const delay = useShell(s => s.me?.entitlements.limits.realtime) === false ? Math.max(60, delayed) : delayed;
 
   if (data.unknown && !card && !verdict) return <div className="shell-page sv-page sv-coin">
     <div className="sv-empty"><p className="sv-big-line">EKO doesn't know this coin yet.</p><p>Check that the address is right, or try again in a minute.</p>
       <button type="button" className="sv-btn" onClick={() => data.retry()}>Check again</button></div>
   </div>;
 
-  return <div className={`shell-page sv-page sv-coin${dont ? ' sv-dont' : ''}`}>
-    <header className="coin-head sv-coin-head">
-      <div className="coin-title-row">
-        <div className="coin-id">
-          <h1>{identity ? <Decode text={`$${inertText(identity.symbol.text)}`}><span>$<UntrustedText value={identity.symbol} /></span></Decode> : 'This coin'}</h1>
-          {identity && <span className="coin-name"><UntrustedText value={identity.name} /></span>}
+  return <CoinSlotScope coin={address}><CoinDetailScope value={detail}>
+    <div className={`shell-page coin-page sv-page sv-coin sv-tr sv-tr-${answer.kind}`}>
+      {data.error && <div role="status" className="coin-error">{data.error} <button className="btn" onClick={data.retry}>Retry</button></div>}
+
+      <header className="sv-tr-head">
+        <div className="sv-tr-id">
+          <h1 className="sv-tr-sym">{identity ? <Ticker symbol={identity.symbol} address={address} /> : short(address)}</h1>
+          <div className="sv-tr-idline">
+            {identity && <span className="sv-tr-name"><UntrustedText value={identity.name} /></span>}
+            {ageSec !== undefined && <span className="sv-tr-age num">{ageShort(ageSec)}</span>}
+            <button type="button" className="sv-tr-ca num" onClick={copy} title={`Copy ${address}`} aria-label={`Copy contract address ${address}`}>{short(address)}<IconCopy size={12} /></button>
+          </div>
+          <div className="sv-tr-links">
+            {identity && <span className="sv-tr-pad">{launchpadLabel(identity.launchpad, identity.stage === 'graduated')}</span>}
+            {elsewhere && <a href={elsewhere.href} target="_blank" rel="noopener noreferrer">{elsewhere.label}<IconOut size={11} /></a>}
+            {devLink && <Link to={devLink}>Dev</Link>}
+            <WatchButton kind="coin" target={address} />
+          </div>
         </div>
-        <div className="coin-actions"><WatchButton kind="coin" target={address} /></div>
-      </div>
-      <dl className="coin-price">
-        <div className="coin-stat coin-stat-price"><dt className="sr-only">Price</dt><dd><b>{px === undefined ? <span className="glance-wait" aria-label="Loading">—</span> : <Roll value={formatCoinPrice(px)} />}</b></dd></div>
-        {changeOk && <div className="coin-stat"><dt>Last hour</dt><dd className={`num${row!.change1hPct > 0 ? ' up' : row!.change1hPct < 0 ? ' down' : ''}`}><Roll value={pct(row!.change1hPct)} /></dd></div>}
-        {changeOk && row!.change24hPct !== undefined && <div className="coin-stat"><dt>Today</dt><dd className={`num${row!.change24hPct > 0 ? ' up' : row!.change24hPct < 0 ? ' down' : ''}`}><Roll value={pct(row!.change24hPct)} /></dd></div>}
-      </dl>
-    </header>
+        <div className="sv-tr-mc"><span className="sv-tr-label">MC</span><b className="num">{head.marketCap ?? '—'}</b></div>
+        <dl className="sv-tr-stats">
+          {head.stats.map(s => <div key={s.id} className={`sv-tr-stat${s.tone ? ` tone-${s.tone}` : ''}`}><dt>{s.label}</dt><dd className="num">{s.id === 'price' ? <Roll value={s.value} /> : s.value}</dd></div>)}
+        </dl>
+        {chips.length > 0 && <ul className="sv-tr-chips" aria-label="Price change">
+          {chips.map(c => <li key={c.label} className={c.pct >= 0.05 ? 'up' : c.pct <= -0.05 ? 'down' : ''}><span>{c.label}</span><b className="num">{signedPct(c.pct)}</b></li>)}
+        </ul>}
+      </header>
 
-    <GlanceRow tone={BAND[answer.kind]} own={[
-      { order: 0, node: <div className="sv-answer" data-walk="answer" aria-live="polite">
-        <span className="gv-label">EKO says</span>
-        <AnswerChip answer={answer} size="lg" />
-        <Reasons reasons={reasons} />
-      </div> },
-      ...facts.map((f, i) => ({ order: 10 + i, node: <div className="sv-tile" data-walk={f.id === 'sell' ? 'sell' : undefined}>
-        <GlanceTile label={f.label} value={f.value} line={f.line} tone={f.tone} {...(f.gauge !== undefined ? { gauge: f.gauge } : {})} />
-      </div> })),
-    ]} />
+      <section className={`sv-strip sv-strip-${answer.kind}`} aria-label="EKO says" aria-live="polite">
+        <div className="sv-strip-answer">
+          <span className="sv-tr-label">EKO says</span>
+          <div className="sv-strip-line">
+            <AnswerChip answer={answer} size="lg" walk="answer" />
+            <span className="sv-steer">{STEER[answer.kind]}</span>
+          </div>
+          <ul className="sv-pills">{keystones.map(r => <Pill key={r.text} reason={r} />)}</ul>
+        </div>
+        {facts.length > 0 && <ul className="sv-strip-facts">{facts.map(f => <StripFact key={f.id} fact={f} />)}</ul>}
+      </section>
 
-    <div className="coin-grid sv-grid">
-      <div className="sv-main">
-        <section className="sv-section" aria-labelledby="sv-price-h">
-          <div className="sv-section-head">
-            <h2 id="sv-price-h">{span}{move && <span className={`sv-move${move.startsWith('Up') ? ' up' : ''}`}>{move}</span>}</h2>
-            <Seg options={(Object.keys(RANGES) as Range[]).map(r => ({ value: r, label: RANGES[r].label }))} value={range} onChange={v => setRange(v as Range)} label="How far back" />
-          </div>
-          <SimpleChart bars={shown} range={range} label={move ? `${span}: ${move.toLowerCase()}` : span} />
-          {!shown.length && !data.candlesLoading && <p className="sv-note">Nobody traded it in this time. Try a longer view.</p>}
-        </section>
-        {who && <section className="sv-card sv-who" aria-labelledby="sv-who-h">
-          <h2 id="sv-who-h" className="sv-kicker">Who's buying</h2>
-          <p className="sv-card-lead">{who.text}</p>
-          <div className="sv-split" role="img" aria-label={`${who.buyers} buying, ${who.sellers} selling in the last hour`}>
-            <span className="sv-split-buy" style={{ width: `${who.share}%` }} /><span className="sv-split-sell" />
-          </div>
-          <p className="sv-split-key"><span><i className="buy" />{who.buyers.toLocaleString('en-US')} {who.buyers === 1 ? 'person' : 'people'} buying</span><span><i className="sell" />{who.sellers.toLocaleString('en-US')} selling</span><span className="sv-when">Last hour</span></p>
-        </section>}
-      </div>
+      <div className="sv-tr-grid">
+        <div className="sv-tr-left">
+        <div className="sv-tr-chart">
+          <ChartStage market={symbol ?? address} timeframe={tf} onTimeframe={setTf} bars={bars} markers={markers} supply={supply ?? 1}
+            verdict={undefined} delayedSec={delay} labelsUnavailable={data.labelsUnavailable || card?.meta?.flow?.unavailable} crewsEnabled={config?.flags.rug_ring_radar} />
+          {(!bars.length || data.candlesUnavailable) && !data.error && <p role="status" className="coin-chart-status">{data.candlesLoading ? 'Loading the chart…' : 'No trades in this view yet.'}</p>}
+        </div>
 
-      <aside className="sv-aside" aria-label="Buy this coin">
-        <section className="sv-buy-panel">
-          <div className="sv-buy-head">
-            <span className="sv-kicker">{dont ? 'EKO says don’t buy' : 'Buy'}</span>
-            <p>{dont ? 'Most people who buy coins like this lose money.' : 'Your own wallet signs. EKO never holds your money.'}</p>
-          </div>
-          {dont
-            ? <>
-              <button type="button" className="sv-btn sv-btn-big" data-walk="buy" onClick={() => { useSimple.getState().setOnlyOk(true); navigate('/radar'); }}>Find a safer coin</button>
-              {anyway === 'no' && <button type="button" className="sv-btn-link" onClick={() => setAnyway('asked')}>Buy anyway</button>}
-              {anyway === 'asked' && <div className="sv-warn" role="alert">
-                <p><b>EKO thinks this coin is a trap.</b> People who buy coins like this often lose all of it. Only buy with money you can lose.</p>
-                <div className="sv-warn-actions"><button type="button" className="sv-btn sv-btn-quiet" onClick={() => { setAnyway('yes'); setBuying(true); }}>I understand, let me buy</button><button type="button" className="sv-btn-link" onClick={() => setAnyway('no')}>Never mind</button></div>
+        <section className="sv-tr-tabs" aria-label="Trades and details">
+          <div className="coin-tabs"><Tabs tabs={tabs.map(t => ({ value: t, label: t === 'Trades' && trades.length ? `Trades ${trades.length}` : t }))} value={tab} onChange={setTab} label="Coin details" id="sv-details" /></div>
+          {tabs.map((name, i) => <TabPanel key={name} id="sv-details" index={i} active={tab === name}>
+            {name === 'Trades' ? <TradesTable rows={trades} loading={!flows.length} nowSec={Math.floor(serverNow() / 1000)} />
+              : name === 'Holders' ? <TabSections tab="Who's in" />
+              : name === 'Odds' ? <TabSections tab="Odds" />
+              : <div className="sv-why">
+                <ul className="sv-why-list">{allReasons.map(r => { const Icon = TONE_ICON[r.tone]; return <li key={r.text} className={`sv-reason sv-reason-${r.tone}`}><Icon size={16} /><span>{r.text}</span></li>; })}</ul>
+                {verdict && <details className="sv-fold"><summary>The evidence behind it</summary>
+                  <CoinVerdict verdict={verdict} {...(card ? { identity: card.identity, meta: card.meta, activity: coinVerdictActivity(card, serverNow()) } : {})} evidenceOpen />
+                </details>}
+                <TabSections tab="Overview" />
               </div>}
-            </>
-            : <button type="button" className="sv-btn sv-btn-big" data-walk="buy" disabled={checking} aria-expanded={buying} onClick={() => setBuying(b => !b)}>
-              {checking ? 'Wait for EKO to finish checking' : `Buy ${symbol ? `$${symbol}` : 'this coin'}`}
-            </button>}
-          {showBuy && <div className="sv-buy">
-            <p className="sv-buy-q">How much do you want to put in?</p>
-            <div className="sv-amounts" role="radiogroup" aria-label="Amount">{AMOUNTS.map(usd => <button key={usd} type="button" role="radio" aria-checked={amount?.usd === usd} onClick={() => pick(usd)}>${usd}</button>)}</div>
-            {amount && <div ref={tradeRef} className="sv-trade">
-              <p className="sv-buy-note">Check the details, then press the button. Your wallet asks you to confirm.</p>
-              <TradePanel coin={address} priceUsd={px} priceUnavailable={row?.priceUnavailable} priceFormat={formatCoinPrice} guard={guardData.assessment ?? verdict?.guardV2} stale={ws !== 'open'}
-                amountRequest={amount} sideRequest={{ side: 'buy', at: amount.at }} {...(symbol ? { symbol } : {})} />
-            </div>}
-          </div>}
+          </TabPanel>)}
         </section>
-      </aside>
+        </div>
+        <div className="sv-tr-right">
+        <FlowCard flows={flows} />
+        <div className="sv-tr-trade" data-walk="buy">
+          {dont ? <DontBuy symbol={symbol} panel={<TradeBox address={address} px={px} row={row} guard={guardData.assessment ?? verdict?.guardV2} stale={stale} symbol={symbol} antiSnipeEndsAt={antiSnipeEndsAt} />} />
+            : <TradeBox address={address} px={px} row={row} guard={guardData.assessment ?? verdict?.guardV2} stale={stale} symbol={symbol} antiSnipeEndsAt={antiSnipeEndsAt} />}
+        </div>
+        {holders.length > 0 && <section className="sv-box sv-holders" aria-labelledby="sv-holders-h">
+          <h2 id="sv-holders-h" className="sv-box-title">Holders</h2>
+          <ul className="sv-hgrid">{holders.map(h => { const Icon = TONE_ICON[h.tone]; return <li key={h.id} className={`tone-${h.tone}`}><span className="sv-hlabel">{h.label}</span><b className="num">{h.value}</b><Icon size={14} /></li>; })}</ul>
+        </section>}
+
+        </div>
+      </div>
+      <button type="button" className="sv-more" onClick={() => { useSimple.getState().choose('full'); window.scrollTo({ top: 0 }); }}>Open the full terminal for this coin</button>
+      <Walkthrough walk="coin" steps={steps} ready={!!verdict && !!card} />
     </div>
-    <button type="button" className="sv-more" onClick={() => { useSimple.getState().choose('full'); window.scrollTo({ top: 0 }); }}>Show me everything</button>
-    <Walkthrough walk="coin" steps={steps} ready={!!verdict && !!card} />
+  </CoinDetailScope></CoinSlotScope>;
+}
+
+function Pill({ reason }: { reason: Reason }) {
+  const Icon = TONE_ICON[reason.tone];
+  return <li className={`sv-pill tone-${reason.tone}`}><Icon size={13} /><span>{reason.text}</span></li>;
+}
+function StripFact({ fact }: { fact: Glance }) {
+  return <li className={`sv-sfact tone-${fact.tone}`} data-walk={fact.id === 'sell' ? 'sell' : undefined}>
+    <span className="sv-tr-label">{fact.label}</span>
+    <b className="num">{fact.value}</b>
+    {fact.gauge !== undefined ? <PixelGauge pct={fact.gauge} tone={fact.tone} height={10} columns={16} /> : <span className="sv-sfact-blank" aria-hidden="true" />}
+  </li>;
+}
+
+function TradeBox({ address, px, row, guard, stale, symbol, antiSnipeEndsAt }: { address: string; px: number | undefined; row: RadarRow | null; guard: Parameters<typeof TradePanel>[0]['guard']; stale: boolean; symbol: string | undefined; antiSnipeEndsAt: number | undefined }) {
+  return <section className="sv-box sv-trade-box" aria-label="Trade this coin">
+    <div className="sv-box-head"><h2 className="sv-box-title">Trade</h2><span className="sv-box-sub">Your wallet signs · EKO never holds funds</span></div>
+    <TradePanel coin={address} priceUsd={px} priceUnavailable={row?.priceUnavailable} priceFormat={formatCoinPrice} guard={guard} stale={stale}
+      {...(antiSnipeEndsAt !== undefined ? { antiSnipeEndsAt } : {})} {...(symbol ? { symbol } : {})} />
+  </section>;
+}
+
+/** On a coin EKO says not to buy: a safer coin first, and the trade panel only after a plain warning. */
+function DontBuy({ symbol, panel }: { symbol: string | undefined; panel: ReactNode }) {
+  const [anyway, setAnyway] = useState<'no' | 'asked' | 'yes'>('no');
+  if (anyway === 'yes') return <>{panel}</>;
+  return <section className="sv-box sv-dont-box" aria-label="EKO says steer clear">
+    <span className="sv-tr-label">Steer clear</span>
+    <p>EKO says don't buy {symbol ? `$${symbol}` : 'this coin'}. Most people who buy coins like this lose money.</p>
+    <button type="button" className="sv-btn sv-btn-big" onClick={() => { useSimple.getState().setOnlyOk(true); navigate('/radar'); }}>Find a safer coin</button>
+    {anyway === 'no' && <button type="button" className="sv-btn-link" onClick={() => setAnyway('asked')}>Buy anyway</button>}
+    {anyway === 'asked' && <div className="sv-warn" role="alert">
+      <p><b>EKO thinks this coin is a trap.</b> People who buy coins like this often lose all of it. Only buy with money you can lose.</p>
+      <div className="sv-warn-actions"><button type="button" className="sv-btn sv-btn-quiet" onClick={() => setAnyway('yes')}>I understand, show the trade panel</button><button type="button" className="sv-btn-link" onClick={() => setAnyway('no')}>Never mind</button></div>
+    </div>}
+  </section>;
+}
+
+/** Buys against sells for one window, switchable between 5m, 1h and 24h. */
+function FlowCard({ flows }: { flows: Flow[] }) {
+  const [win, setWin] = useState<Flow['window']>('1h');
+  const box = flowBox(flows, win);
+  if (!flows.some(f => f.activity)) return null;
+  const share = box && box.buys + box.sells ? box.buyUsd / Math.max(1, box.buyUsd + box.sellUsd) * 100 : 50;
+  return <section className="sv-box sv-flow" aria-labelledby="sv-flow-h">
+    <div className="sv-box-head"><h2 id="sv-flow-h" className="sv-box-title">Flow</h2><Seg options={WINDOWS} value={win} onChange={v => setWin(v as Flow['window'])} label="Flow window" /></div>
+    {box ? <>
+      <div className="sv-flow-vol"><span className="sv-tr-label">Vol</span><b className="num">{usdShort(box.vol)}</b></div>
+      <div className="sv-split" role="img" aria-label={`Buys ${Math.round(share)}% of the dollars`}><span className="sv-split-buy" style={{ width: `${share}%` }} /><span className="sv-split-sell" /></div>
+      <dl className="sv-flow-grid">
+        <div className="buy"><dt>Buys</dt><dd className="num">{countShort(box.buys)} / {usdShort(box.buyUsd)}</dd></div>
+        <div className="sell"><dt>Sells</dt><dd className="num">{countShort(box.sells)} / {usdShort(box.sellUsd)}</dd></div>
+        <div className={box.net > 0 ? 'buy' : box.net < 0 ? 'sell' : ''}><dt>Net buy</dt><dd className="num">{box.net >= 0 ? '+' : '−'}{usdShort(Math.abs(box.net))}</dd></div>
+        <div><dt>Buyers / sellers</dt><dd className="num">{countShort(box.buyers)} / {countShort(box.sellers)}</dd></div>
+      </dl>
+    </> : <p className="sv-note">No trading measured in this window yet.</p>}
+  </section>;
+}
+
+function TradesTable({ rows, loading, nowSec }: { rows: ReturnType<typeof tradeRows>; loading: boolean; nowSec: number }) {
+  const [filter, setFilter] = useState<TradeFilter>('all');
+  const shown = filterTrades(rows, filter).slice(0, 80);
+  if (loading) return <div className="skel coin-flow-skel" aria-label="Loading trades" />;
+  if (!rows.length) return <p className="sv-note">No trades listed for the last 24 hours.</p>;
+  return <div className="sv-trades">
+    <div className="sv-trade-filters" role="group" aria-label="Show trades">{TRADE_FILTERS.map(f => <button key={f.id} type="button" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>{f.label}</button>)}</div>
+    <div className="sv-trades-wrap"><table className="sv-trades-table">
+      <thead><tr><th>Age</th><th>Type</th><th className="r">MC</th><th className="r">Amount</th><th className="r">Total</th><th>Trader</th></tr></thead>
+      <tbody>{shown.map(t => <tr key={t.key} className={t.side}>
+        <td className="num muted"><a href={`${EXPLORER}/tx/${t.tx}`} target="_blank" rel="noopener noreferrer" title="Open the transaction">{ageShort(nowSec - t.ts)}</a></td>
+        <td className={`sv-side ${t.side}`}>{t.side === 'buy' ? 'Buy' : 'Sell'}</td>
+        <td className="r num">{t.mc === null ? '' : usdShort(t.mc)}</td>
+        <td className="r num">{countShort(t.tokens)}</td>
+        <td className={`r num sv-side ${t.side}`}>{usdShort(t.usd)}</td>
+        <td className="sv-trader">{t.wallet ? <><a className="addr" href={`${EXPLORER}/address/${t.wallet}`} target="_blank" rel="noopener noreferrer" title={t.wallet}>{short(t.wallet)}</a>{t.dev && <span className="sv-tag">DEV</span>}<WalletSlots wallet={t.wallet} /></> : <span className="muted">—</span>}</td>
+      </tr>)}</tbody>
+    </table></div>
+    {!shown.length && <p className="sv-note">No trades of this kind in the list.</p>}
   </div>;
 }

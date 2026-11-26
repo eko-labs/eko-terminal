@@ -3,7 +3,6 @@ import { RadarRowSchema, type CoinCard, type Flow, type GuardAssessmentV2, type 
 import { createRadarCard, createRadarRows } from '../../mocks/demo/radar';
 import { LOCKED_IN, NOTHING_WRONG, NO_POWERS, PLAYBOOK_PLAIN, REASON_PLAIN, SOLD_OK, STILL_CHECKING, WARNING_SIGNS, dollars, factsOf, reasonsOf, whoIsBuying } from './model';
 import demo, { activityFor, withTrading } from './demo';
-import { RANGES, barsIn } from './SimpleChart';
 
 const JARGON = /\b(fdv|liquidity|impact|curve|slippage|mcap|market cap|playbook|guard|honeypot|bonding|deployer|rug|lp|pool|volume|exit)\b/i;
 const verdict = (level: Verdict['level'], playbooks: { id: string; level: string }[] = [], extra: Partial<Verdict> = {}) =>
@@ -81,16 +80,6 @@ describe('who is buying', () => {
   it('shows nothing when nobody traded or the flow is not in yet', () => {
     expect(whoIsBuying(flow(0, 0))).toBeNull();
     expect(whoIsBuying([])).toBeNull();
-  });
-});
-
-describe('the chart', () => {
-  it('shows the whole span it names, counted back from the newest bar', () => {
-    const bars = Array.from({ length: 200 }, (_, i) => ({ ts: 1_000_000 + i * 60, o: 1, h: 1, l: 1, c: 1, vUsd: 0 }));
-    expect(barsIn(bars, '1h')).toHaveLength(60);
-    expect(barsIn(bars, 'all')).toHaveLength(200);
-    expect(barsIn([], '24h')).toEqual([]);
-    expect(Object.values(RANGES).map(r => r.label)).toEqual(['Last hour', 'Today', 'All']);
   });
 });
 

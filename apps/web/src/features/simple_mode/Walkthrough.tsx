@@ -9,7 +9,8 @@ import { useSimple, type Walk } from './choice';
  * runs once on this device (the first Simple coins list, the first Simple coin page) and the coins list's can be
  * replayed from Help. Steps find their element by `data-walk`; a step whose element is not on screen is passed over.
  */
-export interface WalkStep { id: string; title: string; body: string; placement?: SpotlightStep['placement'] }
+/** `within`: narrower targets inside the step's `data-walk` element, tried in order before the element itself. */
+export interface WalkStep { id: string; title: string; body: string; placement?: SpotlightStep['placement']; within?: string[] }
 const LABELS = { skip: 'Skip', back: null, next: 'Next', finish: 'Got it' };
 
 export const LIST_WALK: WalkStep[] = [
@@ -24,8 +25,14 @@ export function coinWalk(dont: boolean): WalkStep[] {
     { id: 'sell', title: 'Can you sell it later?', body: "Some coins can't be sold once bought. EKO checks for you." },
     dont
       ? { id: 'buy', title: 'Find a safer coin', body: "When EKO says Don't buy, this shows coins that look OK." }
-      : { id: 'buy', title: 'Buy with one button', body: 'Pick an amount, then your wallet signs. EKO never holds your money.' },
+      : { id: 'buy', title: 'Buy with one button', body: 'Pick an amount, then your wallet signs. EKO never holds your money.', within: ['.tp-submit', '.tp-sides'] },
   ];
+}
+
+/** The element a step lights: the first visible of its narrower targets, else its own `data-walk` element. */
+function findStep(s: WalkStep): HTMLElement | null {
+  for (const inner of s.within ?? []) { const el = findVisible(`[data-walk="${s.id}"] ${inner}`); if (el) return el; }
+  return findVisible(`[data-walk="${s.id}"]`);
 }
 
 /** Starts `walk` once its page is ready, unless it already ran on this device; renders it while it runs. */
@@ -39,7 +46,7 @@ export function Walkthrough({ walk, steps, ready }: { walk: Walk; steps: WalkSte
   useEffect(() => { if (running === walk) setStep(0); }, [running, walk]);
   // Leaving the page stops its walkthrough (it shows again next time, as it was not finished).
   useEffect(() => () => { if (useSimple.getState().walk === walk) useSimple.setState({ walk: null }); }, [walk]);
-  const spots = useMemo<SpotlightStep[]>(() => steps.map(s => ({ id: s.id, find: () => findVisible(`[data-walk="${s.id}"]`), title: s.title, body: s.body, ...(s.placement ? { placement: s.placement } : {}) })), [steps]);
+  const spots = useMemo<SpotlightStep[]>(() => steps.map(s => ({ id: s.id, find: () => findStep(s), title: s.title, body: s.body, ...(s.placement ? { placement: s.placement } : {}) })), [steps]);
   const done = useCallback(() => {
     useSimple.getState().endWalk();
     window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });

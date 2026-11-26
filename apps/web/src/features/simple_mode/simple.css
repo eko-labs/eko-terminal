@@ -51,53 +51,15 @@
 .sv-reason-neutral svg{color:var(--muted)}
 
 /* Coin page: Full's head and glance band, the answer column a little wider for its reasons. */
-.sv-coin .coin-head{margin-bottom:22px}
-.sv-coin .coin-stat dt{color:var(--muted)}
-.sv-answer{display:flex;flex-direction:column;align-items:flex-start;gap:14px;min-width:0}
-.sv-coin .glance-band{grid-template-columns:minmax(300px,440px) minmax(0,1fr);margin-bottom:28px}
-.sv-coin .glance-head{justify-content:flex-start}
-.sv-coin .glance-row{align-content:start}
-.sv-tile{display:flex;min-width:0}
-.sv-tile>.glance{flex:1}
-.sv-coin .glance-row .glance-value{font-size:26px}
-.sv-coin .glance-label{color:var(--ink2)}
-.sv-coin .glance-line{font-size:13px;color:var(--ink2)}
-.sv-coin .glance-good .glance-value{color:var(--clear)}
-.sv-coin .glance-watch .glance-value{color:var(--monitor)}
-.sv-grid{margin-bottom:8px}
-.sv-aside{position:sticky;top:calc(var(--header) + 16px);display:flex;flex-direction:column;gap:14px;min-width:0}
-.sv-main{display:flex;flex-direction:column;gap:22px;min-width:0}
-.sv-section-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 16px;margin:0 0 12px}
-.sv-section-head h2{margin:0;font:var(--type-section);letter-spacing:var(--type-section-ls);color:var(--ink)}
-.sv-chart{height:380px;cursor:crosshair;touch-action:pan-y}
-.sv-card{padding:18px 20px 20px;border:1px solid #1b3446;border-radius:var(--r3);background:linear-gradient(180deg,#8fcaf00f,transparent 70%),var(--panel);box-shadow:inset 0 1px 0 #8fcaf024}
-.sv-card-lead{margin:10px 0 14px;font:var(--type-panel);font-size:18px;letter-spacing:var(--type-panel-ls);color:var(--ink)}
 .sv-split{display:flex;height:16px;overflow:hidden;border-radius:var(--r1);box-shadow:inset 0 0 0 1px var(--rule2)}
 .sv-split-buy{flex:none;background:radial-gradient(#04111a47 .9px,transparent 1px) 0 0/3px 3px,var(--accent);transition:width .6s var(--e-out)}
 .sv-split-sell{flex:1;background:var(--dither-dots) 0 0/var(--dither-size),var(--off)}
-.sv-split-key{display:flex;flex-wrap:wrap;align-items:center;gap:6px 20px;margin:12px 0 0;font:var(--type-meta);color:var(--ink2)}
-.sv-split-key span{display:inline-flex;align-items:center;gap:8px}
-.sv-split-key i{width:10px;height:10px;border-radius:2px}
-.sv-split-key i.buy{background:var(--accent)}
-.sv-split-key i.sell{background:var(--off);box-shadow:inset 0 0 0 1px var(--rule3)}
-.sv-when{margin-left:auto;color:var(--muted)}
 
 /* The buy panel: Full's trade card (a stronger blue edge, a wash from the top), one big button. */
-.sv-buy-panel{display:flex;flex-direction:column;gap:14px;padding:18px 18px 20px;border:1px solid #2a4b63;border-radius:var(--r3);background:linear-gradient(180deg,#8fcaf014,transparent 40%),var(--panel);box-shadow:inset 0 1px 0 #8fcaf02e}
-.sv-buy-head p{margin:8px 0 0;font:var(--type-body);color:var(--ink2)}
-.sv-dont .sv-buy-panel,.sv-buy-panel:has(.sv-warn){border-color:#5a3833}
 .sv-warn{padding:16px 16px 14px;border-radius:var(--r2);background:var(--danger-bg);box-shadow:inset 0 0 0 1px #f08c7e66}
 .sv-warn p{margin:0 0 14px;font-size:15px;line-height:1.5}
 .sv-warn b{color:var(--danger)}
 .sv-warn-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-.sv-buy{display:flex;flex-direction:column;gap:12px}
-.sv-buy-q{margin:2px 0 0;font:var(--type-panel);font-size:17px;color:var(--ink)}
-.sv-amounts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.sv-amounts button{min-height:52px;border:1px solid var(--btn-edge);border-radius:var(--r2);background:var(--panel);font:500 18px/1 var(--font-num);font-variant-numeric:tabular-nums;color:var(--ink);transition:background .15s,border-color .15s}
-.sv-amounts button:hover{border-color:var(--btn-edge-hi);background:var(--btn-hover)}
-.sv-amounts button[aria-checked=true]{border-color:var(--lit);background:var(--dither-dots) 0 0/var(--dither-size),var(--btn-sel);color:var(--lit)}
-.sv-trade{scroll-margin:90px}
-.sv-buy-note{margin:0 0 10px;font:var(--type-meta);color:var(--ink2)}
 .sv-more{display:block;margin:34px auto 0;min-height:48px;padding:0 10px;color:var(--ink2);font:500 16px/1 var(--sans);text-decoration:underline;text-underline-offset:5px;text-decoration-color:var(--rule3)}
 .sv-more:hover{color:var(--ink)}
 
@@ -180,11 +142,6 @@
 .sv-walk .tour-actions .btn{min-height:46px;padding:0 22px;border-radius:12px;font-size:17px;font-weight:600}
 .sv-walk .tour-actions .btn.primary{background:var(--dither-ink) 0 0/var(--dither-size),var(--lit);color:var(--brand-ink);border:0}
 
-@media(max-width:1100px){
-  .sv-coin .glance-band{grid-template-columns:1fr}
-  /* Phones and narrow windows: the buy panel comes right after the answer and its facts, before the chart. */
-  .sv-aside{order:-1;position:static}
-}
 @media(max-width:899px){
   .sv-list-head,.sv-row{grid-template-columns:minmax(0,1fr) 100px 150px}
   .sv-list-head span:nth-child(2),.sv-row-spark,.sv-list-head span:nth-child(4),.sv-row-move{display:none}
@@ -192,16 +149,6 @@
 @media(max-width:700px){
   .sv-chip-lg.verdict{height:54px;font-size:30px;padding:0 20px 0 16px}
   .sv-chip-lg.verdict svg{width:24px;height:24px}
-  /* Full's phone band shows four stats without their lines; Simple shows every fact with its plain line, two a row. */
-  .sv-coin .glance-row>:nth-child(n+5){display:flex}
-  .sv-coin .glance-row:has(>:nth-child(3)) .glance-line{display:block}
-  .sv-coin .glance-row .glance-line{min-height:0}
-  .sv-coin .glance-row .glance-value{font-size:23px}
-  .sv-coin .glance-row .pgauge{width:100%;max-width:120px}
-  .sv-chart{height:260px}
-  .sv-section-head .seg button{padding:5px 9px}
-  .sv-card{padding:16px}
-  .sv-when{margin-left:0;flex-basis:100%}
   .sv-list-head{display:none}
   .sv-list-head,.sv-row{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:'id id answer' 'price move answer';row-gap:4px;column-gap:12px;padding:12px 14px}
   .sv-row{min-height:74px}
@@ -220,8 +167,6 @@
 }
 @media(prefers-reduced-motion:reduce){:root:not([data-motion=on]) :is(.sv-switch button,.sv-btn,.sv-row,.sv-toggle-track,.sv-toggle-track i,.sv-amounts button,.sv-split-buy){transition:none}}
 :root[data-motion=off] :is(.sv-switch button,.sv-btn,.sv-row,.sv-toggle-track,.sv-toggle-track i,.sv-amounts button,.sv-split-buy){transition:none}
-.sv-section-head .sv-move{margin-left:12px;font:500 15px/1 var(--sans);color:var(--muted)}
-.sv-section-head .sv-move.up{color:var(--up)}
 
 /* Quick filters in trench words (trench.ts), as the site's segmented control; the chosen one explained in a plain line
    under it. On phones the chips scroll sideways in one row. Market cap leads the number column, the price under it. */

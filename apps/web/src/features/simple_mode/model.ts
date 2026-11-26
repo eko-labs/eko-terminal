@@ -141,10 +141,10 @@ function goodFacts(card: CoinCard | null | undefined): string[] {
 }
 
 /**
- * Up to three plain reasons under the answer, the strongest first: a failed test sale, what the guard or the checks
+ * Up to three (`limit`) plain reasons under the answer, the strongest first: a failed test sale, what the guard or the checks
  * found (dangers before cautions), and for a coin that looks OK the good things EKO measured. Never two the same.
  */
-export function reasonsOf(verdict: Pick<Verdict, 'level' | 'playbooks' | 'historyPartial'> | null | undefined, guard?: GuardAssessmentV2 | null, card?: CoinCard | null): Reason[] {
+export function reasonsOf(verdict: Pick<Verdict, 'level' | 'playbooks' | 'historyPartial'> | null | undefined, guard?: GuardAssessmentV2 | null, card?: CoinCard | null, limit = 3): Reason[] {
   const out: Reason[] = [];
   const add = (tone: Tone, text: string) => { if (!out.some(r => r.text === text)) out.push({ tone, text }); };
   const kind = answerOf({ level: verdict?.level ?? 'pending', historyPartial: verdict?.historyPartial, guard }).kind;
@@ -153,16 +153,18 @@ export function reasonsOf(verdict: Pick<Verdict, 'level' | 'playbooks' | 'histor
   else if (verdict && verdict.level !== 'clear' && verdict.level !== 'pending') {
     for (const m of findingsFirst(verdict.playbooks)) add(m.level === 'danger' ? 'bad' : 'watch', m.id === 'malicious_hook' && m.level === 'monitor' ? UNREVIEWED_HOOK : PLAYBOOK_PLAIN[m.id]);
   }
-  if (kind === 'checking') { if (!out.length) add('neutral', STILL_CHECKING); return out.slice(0, 3); }
+  if (kind === 'checking') { if (!out.length) add('neutral', STILL_CHECKING); return out.slice(0, limit); }
   if (!out.length) add(kind === 'ok' ? 'good' : 'watch', kind === 'ok' ? (verdict?.historyPartial ? WATCHED_LATE : NOTHING_WRONG) : WARNING_SIGNS);
   if (kind === 'ok') for (const fact of goodFacts(card)) add('good', fact);
-  return out.slice(0, 3);
+  return out.slice(0, limit);
 }
 
 /** A plain fact in the glance row: a label, one short value, one plain line, a tone and, where Full has one, a gauge. */
 export interface Fact { id: string; label: string; value: string; line: string; tone: Tone; gauge?: number }
 /** Reasons that say holders are concentrated (EKO's checks count it differently from the top 10's plain share). */
 const HOLDER_REASONS = new Set([PLAYBOOK_PLAIN.holder_concentration, PLAYBOOK_PLAIN.bundle_dump, REASON_PLAIN.TOP_HOLDERS, REASON_PLAIN.GROUP_HELD, REASON_PLAIN.EARLY_BUYERS]);
+/** Whether a reason says a few wallets hold a lot (then no holder figure may read as good news). */
+export const holdersFlagged = (reasons: readonly Reason[]) => reasons.some(r => HOLDER_REASONS.has(r.text));
 /**
  * The tiles agree with the reasons: when a reason above says a few wallets hold a lot, the Top 10 tile never says the
  * coin is spread across many people. It keeps its number and says EKO flags big holders instead.

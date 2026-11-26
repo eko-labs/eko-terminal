@@ -1,0 +1,151 @@
+/* Simple's coin page in the traders' dense layout (SimpleCoin.tsx): a stats strip, EKO's answer under it, the coin
+   page's own chart with a flow box, the trade panel and holder stats beside it, then trades and reasons in tabs. Built
+   on coin.css (the .coin-page chart and tabs) in EKO's palette: up is the cold-blue --up, down and danger coral. */
+.sv-tr.coin-page{padding-top:20px}
+.sv-tr-label{font:var(--type-label);font-size:10.5px;letter-spacing:var(--type-label-ls);text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.sv-tr-head{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;align-items:center;gap:12px 28px;padding:0 0 14px;border-bottom:1px solid var(--rule2)}
+.sv-tr-id{display:flex;flex-direction:column;gap:5px;min-width:0}
+.sv-tr-sym{margin:0;font:400 30px/1.05 var(--display);letter-spacing:-.04em;color:var(--ink);white-space:nowrap}
+.sv-tr-idline{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px;color:var(--ink2)}
+.sv-tr-name{max-width:22ch;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.sv-tr-age{padding:1px 6px;border:1px solid var(--rule2);border-radius:var(--r1);font:500 11px/1.5 var(--font-num);color:var(--ink2)}
+:root .sv-tr-ca{display:inline-flex;align-items:center;gap:5px;min-width:0;min-height:0;padding:1px 6px;border:1px solid var(--rule2);border-radius:var(--r1);font:500 11px/1.5 var(--font-num);color:var(--ink2)}
+.sv-tr-ca:hover{border-color:var(--btn-edge-hi);color:var(--ink)}
+.sv-tr-links{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;font-size:12px;color:var(--muted)}
+.sv-tr-links a{display:inline-flex;align-items:center;gap:3px;color:var(--ink2);text-decoration:none}
+.sv-tr-links a:hover{color:var(--ink)}
+.sv-tr-links .btn{height:26px;padding:0 10px;font-size:12px}
+.sv-tr-mc{display:flex;flex-direction:column;gap:2px}
+.sv-tr-mc b{font:600 30px/1 var(--sans);letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--ink)}
+.sv-tr-stats{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 22px;min-width:0;margin:0}
+.sv-tr-stat{display:flex;flex:none;flex-direction:column;gap:3px}
+.sv-tr-stat dt{font:var(--type-label);font-size:10.5px;letter-spacing:var(--type-label-ls);text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.sv-tr-stat dd{margin:0;font:500 15px/1.2 var(--font-num);font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
+.sv-tr-stat.tone-good dd{color:var(--clear)}
+.sv-tr-stat.tone-watch dd{color:var(--monitor)}
+.sv-tr-stat.tone-bad dd{color:var(--danger)}
+.sv-tr-chips{display:flex;gap:6px;margin:0;padding:0;list-style:none}
+.sv-tr-chips li{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:58px;padding:6px 8px;border:1px solid var(--rule2);border-radius:var(--r2);background:var(--panel)}
+.sv-tr-chips span{font:var(--type-label);font-size:10px;letter-spacing:var(--type-label-ls);text-transform:uppercase;color:var(--muted)}
+.sv-tr-chips b{font:600 13px/1.2 var(--font-num);color:var(--ink2)}
+.sv-tr-chips li.up{border-color:#8fcaf044;background:var(--dither-dots) 0 0/var(--dither-size),#8fcaf00d}
+.sv-tr-chips li.up b{color:var(--up)}
+.sv-tr-chips li.down{border-color:#f08c7e44;background:#f08c7e0b}
+.sv-tr-chips li.down b{color:var(--danger)}
+
+/* EKO's strip: the first thing the eye lands on. The answer chip, a one-word steer, the keystone reasons as pills, and
+   the facts with pixel gauges, on a plate in the answer's own tone. */
+.sv-strip{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px 28px;margin:14px 0 16px;padding:14px 18px;border:1px solid var(--rule2);border-radius:var(--r3);background:var(--panel)}
+.sv-strip-ok{border-color:#8fcaf066;background:linear-gradient(90deg,#8fcaf01f,transparent 65%),var(--dither-dots) 0 0/var(--dither-size),var(--panel)}
+.sv-strip-careful{border-color:#d6ecfa55;background:linear-gradient(90deg,#d6ecfa17,transparent 65%),var(--dither-dots) 0 0/var(--dither-size),var(--panel)}
+.sv-strip-dont{border-color:#f08c7e99;background:linear-gradient(90deg,#f08c7e26,transparent 65%),radial-gradient(#f08c7e2e .7px,transparent .8px) 0 0/4px 4px,var(--panel);box-shadow:inset 3px 0 var(--danger)}
+.sv-strip-answer{display:flex;flex-direction:column;gap:8px;min-width:0}
+.sv-strip-line{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px}
+.sv-strip .verdict.sv-chip-lg{height:50px;padding:0 18px 0 14px;gap:10px;font-size:27px}
+.sv-strip .verdict.sv-chip-lg svg{width:22px;height:22px}
+.sv-steer{font:600 20px/1 var(--sans);letter-spacing:-.01em;color:var(--ink)}
+.sv-strip-ok .sv-steer{color:var(--clear)}
+.sv-strip-careful .sv-steer{color:var(--monitor)}
+.sv-strip-dont .sv-steer{color:var(--danger)}
+.sv-strip-checking .sv-steer{color:var(--muted)}
+.sv-pills{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+.sv-pill{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:4px 10px 4px 8px;border:1px solid var(--rule2);border-radius:999px;background:#ffffff05;font:400 13px/1.35 var(--sans);color:var(--ink)}
+.sv-pill svg{flex:none}
+.sv-pill.tone-good svg{color:var(--clear)}
+.sv-pill.tone-watch svg{color:var(--monitor)}
+.sv-pill.tone-bad{border-color:#f08c7e66;background:var(--danger-bg)}
+.sv-pill.tone-bad svg{color:var(--danger)}
+.sv-pill.tone-neutral svg{color:var(--muted)}
+.sv-strip-facts{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(84px,auto);gap:4px 20px;margin:0;padding:0 0 0 24px;list-style:none;border-left:1px solid var(--rule2)}
+.sv-sfact{display:flex;flex-direction:column;gap:5px;min-width:0}
+.sv-sfact b{font:600 19px/1.1 var(--font-num);font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
+.sv-sfact.tone-good b{color:var(--clear)}
+.sv-sfact.tone-watch b{color:var(--monitor)}
+.sv-sfact.tone-bad b{color:var(--danger)}
+.sv-sfact .pgauge{width:80px}
+.sv-sfact-blank{display:block;height:10px}
+
+/* Chart and tabs on the left, the flow box, trade panel and holder stats on the right. */
+.sv-tr-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;align-items:start}
+.sv-tr-left,.sv-tr-right{display:flex;flex-direction:column;gap:14px;min-width:0}
+.sv-tr .coin-chart{height:460px}
+.sv-box{padding:14px 16px 16px;border:1px solid #1b3446;border-radius:var(--r3);background:linear-gradient(180deg,#8fcaf00c,transparent 60%),var(--panel);box-shadow:inset 0 1px 0 #8fcaf01f}
+.sv-box-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px}
+.sv-box-title{margin:0;font:var(--type-label);letter-spacing:var(--type-label-ls);text-transform:uppercase;color:var(--muted)}
+.sv-box-sub{font:var(--type-meta);font-size:11px;color:var(--faint);text-align:right}
+.sv-box-head .seg button{padding:3px 9px;font-size:12px}
+.sv-trade-box{border-color:#2a4b63;background:linear-gradient(180deg,#8fcaf014,transparent 40%),var(--panel);box-shadow:inset 0 1px 0 #8fcaf02e}
+.sv-dont-box{display:flex;flex-direction:column;gap:12px;border-color:#5a3833;background:linear-gradient(180deg,#f08c7e14,transparent 50%),var(--panel)}
+.sv-dont-box .sv-tr-label{color:var(--danger)}
+.sv-dont-box p{margin:0;font:var(--type-body);color:var(--ink)}
+.sv-flow-vol{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 8px}
+.sv-flow-vol b{font:600 22px/1 var(--font-num);color:var(--ink)}
+.sv-flow .sv-split{height:8px}
+.sv-flow-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin:12px 0 0}
+.sv-flow-grid div{display:flex;flex-direction:column;gap:2px}
+.sv-flow-grid dt{font:var(--type-meta);font-size:11px;color:var(--muted)}
+.sv-flow-grid dd{margin:0;font:500 14px/1.2 var(--font-num);color:var(--ink)}
+.sv-flow-grid .buy dd{color:var(--up)}
+.sv-flow-grid .sell dd{color:var(--danger)}
+.sv-hgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0;padding:0;list-style:none}
+.sv-hgrid li{display:grid;grid-template-columns:minmax(0,1fr) auto 14px;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--edge);border-radius:var(--r2);background:#ffffff03}
+.sv-hlabel{overflow:hidden;font-size:12px;color:var(--muted);white-space:nowrap;text-overflow:ellipsis}
+.sv-hgrid b{font:500 14px/1 var(--font-num);color:var(--ink)}
+.sv-hgrid .tone-good svg{color:var(--clear)}
+.sv-hgrid .tone-watch svg{color:var(--monitor)}
+.sv-hgrid .tone-bad svg{color:var(--danger)}
+.sv-hgrid .tone-bad b{color:var(--danger)}
+.sv-tr-tabs .coin-tabs{margin:6px 0 12px}
+.sv-trade-filters{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.sv-trade-filters button{height:28px;padding:0 11px;border:1px solid var(--rule2);border-radius:999px;background:none;font:500 12px/1 var(--sans);color:var(--ink2)}
+.sv-trade-filters button:hover{color:var(--ink);border-color:var(--btn-edge-hi)}
+.sv-trade-filters button[aria-pressed=true]{border-color:var(--accent);background:var(--dither-dots) 0 0/var(--dither-size),var(--btn-sel);color:var(--lit)}
+.sv-trades-wrap{max-height:520px;overflow:auto;border:1px solid var(--edge);border-radius:var(--r2);background:var(--panel);scrollbar-width:thin}
+.sv-trades-table{width:100%;border-collapse:collapse;font-size:13px}
+.sv-trades-table th{position:sticky;top:0;z-index:1;height:32px;padding:0 10px;background:var(--panel);border-bottom:1px solid var(--edge);text-align:left;font:var(--type-label);font-size:10.5px;letter-spacing:var(--type-label-ls);text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.sv-trades-table td{height:32px;padding:0 10px;border-bottom:1px solid #ffffff08;white-space:nowrap}
+.sv-trades-table .r{text-align:right}
+.sv-trades-table td a{color:inherit;text-decoration:none}
+.sv-trades-table tr:hover td{background:var(--hover)}
+.sv-trades-table tr.buy td:first-child{box-shadow:inset 2px 0 #8fcaf066}
+.sv-trades-table tr.sell td:first-child{box-shadow:inset 2px 0 #f08c7e66}
+.sv-side.buy{color:var(--up)}
+.sv-side.sell{color:var(--danger)}
+.sv-trader{display:flex;align-items:center;gap:6px;height:32px}
+.sv-trader .addr{font:500 12px/1 var(--font-num);color:var(--ink2)}
+.sv-tag{padding:1px 5px;border:1px solid #f08c7e88;border-radius:var(--r1);font:600 10px/1.4 var(--font-num);color:var(--danger)}
+.sv-why{display:flex;flex-direction:column;gap:14px}
+.sv-why-list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.sv-fold>summary{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--muted);font:var(--type-meta);list-style:none}
+.sv-fold>summary::-webkit-details-marker{display:none}
+.sv-fold>summary:hover{color:var(--ink)}
+.sv-fold[open]>summary{margin-bottom:12px}
+.sv-tr .sv-more{font-size:14px;margin-top:24px}
+
+@media(max-width:1180px){.sv-strip{grid-template-columns:1fr}.sv-strip-facts{padding:12px 0 0;border-left:0;border-top:1px solid var(--rule2);grid-auto-flow:row;grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}}
+@media(max-width:1100px){
+  .sv-tr-head{grid-template-columns:minmax(0,1fr) auto}
+  .sv-tr-stats,.sv-tr-chips{grid-column:1/-1}
+  .sv-tr-stats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .sv-tr-stats::-webkit-scrollbar{display:none}
+  /* One column, in the order a trader reads it on a phone: chart, trade, flow, holders, then the tabs. */
+  .sv-tr-grid{display:flex;flex-direction:column;align-items:stretch}
+  .sv-tr-left,.sv-tr-right{display:contents}
+  .sv-tr-chart{order:1}.sv-tr-trade{order:2}.sv-flow{order:3}.sv-holders{order:4}.sv-tr-tabs{order:5}
+}
+@media(max-width:700px){
+  .sv-tr.coin-page{padding:16px 14px 40px}
+  .sv-tr-sym{font-size:26px}
+  .sv-tr-mc b{font-size:24px}
+  .sv-tr-name{max-width:14ch}
+  .sv-tr-chips li{flex:1}
+  .sv-strip{padding:12px 12px 14px}
+  .sv-strip .verdict.sv-chip-lg{height:44px;font-size:23px}
+  .sv-steer{font-size:17px}
+  .sv-strip-facts{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 12px}
+  .sv-sfact b{font-size:16px}
+  .sv-sfact .pgauge{width:100%}
+  .sv-tr .coin-chart{height:44vh}
+  .sv-trades-table th:nth-child(4),.sv-trades-table td:nth-child(4){display:none}
+  .sv-trades-table td,.sv-trades-table th{padding:0 7px}
+}
