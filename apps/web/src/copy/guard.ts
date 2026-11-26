@@ -20,7 +20,7 @@ export const GUARD_COPY = {
   mode: 'Buyer policy mode', sellState: 'Sells use a separate existing-position check.', receipt: 'Receipt', verify: 'Verify',
   receiptNote: 'inclusion does not establish the analysis.', routeTable: 'Route, size and account class',
   source: 'Snapshot, source and retries', captured: 'Captured evidence and factor measurements', how: 'How we got this',
-  signal: 'Signal · five readings', beta: 'Beta', descriptive: 'Descriptive activity', recordedInputs: 'recorded inputs',
+  price: 'Price · last 8 hours', beta: 'Beta', descriptive: 'Descriptive activity', recordedInputs: 'recorded inputs',
   shadowInputs: 'shadow inputs', composite: 'Composite', high: 'High risk', block: 'block', points: 'points', spark: 'Last 8h', change: '24h change',
   eoa: 'EOA', smartAccount: 'Smart account', originalReceipt: 'Verify original receipt',
 };

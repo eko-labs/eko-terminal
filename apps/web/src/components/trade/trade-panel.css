@@ -129,3 +129,55 @@
 .guarded-trade-panel .tp-modes button[aria-checked=true]{background:var(--raise);color:var(--ink)}
 /* An amount above what a feature's line under the amount calls sound. */
 .guarded-trade-panel .tp-amounts .tp-amount-over{border-style:dashed;border-color:var(--warn);color:var(--warn)}
+
+/* ---- Buy in the native coin, balances, presets you can edit, Quick buy (GMGN-style). The amount sits in one big
+   field with a small ETH | $ switch at its end; the other unit, the balance and the holding read in mono under it. --- */
+.guarded-trade-panel .tp-amount-head{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;margin:14px 0 6px}
+.guarded-trade-panel .tp-amount-head .tp-label{flex:none}
+.guarded-trade-panel .tp-big input{width:100%;height:56px;padding:0 14px 0 34px;font:500 28px/1 var(--font-num);letter-spacing:-.02em;font-variant-numeric:tabular-nums;background:var(--plate);border:1px solid var(--btn-edge);border-radius:var(--r2)}
+.guarded-trade-panel .tp-big input:focus{border-color:var(--accent)}
+.guarded-trade-panel .tp-big .tp-unit{left:14px;font:500 22px/1 var(--font-num);color:var(--muted)}
+.guarded-trade-panel .tp-big .tp-unit.tp-unit-end{left:auto;right:14px}
+.guarded-trade-panel .tp-big.tp-big-unit input{padding-right:98px}
+.guarded-trade-panel .tp-big input.tp-in-native{padding-left:14px}
+.guarded-trade-panel .tp-big.tp-big-pct input{padding:0 40px 0 14px}
+.guarded-trade-panel .tp-unitsw{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;gap:2px;padding:2px;border:1px solid var(--btn-edge);border-radius:var(--r1);background:var(--ground,#000)}
+.guarded-trade-panel .tp-unitsw button{min-width:34px;height:30px;min-height:0;padding:0 7px;border:0;border-radius:var(--r1);background:none;color:var(--muted);font:600 12px/1 var(--font-num);letter-spacing:.02em;cursor:pointer}
+.guarded-trade-panel .tp-unitsw button:hover{color:var(--ink)}
+.guarded-trade-panel .tp-unitsw button[aria-pressed=true]{background:var(--btn-sel);color:var(--lit);box-shadow:inset 0 0 0 1px var(--btn-edge-hi)}
+.guarded-trade-panel .tp-bal{display:inline-flex;align-items:center;gap:6px;min-width:0;min-height:24px;padding:0;border:0;background:none;color:var(--muted);font:var(--type-meta);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.guarded-trade-panel .tp-bal b{font:500 12px/1 var(--font-num);font-variant-numeric:tabular-nums;color:var(--ink)}
+.guarded-trade-panel .tp-bal .tp-bal-max{padding:3px 5px;border:1px solid var(--btn-edge);border-radius:var(--r1);font:600 10px/1 var(--font-num);letter-spacing:.06em;text-transform:uppercase;color:var(--lit)}
+.guarded-trade-panel .tp-bal:hover:not(:disabled) b,.guarded-trade-panel .tp-bal:hover:not(:disabled) .tp-bal-max{color:var(--lit);border-color:var(--btn-edge-hi)}
+.guarded-trade-panel .tp-bal:disabled{cursor:default;opacity:.7}
+.guarded-trade-panel .tp-sub{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:2px 12px;margin:6px 0 0;font:var(--type-meta);color:var(--muted)}
+.guarded-trade-panel .tp-equiv{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+.guarded-trade-panel .tp-hold-line{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:var(--type-meta);color:var(--muted)}
+.guarded-trade-panel .tp-hold-line b{font-family:var(--font-num);font-weight:500;color:var(--ink)}
+.guarded-trade-panel .tp-amount-head .tp-hold-line{text-align:right}
+.guarded-trade-panel .tp-amounts.tp-amounts-edit{grid-template-columns:repeat(4,minmax(0,1fr)) auto}
+.guarded-trade-panel .tp-amounts .tp-pencil{display:grid;place-items:center;width:34px;padding:0;color:var(--muted)}
+@media(pointer:coarse){.guarded-trade-panel .tp-amounts .tp-pencil{width:44px}}
+.guarded-trade-panel .tp-amounts .tp-pencil:hover,.guarded-trade-panel .tp-amounts .tp-pencil.on{color:var(--lit)}
+.guarded-trade-panel .tp-amounts .tp-preset-in{width:100%;min-width:0;height:34px;padding:0 4px;text-align:center;font:500 13px/1 var(--font-num);border:1px dashed var(--btn-edge-hi)}
+/* Quick buy: off it is one quiet switch; on, the switch is lit, a line says what a tap does, the amount buttons carry
+   a bolt and a lit edge, and the panel's top edge is lit, so no one taps one thinking it only fills the amount. */
+.guarded-trade-panel .tp-quick{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:12px 0 0}
+.guarded-trade-panel .tp-quick-sw{display:inline-flex;align-items:center;gap:6px;height:28px;min-height:0;padding:0 8px;border:1px solid var(--rule2);border-radius:var(--r1);background:none;color:var(--muted);font:600 12px/1 var(--sans);cursor:pointer}
+.guarded-trade-panel .tp-quick-sw:hover{color:var(--ink);border-color:var(--btn-edge-hi)}
+.guarded-trade-panel .tp-quick-state{padding:2px 4px;border-radius:2px;background:var(--plate);font:600 10px/1 var(--font-num);letter-spacing:.06em;text-transform:uppercase}
+.guarded-trade-panel .tp-quick-sw[aria-checked=true]{background:var(--dither-ink) 0 0/var(--dither-size),var(--accent);border-color:var(--accent);color:var(--brand-ink)}
+.guarded-trade-panel .tp-quick-sw[aria-checked=true] .tp-quick-state{background:var(--brand-ink);color:var(--accent)}
+.guarded-trade-panel .tp-quick-note{font:var(--type-meta);color:var(--accent)}
+.guarded-trade-panel .tp-amounts-quick .btn:not(.tp-pencil):not(:disabled){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent);gap:4px}
+.guarded-trade-panel .tp-amounts-quick .btn:not(.tp-pencil):not(:disabled):hover{background:color-mix(in srgb,var(--accent) 20%,transparent);color:var(--lit)}
+.guarded-trade-panel .tp-amounts-quick .btn svg{flex:none}
+.guarded-trade-panel.tp-quick-on{box-shadow:inset 0 2px 0 var(--accent)}
+.guarded-trade-panel .tp-quick-msg{margin:8px 0 0;padding-left:8px;border-left:2px solid var(--accent);font:var(--type-meta);color:var(--ink2)}
+/* What the trade gets, from the live quote, before the costs and the action. */
+.guarded-trade-panel .tp-get{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:baseline;gap:4px 10px;margin:14px 0 0;padding:10px 12px;background:var(--plate);border:1px solid var(--rule2);border-radius:var(--r2)}
+.guarded-trade-panel .tp-get-k{font:var(--type-label);letter-spacing:var(--type-label-ls);text-transform:uppercase;color:var(--faint)}
+.guarded-trade-panel .tp-get-v{min-width:0;text-align:right;overflow-wrap:anywhere;font:600 18px/1.1 var(--font-num);font-variant-numeric:tabular-nums;color:var(--lit)}
+.guarded-trade-panel .tp-get[data-side=sell] .tp-get-v{color:var(--ink)}
+.guarded-trade-panel .tp-get-sub{grid-column:1/-1;text-align:right;font:var(--type-meta);font-size:11px;font-variant-numeric:tabular-nums;color:var(--faint)}
+@media(pointer:coarse){.guarded-trade-panel .tp-unitsw button{min-height:36px;height:36px}.guarded-trade-panel .tp-quick-sw,.guarded-trade-panel .tp-bal{min-height:36px}}

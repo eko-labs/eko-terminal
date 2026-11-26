@@ -13,7 +13,10 @@ import { WALLET_COPY } from '../../copy/wallet';
 import { FeeLines, TradePanelView } from './TradePanel';
 import { TradeLock } from './TradeContext';
 import { BUILD_CHAIN_ID } from '../../lib/chain';
-import { antiSnipeDeadline, emptyQuote, panelBlock, quoteExpired, tradeErrorText, tradeRequestKey, TradeQuoteSession, QUOTE_POLL_MS, type PanelGate } from './tradePanelModel';
+import { antiSnipeDeadline, emptyQuote, panelBlock, quoteExpired, tradeErrorText, tradeRequestKey, TradeQuoteSession, QUOTE_POLL_MS, type PanelGate,
+  DEFAULT_PRESETS, formatNative, formatUsdShort, maxBuyNative, nativePriceText, nativeToUsd, nativeUsdOfQuote, parsePresets, quickBuyStep, rawToUnits, SELL_PRESETS, sellTokens, usdToNative } from './tradePanelModel';
+import type { BuyControls } from './TradePanel';
+import type { Holding } from './useHolding';
 const css = readFileSync(new URL('./trade-panel.css', import.meta.url), 'utf8');
 import coinSource from '../../pages/terminal/Coin.tsx?raw';
 import radarSource from '../../pages/terminal/Radar.tsx?raw';
@@ -277,5 +280,116 @@ describe('visible quote lifecycle with fixture backend', () => {
     const first = lock.run(g, execute); expect(lock.busy).toBe(true); expect(await lock.run(g, execute)).toBeNull();
     finish(); await first; expect(lock.busy).toBe(false); expect(execute).toHaveBeenCalledTimes(1);
     await expect(lock.run(g, async () => { throw new Error('fixture'); })).rejects.toThrow('fixture'); expect(lock.busy).toBe(false);
+  });
+});
+
+describe('buying in the native coin, balances, sell shares and quick buy', () => {
+  // 0.01 ETH at $3,150 buys 1.24M tokens (18 decimals); a synthetic quote, display only.
+  const ETH_USD = 3150, E18 = 10n ** 18n;
+  const buyQuote = (p: Partial<TradeQuote> = {}) => quote({ amountUsd: 31.5, amountIn: (E18 / 100n).toString(), valueWei: (E18 / 100n).toString(),
+    expectedOut: (1_240_000n * E18).toString(), minOut: (1_233_800n * E18).toString(), ...p });
+  const sellQuote = () => quote({ side: 'sell', amountUsd: 15.5, amountIn: (410_000n * E18).toString(), valueWei: '0', expectedOut: (4_920_000n * 10n ** 9n).toString(), minOut: (4_895_000n * 10n ** 9n).toString() });
+  const holding: Holding = { tokens: 820_000, loading: false, noWallet: false, decimals: 18 };
+  const controls = (p: Partial<BuyControls> = {}): BuyControls => ({ unit: 'native', native: 'ETH', nativeUsd: ETH_USD, amount: 0.01, presets: [...DEFAULT_PRESETS.native],
+    setUnit: vi.fn(), savePresets: vi.fn(), pick: vi.fn(), balance: 0.42, max: 0.0793, reserve: 0.0005, fillMax: vi.fn(), quick: false, setQuick: vi.fn(), ...p });
+  const sellBag = { pct: 50, changePct: vi.fn(), holding, symbol: 'FROG', capped: false };
+  const view = (g: PanelGate, buy = controls(), priceUsd = 0.0000378) => render(<TradePanelView gate={g} {...actions} buy={buy} sell={sellBag} priceUsd={priceUsd} />);
+
+  it('converts the native coin to the quote request’s dollars and back, to the cent', () => {
+    expect(nativeToUsd(0.005, ETH_USD)).toBe(15.75); expect(nativeToUsd(0.001, ETH_USD)).toBe(3.15);
+    expect(nativeToUsd(0.01, null)).toBeNaN(); expect(nativeToUsd(NaN, ETH_USD)).toBeNaN();
+    expect(usdToNative(31.5, ETH_USD)).toBeCloseTo(0.01, 12); expect(usdToNative(25, 0)).toBeNaN();
+  });
+  it('reads the native USD price from a buy quote, never from a sell', () => {
+    expect(nativeUsdOfQuote(buyQuote())).toBe(ETH_USD);
+    // The edge sizes a buy in millionths of the native coin: $25 at $3,150 asks 0.007936 ETH.
+    expect(nativeUsdOfQuote({ side: 'buy', amountUsd: 25, amountIn: (7936n * 10n ** 12n).toString() })).toBeCloseTo(3150.2, 1);
+    expect(nativeUsdOfQuote(sellQuote())).toBeNull();
+    expect(nativeUsdOfQuote({ side: 'buy', amountUsd: 25, amountIn: '0' })).toBeNull();
+  });
+  it('turns raw amounts into whole units with the coin’s decimals', () => {
+    expect(rawToUnits((1_240_000n * E18).toString(), 18)).toBe(1_240_000);
+    expect(rawToUnits('1234500', 6)).toBe(1.2345); expect(rawToUnits('not a number', 18)).toBeNaN(); expect(rawToUnits('1', 99)).toBeNaN();
+  });
+  it('writes native amounts and dollars short and exact', () => {
+    expect([0.42, 0.00098, 0.0793, 1.2049, 0, 0.00000001].map(formatNative)).toEqual(['0.42', '0.00098', '0.0793', '1.205', '0', '<0.000001']);
+    expect([15.75, 0.004, 1234.5, NaN].map(formatUsdShort)).toEqual(['$15.75', '<$0.01', '$1,235', '—']);
+  });
+  it('keeps four positive presets per unit, else that unit’s defaults', () => {
+    expect(DEFAULT_PRESETS.native).toEqual([0.001, 0.005, 0.01, 0.05]);
+    expect(parsePresets({ native: [0.002, 0.004, 0.02, 0.1], usd: [1, 2] })).toEqual({ native: [0.002, 0.004, 0.02, 0.1], usd: [25, 50, 100, 250] });
+    expect(parsePresets({ native: [0.002, -1, 0.02, 0.1] }).native).toEqual([0.001, 0.005, 0.01, 0.05]);
+    expect(parsePresets('garbage')).toEqual({ native: [0.001, 0.005, 0.01, 0.05], usd: [25, 50, 100, 250] });
+  });
+  it('fills MAX as the balance less the gas reserve, under the per-trade cap', () => {
+    expect(maxBuyNative(0.42, 0.0005, undefined, ETH_USD)).toBe(0.4195);
+    expect(maxBuyNative(0.42, 0.0005, 250, ETH_USD)).toBe(0.079361);
+    expect(nativeToUsd(maxBuyNative(0.42, 0.0005, 250, ETH_USD)!, ETH_USD)).toBeLessThanOrEqual(250);
+    expect(maxBuyNative(0.0004, 0.0005, 250, ETH_USD)).toBeNull(); expect(maxBuyNative(null, 0.0005, 250, ETH_USD)).toBeNull();
+  });
+  it('sells 10 / 25 / 50 / 100% of the holding, or any typed share', () => {
+    expect(SELL_PRESETS).toEqual([10, 25, 50, 100]);
+    expect(SELL_PRESETS.map(p => sellTokens(820_000, p))).toEqual([82_000, 205_000, 410_000, 820_000]);
+    expect(sellTokens(820_000, 33)).toBeCloseTo(270_600); expect(sellTokens(820_000, 140)).toBe(820_000); expect(sellTokens(null, 50)).toBeNaN();
+  });
+  it('waits for the native price rather than calling an ETH amount invalid, after pause and configuration', () => {
+    const g = gate(buyQuote()); g.input.amountUsd = NaN;
+    expect(panelBlock({ ...g, nativeUnknown: 'ETH' })).toBe(nativePriceText('ETH'));
+    expect(panelBlock(g)).toBe(C.invalid);
+    expect(panelBlock({ ...g, nativeUnknown: 'ETH', liveEnabled: false })).toBe(C.paused);
+    expect(panelBlock({ ...g, nativeUnknown: 'ETH', liveEnabled: undefined })).toBe(C.config);
+    expect(panelBlock({ ...g, nativeUnknown: 'ETH', input: { ...g.input, slippageBps: 10000 } })).toBe(C.invalid);
+  });
+  it('renders a buy in ETH: presets, the dollars under it, balance with MAX, holding, and what the quote gets', () => {
+    const text = view(gate(buyQuote()));
+    for (const n of ['0.001', '0.005', '0.01', '0.05']) expect(text).toContain(`>${n}</button>`);
+    expect(text).toContain('≈ $31.50'); expect(text).toContain('Balance <b>0.42 ETH</b>'); expect(text).toContain('>Max<');
+    expect(text).toContain('You hold <b>820K FROG</b> ≈ $31.00');
+    expect(text).toMatch(/You get<\/span><b class="tp-get-v">≈ 1\.24M FROG<\/b>/); expect(text).toContain('at least 1.23M FROG · for 0.01 ETH');
+    expect(text).toContain('aria-label="Edit presets"'); expect(text).toMatch(/aria-pressed="true"[^>]*>ETH</); expect(text).toContain('>$</button>');
+    expect(text).toMatch(/class="btn tp-submit btn-primary">Buy 0\.01 ETH</);
+    // Costs, then the action.
+    expect(text.indexOf('You get')).toBeLessThan(text.indexOf('Price impact')); expect(text.indexOf('Price impact')).toBeLessThan(text.indexOf('tp-submit'));
+  });
+  it('shows the other unit under a dollar amount, and says when the ETH price is not known yet', () => {
+    const g = gate(buyQuote());
+    expect(view(g, controls({ unit: 'usd', amount: 31.5, presets: [...DEFAULT_PRESETS.usd] }))).toContain('≈ 0.01 ETH');
+    const unknown = gate(buyQuote(), { nativeUnknown: 'ETH' }); unknown.input.amountUsd = NaN;
+    const text = view(unknown, controls({ nativeUsd: null }));
+    expect(text).toContain(nativePriceText('ETH')); expect(text).not.toMatch(/class="btn tp-submit btn-primary">Buy/);
+  });
+  it('disables ETH presets worth more than the per-trade cap', () => {
+    const text = view(gate(buyQuote(), { cap: 50 }));
+    expect(text).toMatch(/disabled=""[^>]*>0\.05<\/button>/); expect(text).not.toMatch(/disabled=""[^>]*>0\.01<\/button>/);
+  });
+  it('makes Quick buy unmistakable when on, and quiet when off', () => {
+    const off = view(gate(buyQuote()));
+    expect(off).toContain('role="switch" aria-checked="false"'); expect(off).not.toContain('tp-amounts-quick'); expect(off).not.toContain('opens your wallet');
+    const on = view(gate(buyQuote()), controls({ quick: true, quickMsg: 'Quick buy 0.01 ETH: getting the quote…' }));
+    expect(on).toContain('role="switch" aria-checked="true"'); expect(on).toContain('tp-amounts-quick'); expect(on).toContain('A tap on an amount quotes it and opens your wallet.');
+    expect(on).toContain('Quick buy 0.01 ETH: getting the quote…'); expect(on).toContain('title="Quick buy 0.005 ETH"');
+  });
+  it('quick buy signs only what the Buy button could: waits for the quote, stops on refusals, warnings and pauses', () => {
+    expect(quickBuyStep(gate(buyQuote()))).toEqual({ step: 'sign' });
+    const loading = gate(buyQuote()); loading.snapshot = { ...loading.snapshot, quote: null };
+    expect(quickBuyStep(loading)).toEqual({ step: 'wait' });
+    const early = gate(buyQuote(), { nativeUnknown: 'ETH' }); early.input.amountUsd = NaN;
+    expect(quickBuyStep(early)).toEqual({ step: 'wait' });
+    expect(quickBuyStep(gate(buyQuote(), { now: now + 15000 }))).toEqual({ step: 'wait' });
+    expect(quickBuyStep(gate(buyQuote(), { liveEnabled: false }))).toEqual({ step: 'stop', reason: C.paused });
+    expect(quickBuyStep(gate(buyQuote({ guard: { decision: 'refuse', checks: [{ code: 'honeypot', status: 'refuse', label: 'Could not sell' }] } })))).toEqual({ step: 'stop', reason: C.refused });
+    const warned = gate(buyQuote({ guard: { decision: 'warn', checks: [{ code: 'anti_snipe', status: 'warn', label: 'Early fee' }] } }));
+    expect(quickBuyStep(warned)).toEqual({ step: 'stop', reason: C.review });
+    warned.snapshot.acknowledged = ['anti_snipe']; expect(quickBuyStep(warned)).toEqual({ step: 'sign' });
+    expect(quickBuyStep(gate(buyQuote(), { signerAvailable: false }))).toEqual({ step: 'stop', reason: C.signingUnavailable });
+    expect(quickBuyStep(gate(sellQuote()))).toMatchObject({ step: 'stop' });
+  });
+  it('renders a sell as a share: 10/25/50/100, the exact tokens, and the ETH and dollars it gets', () => {
+    const g = gate(sellQuote()), text = view(g);
+    for (const n of SELL_PRESETS) expect(text).toContain(`>${n}%</button>`);
+    expect(text).not.toContain('>75%<');
+    expect(text).toContain('Selling <b>410K FROG</b> ≈ <b>$15.50</b>'); expect(text).toContain('You hold <b>820K FROG</b>');
+    expect(text).toMatch(/You get<\/span><b class="tp-get-v">≈ 0\.00492 ETH<\/b>/); expect(text).toContain('≈ $15.50 · for 410K FROG');
+    expect(text).toMatch(/class="btn tp-submit">Sell 50%/);
   });
 });

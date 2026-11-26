@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { encodeAbiParameters, encodeEventTopics, getAddress, keccak256, toHex, type Hex } from 'viem';
 import { loadElysiumRegistry } from '@eko/chain';
-import { CoinCardSchema, PairRowSchema, PublicConfigSchema, RadarResponseSchema, ScanResultSchema, ScoreboardResponseSchema, VerdictSchema } from '@eko/shared';
+import { CoinCardSchema, PairRowSchema, PublicConfigSchema, RadarResponseSchema, RadarRowSchema, ScanResultSchema, ScoreboardResponseSchema, VerdictSchema } from '@eko/shared';
 import launch from '../../../packages/chain/test/fixtures/99901/montra-launch.json' with { type: 'json' };
 import { barsFromTrades, changePct, priceHypeFromSqrt, spark, tradeFromSwap, type Trade } from '../src/market.js';
 import { hookBits, judge, type Assessment } from '../src/assess.js';
@@ -168,6 +168,31 @@ describe('views match the web app\'s contracts', () => {
     expect(PairRowSchema.parse(pairRow(coin, assessment('clear'), ctx))).toMatchObject({ buyers: 7, top10Pct: 12, devPct: 2 });
     expect(pairColumn({ ...coin, graduated: true }, ctx)).toBe('migrated');
     expect(PublicConfigSchema.parse(publicConfig()).trading.liveEnabled).toBe(false);
+  });
+
+  it('gives every judged row, pair and card the EKO score, in the band of its verdict', async () => {
+    const tracker = new Tracker(fakeChain(launchBlock + 500), registry, { backfillBlocks: 600, chunk: 100 });
+    await tracker.start();
+    const coin = tracker.coin(token)!, ctx = { nowSec: coin.ts + 600, head: launchBlock + 500, hypeUsd: 70 };
+    const band = { clear: 'ok', danger: 'danger' } as const, range = { clear: [70, 100], danger: [0, 10] } as const;
+    for (const level of ['clear', 'danger'] as const) {
+      const row = RadarRowSchema.parse(radarRow(coin, assessment(level), ctx, 1)), pair = PairRowSchema.parse(pairRow(coin, assessment(level), ctx));
+      const card = CoinCardSchema.parse(coinCard(coin, assessment(level), ctx));
+      expect(row.ekoScore).toBeDefined();
+      expect(row.ekoScore!.band).toBe(band[level]);
+      expect(row.ekoScore!.value).toBeGreaterThanOrEqual(range[level][0]); expect(row.ekoScore!.value).toBeLessThanOrEqual(range[level][1]);
+      // One score per coin, whichever view carries it.
+      expect(pair.ekoScore).toEqual(row.ekoScore); expect(card.ekoScore).toEqual(row.ekoScore);
+    }
+    const clear = radarRow(coin, assessment('clear'), ctx, 1).ekoScore!;
+    // Holders (12% top ten, 2% dev) and a 2% exit cost were measured; the hour's trades and the pool were too.
+    expect(clear.parts).toMatchObject({ holders: 97, exit: 96 }); expect(clear.missing ?? []).not.toContain('holders');
+    expect(clear.cappedBy).toBeUndefined();
+    const danger = radarRow(coin, assessment('danger'), ctx, 1).ekoScore!;
+    expect(danger).toMatchObject({ cap: 10, cappedBy: 'Sell check refused', parts: { exit: 0 } });
+    // Pending: no score anywhere.
+    expect(radarRow(coin, undefined, ctx, 1).ekoScore).toBeUndefined();
+    expect(coinCard(coin, undefined, ctx).ekoScore).toBeUndefined();
   });
 });
 

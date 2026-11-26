@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { createRadarRows } from '../mocks/demo/radar';
 import { activityHot, displayHeat, heatOf, HOT, marking, markClass } from './heat';
-const coin = (change1hPct: number, score: number, agents: number) => { const c = createRadarRows()[0]; return { ...c, verdict: 'clear' as const, change1hPct, flow: { ...c.flow, agentPct: agents }, signal: { ...c.signal!, composite: score } }; };
+const coin = (change1hPct: number, score: number, agents: number) => { const c = createRadarRows()[0]; return { ...c, verdict: 'clear' as const, change1hPct, flow: { ...c.flow, agentPct: agents }, ekoScore: { ...c.ekoScore!, missing: undefined, parts: { ...c.ekoScore!.parts, momentum: score } } }; };
 describe('prototype heat and dither thresholds', () => {
-  it.each([[3,60,25,'shimmer',1], [0,70,30,'shimmer',2], [10,70,40,'shimmer',3], [-8,64,10,'ember',1]] as const)('marks %s%%, signal %s, agents %s', (move, signal, flow, kind, level) => expect(marking(coin(move,signal,flow))).toEqual({ kind, level }));
+  it.each([[3,60,25,'shimmer',1], [0,70,30,'shimmer',2], [10,70,40,'shimmer',3], [-8,64,10,'ember',1]] as const)('marks %s%%, momentum %s, agents %s', (move, signal, flow, kind, level) => expect(marking(coin(move,signal,flow))).toEqual({ kind, level }));
   it('checks exact boundaries and pending precedence', () => {
     expect(marking(coin(2.9,60,25))).toBeNull(); expect(marking(coin(3,59,25))).toBeNull(); expect(marking(coin(3,60,24.9))).toBeNull();
     expect(marking(coin(-8,65,10))).toBeNull(); expect(heatOf(coin(-2,61,20))).toBe('fading'); expect(heatOf(coin(-2,62,20))).toBe('normal');
@@ -17,7 +17,7 @@ describe('prototype heat and dither thresholds', () => {
     expect(marking(c,{redFlag:true})).toEqual({kind:'ember',level:3});
   });
   it('applies remaining predicates without inventing optional readings', () => {
-    for (const [move, agents, expected] of [[3,25,'mk-shimmer-1'],[0,30,'mk-shimmer-2'],[10,40,'mk-shimmer-3'],[-8,10,'mk-ember-1']] as const) expect(markClass(marking({...coin(move,50,agents),signal:undefined}))).toBe(expected);
+    for (const [move, agents, expected] of [[3,25,'mk-shimmer-1'],[0,30,'mk-shimmer-2'],[10,40,'mk-shimmer-3'],[-8,10,'mk-ember-1']] as const) expect(markClass(marking({...coin(move,50,agents),ekoScore:undefined}))).toBe(expected);
     expect(markClass(null)).toBe('');
   });
 });

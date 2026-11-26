@@ -14,7 +14,7 @@ import { NOT_CHECKED, NOT_FULLY_CHECKED, RUN_UP_LEGEND, SELL_CHECK_NOT_AVAILABLE
 import { runUpScore } from '../../lib/runUp';
 import { exitMeasured, sellCheckNotAvailable, sellCheckOf } from '../../lib/sellCheck';
 import { memo, useEffect, useMemo, useRef, type ReactNode } from 'react';
-import type { CoinCard, CoinSignal, RadarRow, Flow } from '@eko/shared';
+import type { CoinCard, RadarRow, Flow } from '@eko/shared';
 import { HeatTag, Info, Seg, UnavailableValue, UntrustedText, VerdictChip } from '../../components/ui';
 import { MiniBars, Spark } from '../../components/ui/charts';
 import { activityRatio, displayHeat, heatOf, marking, markClass, type HeatRow } from '../../lib/heat';
@@ -31,15 +31,13 @@ import { formatAge, formatCoinPrice } from '../../lib/format';
 import { launchpadLabel, quotedIn } from '../../copy/chain';
 import { FlowBar, FLOW_SHARE_TITLE, buyShare, flowFigure } from './FlowBar';
 import { PaneResizer } from '../../components/shell/PaneResizer';
+import { EKO_SCORE_BAND_LABEL } from '@eko/shared';
+import { SCORE_TITLE, SCORE_VERDICT, ScoreCell, ScoreMini, ScoreParts, scoreWhy } from './CoinScore';
 
 export { FlowBar };
 
-export const ROLES = ['momentum', 'liquidity', 'holders', 'narrative', 'risk'] as const;
-export function SignalBars({ signal }: { signal: CoinSignal }) {
-  return <span className="rt-sig"><b className="num">{signal.composite}</b><span className="rt-read" aria-hidden="true">{ROLES.map((role) => <i key={role} style={{ height: `${Math.max(14, signal.readings[role])}%` }} />)}</span></span>;
-}
 export function HeatLegend() {
-  return <div className="heat-legend" aria-label="How rows are marked">{['Hot', 'Normal', 'Fading', 'Danger'].map((word, i) => <span key={word}><i className={`sw ${['hot', 'normal', 'fading', 'avoid'][i]}`} />{word}</span>)}<Info label="How rows are marked">A blue-white shimmer grows from warming (3%+ in an hour, agents 25%+, signal 60+) to Hot (signal 70+, rising, agents 30%+) to surging (10%+, agents 40%+). A dark ember marks falling activity (down 8%+, signal under 65), Danger, and red flags (honeypot, 75%+ exit cost, or a Danger match at 97%+ confidence). Danger always wins. Without signal, only price and flow predicates apply. The marks describe activity; they are not a reason to buy. {RUN_UP_LEGEND}</Info></div>;
+  return <div className="heat-legend" aria-label="How rows are marked">{['Hot', 'Normal', 'Fading', 'Danger'].map((word, i) => <span key={word}><i className={`sw ${['hot', 'normal', 'fading', 'avoid'][i]}`} />{word}</span>)}<Info label="How rows are marked">A blue-white shimmer grows from warming (3%+ in an hour, agents 25%+, momentum 60+) to Hot (momentum 70+, rising, agents 30%+) to surging (10%+, agents 40%+). A dark ember marks falling activity (down 8%+, momentum under 65), Danger, and red flags (honeypot, 75%+ exit cost, or a Danger match at 97%+ confidence). Danger always wins. Momentum is the EKO score's momentum part; without it, only price and flow predicates apply. The marks describe activity; they are not a reason to buy. {RUN_UP_LEGEND}</Info></div>;
 }
 /** A coin's ticker; a coin with no name yet (seconds after launch) shows its short address, never a lone "$". */
 function CoinTicker({ c }: { c: { symbol: RadarRow['symbol']; address: string } }) {
@@ -53,10 +51,10 @@ export const RadarRowView = memo(function RadarRowView({ c, selected, select, tr
   const score = c.verdictPending || c.verdict === 'pending' ? undefined : runUpScore(c);
   const riskMode = useUi((st) => st.riskMode), no = refused(c, riskMode);
   return <tr ref={el} data-address={c.address} className={`h-${heatOf(c)} ${markClass(marking(c))}${selected ? ' sel' : ''}`} onClick={(e) => select(c, e.currentTarget.querySelector<HTMLButtonElement>('[data-pick]')!)}>
-    <td className="c-coin"><button data-pick className="rt-pick" aria-pressed={selected} aria-controls={selected ? 'radar-inspector' : undefined} onClick={(e) => { e.stopPropagation(); select(c, e.currentTarget); }}><span className="rt-top"><span className="rt-sym" title={`$${c.symbol.text}`}><CoinTicker c={c} /></span><BlueChipBadge value={c.blueChip} /><HeatTag heat={displayHeat(c)} /></span><span className="rt-name"><UntrustedText value={c.name} /> · <span className="rt-pad">{launchpadLabel(c.launchpad, c.stage === 'graduated')}{c.quoteSymbol ? ` ${quotedIn(c.quoteSymbol)}` : ''}</span> · {age(c.ageSec)}</span></button></td>
+    <td className="c-coin"><button data-pick className="rt-pick" aria-pressed={selected} aria-controls={selected ? 'radar-inspector' : undefined} onClick={(e) => { e.stopPropagation(); select(c, e.currentTarget); }}><span className="rt-top"><span className="rt-sym" title={`$${c.symbol.text}`}><CoinTicker c={c} /></span><BlueChipBadge value={c.blueChip} /><HeatTag heat={displayHeat(c)} />{c.ekoScore && <ScoreMini score={c.ekoScore} />}</span><span className="rt-name"><UntrustedText value={c.name} /> · <span className="rt-pad">{launchpadLabel(c.launchpad, c.stage === 'graduated')}{c.quoteSymbol ? ` ${quotedIn(c.quoteSymbol)}` : ''}</span> · {age(c.ageSec)}</span></button></td>
     <td className="c-guard"><CompactVerdictChip priceMove={c.priceMove} level={c.verdict} guard={c.guardV2} failed={c.guardRefreshFailed} pending={c.verdictPending} scanDelayed={scanDelayed} evaluatedPlaybooks={c.evaluatedPlaybooks} missing={c.missingChecks} stateLabel={stateLabel} runUp={score} historyPartial={c.historyPartial} /></td>
     <td className="c-watch">{c.topPlaybook ? <><span className="rt-play">{playbookName(c.topPlaybook, c.verdict)}</span>{confidence !== undefined && <span className="rt-conf">{Math.round(confidence * 100)}% confidence</span>}</> : null}</td>
-    <td className="c-sig r">{c.unavailable?.includes('signal') ? <UnavailableValue /> : c.signal && <SignalBars signal={c.signal} />}</td>
+    <td className="c-sig r">{c.ekoScore && <ScoreCell score={c.ekoScore} />}</td>
     <td className="c-beta r">{c.beta && <span className="rt-sig"><span className="tag">Beta</span>{c.beta.apeScore !== undefined && <b className="num">{c.beta.apeScore}</b>}{c.beta.setupGrade && <span>{c.beta.setupGrade}</span>}</span>}</td>
     <td className="c-price r num">{c.priceUnavailable ? <UnavailableValue /> : <Roll value={formatCoinPrice(c.priceUsd)} />}</td>
     <td className="c-mcap r num">{c.unavailable?.includes('marketCap') || c.marketCapUsd === undefined ? <UnavailableValue /> : <Roll value={usd(c.marketCapUsd)} />}</td>
@@ -90,7 +88,7 @@ export function HotStrip({ coins, window, onWindowChange, selected, select, load
         <span className="htile-top"><span className="htile-sym" title={`$${c.symbol.text}`}><CoinTicker c={c} /></span><span className="htile-tags"><BlueChipBadge value={c.blueChip} /><HeatTag heat={heatOf(c)} /><CompactVerdictChip priceMove={c.priceMove} linked={false} level={c.verdict} stateLabel={noMatchLabel(c)} guard={c.guardV2} failed={c.guardRefreshFailed} pending={c.verdictPending} evaluatedPlaybooks={c.evaluatedPlaybooks} missing={c.missingChecks} historyPartial={c.historyPartial} /></span></span>
         <span className="htile-spark">{c.spark8h && <Spark series={c.spark8h} height={46} />}</span>
         <span className="htile-facts">
-          {c.signal && <span><span className="htile-signal-label">Signal <span className="signal-beta">Beta</span></span><b className="num score">{c.signal.composite}</b></span>}
+          {c.ekoScore && <span className={`htile-score score-${c.ekoScore.band}`} title={`${SCORE_TITLE} ${scoreWhy(c.ekoScore)}`}>Score<b className="num">{c.ekoScore.value}</b><small className="score-word">{EKO_SCORE_BAND_LABEL[c.ekoScore.band]}</small></span>}
           <span>Vol {window}<b className="num">{volume === undefined ? <UnavailableValue /> : usd(volume)}</b>
             {!day && <small className="htile-usual">{c.volumeBaselineUsd === undefined ? 'new coin' : `${ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1)}× usual`}</small>}
           </span>
@@ -117,7 +115,7 @@ export function CoinInspector({ row, close, onCard, formatRowAge = age, stale = 
   useEffect(() => { const ac = new AbortController(); setError(false); void fetchParsed(`/coins/${row.address}`, CoinCardSchema, { signal: ac.signal }).then((data) => { if (!ac.signal.aborted) { setCard(data); onCard(data); } }).catch((e) => { if (e.name !== 'AbortError' && !isRateLimited(e)) setError(true); }); return () => ac.abort(); }, [row.address, retry]);
   useEffect(()=>rt?.subscribe<'coin'>(`coin:${row.address}`,event=>{if(event.kind==='card'){setCard(event.data);onCard(event.data);}},()=>setRetry(n=>n+1)),[rt,row.address]);
   useEffect(() => { if (!wide) panel.current?.focus(); }, [wide]);
-  const signal = card?.signal, flow = card?.flow;
+  const score = card?.ekoScore ?? row.ekoScore, flow = card?.flow;
   const assessment = guard.assessment ?? row.guardV2 ?? undefined;
   const verdict = card?.verdict.level ?? row.verdict;
   const pending = !!row.verdictPending && !card;
@@ -140,7 +138,7 @@ export function CoinInspector({ row, close, onCard, formatRowAge = age, stale = 
       <InspectorGuard card={card} href={fullTo} mark={mk?.kind === 'ember' ? markClass(mk) : ''} />
       {deployer && deployerTo && <Section title="Dev"><p className="insp-dev"><Link to={deployerTo} className="addr" title={deployer}>{deployer.slice(0, 6)}…{deployer.slice(-4)}</Link> · <Link to={deployerTo} className="insp-link">Launch history</Link></p></Section>}
       <Section title="Can you get out?"><dl className="insp-kv">{[['Exit cost at $100', exitMeasured(card, 'usd100') ? exitText(card.tradeability.exitCostPct.usd100) : sellCheckNotAvailable(card) ? SELL_CHECK_NOT_AVAILABLE : NOT_CHECKED], ['Exit cost at $1K', exitMeasured(card, 'usd1k') ? exitText(card.tradeability.exitCostPct.usd1k) : sellCheckNotAvailable(card) ? SELL_CHECK_NOT_AVAILABLE : NOT_CHECKED], ...(sellCheckOf(card) ? [['Sell check', SELL_CHECK_TEXT[sellCheckOf(card)!]]] : sellCheckNotAvailable(card) ? [['Sell check', SELL_CHECK_NOT_AVAILABLE]] : []), ['Liquidity', row.unavailable?.includes('liquidity') ? NOT_CHECKED : usd(row.liquidityUsd)], ...(row.marketCapUsd === undefined ? [] : [['FDV', usd(row.marketCapUsd)]])].map(([label, value]) => <div key={label}><dt>{label}</dt><dd className={(label === 'Exit cost at $100' && exitMeasured(card, 'usd100') && card.tradeability.exitCostPct.usd100 > 15) || (label === 'Exit cost at $1K' && exitMeasured(card, 'usd1k') && card.tradeability.exitCostPct.usd1k > 15) || (label === 'Sell check' && sellCheckOf(card) === 'refused') ? 'num bad' : 'num'}>{value}</dd></div>)}</dl></Section>
-      {signal && <Section title="Signal · five readings" figure={<b className="num">{signal.composite} <span className="tag">Beta</span></b>}><div className="insp-roles">{ROLES.map((role) => <div key={role}><span>{role[0].toUpperCase() + role.slice(1)}</span><i><i style={{ width: `${signal.readings[role]}%` }} /></i><b className="num">{signal.readings[role]}</b></div>)}</div></Section>}
+      {score && <Section title="EKO score" figure={<b className={`num insp-score score-${score.band}`} title={SCORE_TITLE}>{score.value} <span className="score-word">{SCORE_VERDICT[score.band]}</span></b>}><ScoreParts score={score} cells={16} /><p className="insp-score-why">{scoreWhy(score)}</p></Section>}
       {row.unavailable?.includes('flow') && !flow?.activity ? <Section title="Who’s buying">{NOT_CHECKED}</Section> : flow && <Section title="Who’s buying" figure={<b className="num">{flowFigure(flow, row.unavailable?.includes('flow'))}</b>}><FlowBar flow={flow} unavailable={row.unavailable?.includes('flow')} legend /></Section>}
     </>}
     <Section title="Watch"><WatchButton kind="coin" target={row.address} /></Section>

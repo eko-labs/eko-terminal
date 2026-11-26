@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createRadarRows } from '../../mocks/demo/radar';
-import { applyRadarEvents, currentAgeSec, filterRows, hottest, noMatchLabel, playbookName, refused, scanDelayed, SORTS, sortRows } from './radarModel';
+import { applyRadarEvents, currentAgeSec, filterRows, hottest, noMatchLabel, playbookName, refused, scanDelayed, SORTS, sortAvailable, sortRows } from './radarModel';
 import { pick } from '../../lib/chain';
 import type { ChannelEvent } from '../../lib/realtime';
 const event = (kind: string, data: unknown) => ({t:'ev',ch:'radar',seq:1,ts:1,kind,data}) as ChannelEvent<'radar'>;
@@ -13,6 +13,10 @@ describe('Radar server order and user sorting', () => {
       const sorted = sortRows(rows,sort); for (let i=1;i<sorted.length;i++) expect((sorted[i][field]-sorted[i-1][field])*direction).toBeGreaterThanOrEqual(0);
     }
     expect(SORTS).not.toContain('Signal');
+    // Score sorts high to low, and a coin with no score (pending) goes last.
+    const byScore = sortRows([...rows, { ...rows[0], address: `0x${'e'.repeat(40)}` as typeof rows[0]['address'], ekoScore: undefined }], 'Score');
+    for (let i=1;i<byScore.length-1;i++) expect(byScore[i].ekoScore!.value).toBeLessThanOrEqual(byScore[i-1].ekoScore!.value);
+    expect(byScore.at(-1)!.ekoScore).toBeUndefined(); expect(sortAvailable(rows,'Score')).toBe(true); expect(sortAvailable([{ ...rows[0], ekoScore: undefined }],'Score')).toBe(false);
     expect(sortRows(rows,'Agent flow')[0].flow.agentPct).toBe(Math.max(...rows.map(c=>c.flow.agentPct)));
     expect(rows).toEqual(original);
   });
@@ -24,9 +28,9 @@ describe('Radar server order and user sorting', () => {
     expect(sortRows([early, late], 'Newest', received).map((c) => c.address)).toEqual([late.address, early.address]);
     expect(currentAgeSec(early, received, 60_000)).toBe(65); expect(scanDelayed({ ...early, verdictPending: true }, 65)).toBe(true);
   });
-  it('preserves ranking and Hottest ordering with missing or changed Signal', () => {
-    const rows = createRadarRows().slice(0,2); rows[0].signal = undefined; expect(sortRows(rows,'Rank')).toEqual(rows);
-    const before=sortRows(rows,'Hottest').map(c=>c.address); rows[1].signal!.composite=0; expect(sortRows(rows,'Hottest').map(c=>c.address)).toEqual(before);
+  it('preserves ranking and Hottest ordering with a missing or changed score', () => {
+    const rows = createRadarRows().slice(0,2); rows[0].ekoScore = undefined; expect(sortRows(rows,'Rank')).toEqual(rows);
+    const before=sortRows(rows,'Hottest').map(c=>c.address); rows[1].ekoScore!.value=0; expect(sortRows(rows,'Hottest').map(c=>c.address)).toEqual(before);
   });
   it('leaves Dead and Inactive coins out of the No flags filter (their chips do not say No flags)', () => {
     const live = { ...createRadarRows()[0], verdict: 'clear' as const, verdictPending: false, guardV2: undefined, stage: 'curve' as const, launchpad: 'pons' as const, curvePct: 40, trades1h: 5, volume1hUsd: 900, ageSec: 900, unavailable: [] };

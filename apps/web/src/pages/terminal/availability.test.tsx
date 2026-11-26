@@ -20,10 +20,10 @@ describe('CA-35 availability',()=>{
   });
   it('masks unavailable row numbers and skips those values when sorting',()=>{
     const base=createRadarRows()[0],row={...base,verdict:'pending' as const,verdictPending:false,unavailable:['exitCost','flow','liquidity','signal','change','marketCap'] as const};
-    const c={...row,unavailable:[...row.unavailable],exitCost1kPct:0,change1hPct:0};
+    const c={...row,unavailable:[...row.unavailable],exitCost1kPct:0,change1hPct:0,ekoScore:undefined};
     const html=render(<table><tbody><RadarRowView c={c} selected={false} select={()=>{}} trade={()=>{}} pulse={0}/></tbody></table>);
-    // Six masked cells: exit, flow, liquidity, signal, 1h and market cap.
-    expect(html.match(/aria-label="Not checked yet" title="Not checked yet">—/g)).toHaveLength(6);expect(html).not.toContain('0.0%');expect(html).not.toContain('>0%</span>');
+    // Five masked cells: exit, flow, liquidity, 1h and market cap. A pending coin has no score: its Score cell is empty.
+    expect(html.match(/aria-label="Not checked yet" title="Not checked yet">—/g)).toHaveLength(5);expect(html).toContain('<td class="c-sig r"></td>');expect(html).not.toContain('0.0%');expect(html).not.toContain('>0%</span>');
     const pair={...createPairRows()[0],unavailable:c.unavailable,verdict:'pending' as const,verdictPending:false};
     const pairHtml=render(<ul><PairView row={pair} now={1} at={1} select={()=>{}} trade={()=>{}} stale={false}/></ul>);expect(pairHtml.match(/>Not fully checked</g)).toHaveLength(1);
     expect(pairHtml).toContain('aria-label="Not checked yet" title="Not checked yet">—');

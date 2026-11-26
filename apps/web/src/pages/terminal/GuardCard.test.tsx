@@ -191,12 +191,12 @@ describe('packet 036 Guard card fixtures', () => {
     expect(none).not.toContain('Scanning…'); expect(none).toContain('has not been released');
     expect(render(<GuardCard card={{ ...card, verdict: views.incomplete }} />)).not.toContain('Scanning…');
   });
-  it('renders supplied optional readings and price fields, withholding low-data readings and overlaying High', () => {
+  it('renders supplied price fields and never the beta Signal', () => {
     const card = CoinCardV2Schema.parse({ ...rawCard, signal: guardSamples.CoinSignalV2, change24hPct: observed('returnPct', '2', 'pct'), spark8h: [{ ts: 1, o: 1, h: 2, l: 1, c: 2, vUsd: 1 }, { ts: 2, o: 2, h: 3, l: 2, c: 3, vUsd: 1 }] });
     const html = render(<GuardCard card={card} />);
-    for (const text of ['Signal · five readings', 'Composite 50 / 100', 'How we got this', 'Last 8h', '24h change', 'risk · 10%</dt><dd>not checked yet']) expect(html).toContain(text);
-    expect(render(<GuardCard card={{ ...card, verdict: views.high }} />)).toContain('Composite High risk / 100');
-    expect(render(<GuardCard card={card} assessment={views.high} />)).toContain('Descriptive activity · shadow inputs');
+    // The beta Signal is never shown (the EKO score replaces it); the price fields still are.
+    for (const text of ['Price · last 8 hours', 'Last 8h', '24h change']) expect(html).toContain(text);
+    for (const text of ['Signal · five readings', 'Composite', 'Descriptive activity']) expect(html).not.toContain(text);
   });
   it('integrates a V2 partial card even when the V1 issuer card is unavailable', () => {
     vi.spyOn(legacyData, 'useCoin').mockReturnValue({ card: null, verdict: null, bars: [], markers: [], flows: [], error: 'Issuer unavailable', unknown: true, ageSec: 0, retry: () => {}, candlesUnavailable: false, candlesLoading: false, lastTradeTs: null, labelsUnavailable: true });

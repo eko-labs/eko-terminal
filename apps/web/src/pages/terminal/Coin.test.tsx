@@ -6,7 +6,7 @@ import { CoinOverview, CoinVerdict } from './CoinCard';
 import { formatCoinPrice } from '../../lib/format';
 import { TradePanel } from '../../components/trade/TradePanel';
 import { TimeframeControls } from '../../components/chart/TimeframeControls';
-import { CoinSignalPanel } from './CoinSignal';
+import { CoinScorePanel } from './CoinScore';
 import { createRadarCard, createRadarRows } from '../../mocks/demo/radar';
 import { CandlesSchema, mergeMarkers } from './useCoin';
 import * as coinData from './useCoin';
@@ -53,7 +53,17 @@ describe('coin card and signal copy',()=>{
    hook.mockReturnValue({...data,bars:[],lastTradeTs:null});
    expect(renderToStaticMarkup(<Coin params={{address:row.address}}/>)).toContain('No trades in this window');
  });
- it('renders the five readings with fixed weights and a reproducible receipt, without agent copy',()=>{const html=renderToStaticMarkup(<CoinSignalPanel signal={card.signal!}/>);expect(html).toContain('Signal · five readings');expect(html).toContain('<th>Reading</th>');expect(html).toContain('How we got this');expect(html).not.toMatch(/agent/i);for(const reading of ['Momentum','Liquidity','Holders','Narrative','Risk'])expect(html).toContain(reading);expect(html).toContain('30%');expect(html).toContain('Beta');});
+ it('renders the EKO score panel: the number in its band, the four parts and why, without the beta Signal or agent copy',()=>{
+   const html=renderToStaticMarkup(<CoinScorePanel score={card.ekoScore!}/>);
+   expect(html).toContain('EKO score');expect(html).toContain(`<b class="num">${card.ekoScore!.value}</b><span class="score-word">Be careful</span>`);
+   for(const part of ['Momentum','Money behind it','Holder spread','Easy to exit'])expect(html).toContain(part);
+   expect(html).toContain('Capped at 69: EKO says Be careful, bundled launch.');expect(html).not.toContain('Beta');expect(html).not.toMatch(/agent/i);
+   const danger=createRadarCard(createRadarRows().find(c=>c.symbol.text==='FROG')!.address)!.ekoScore!;
+   expect(renderToStaticMarkup(<CoinScorePanel score={danger}/>)).toContain('Capped at 39: EKO says Danger, dumped at bonding.');
+   const ok=createRadarCard(createRadarRows().find(c=>c.verdict==='clear')!.address)!.ekoScore!;
+   expect(renderToStaticMarkup(<CoinScorePanel score={ok}/>)).toContain('EKO says Looks OK: no red flags in its checks.');
+   expect(renderToStaticMarkup(<CoinScorePanel score={{...ok,missing:['holders']}}/>)).toContain('not measured');
+ });
  it('has all card sections and only renders Swarm for verdict.beta',()=>{const render=(beta=undefined as typeof card.verdict.beta)=>renderToStaticMarkup(<CoinOverview card={card} verdict={{...card.verdict,beta}} flows={[card.flow]} evidenceOpen/>);const html=render();for(const word of ['Verdict','Round trip','Liquidity','Who holds it','Owner powers','Receipt','Identity','Trading flow'])expect(html).toContain(word);expect(html).not.toContain('Swarm');expect(render({apeScore:42})).toContain('Swarm');expect(html).toContain('86% confidence');expect(html).toContain('Evidence');});
  it('renders the verdict alone before the card and escapes evidence',()=>{const html=renderToStaticMarkup(<CoinVerdict verdict={{...card.verdict,reasons:['<script>alert(1)</script>']}}/>);expect(html).toContain('&lt;script&gt;');expect(html).not.toContain('<script>');expect(html).toContain('Verdict');});
  it('uses the shared coin price formatter in the guarded trade panel',()=>{

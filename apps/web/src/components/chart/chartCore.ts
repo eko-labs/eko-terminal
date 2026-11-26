@@ -20,6 +20,11 @@ export const COLORS = {
 /** Dark chart colours; candles keep their direction colours. */
 export const CHART_THEME = { text: '#7c8997', grid: 'rgba(150,190,235,0.045)', border: 'rgba(150,190,235,0.08)', cross: 'rgba(200,220,255,0.25)', label: '#1b2a36', sep: 'rgba(150,190,235,0.08)' };
 
+/** A market-cap label without trailing zeros where no tick step needs them: $20.7K, $1.2M, $310K. */
+export function formatMc(value: number, step?: number): string {
+  const s = formatCompactUsd(value, step);
+  return step === undefined && s.includes('.') ? s.replace(/0+(?=[KMB]?$)/, '').replace(/\.(?=[KMB]?$)/, '') : s;
+}
 /** What a viewer can switch on the coin chart (saved per browser: ChartStage). */
 export interface ChartOptions { volume: boolean; log: boolean; ema: number[] }
 export const EMA_COLORS: Record<number, string> = { 9: COLORS.ema9, 21: COLORS.ema21, 50: COLORS.ema50 };
@@ -84,12 +89,15 @@ export class ChartCore {
   /** Price to the scale's own units: log prices on a log scale. */
   private f(p: number) { return this.opts.log ? Math.log(Math.max(p, 1e-30)) : p; }
   private inv(v: number) { return this.opts.log ? Math.exp(v) : v; }
-  priceRange() { if(this.cachedRange)return this.cachedRange;const visible=this.data.slice(Math.max(0,Math.floor(this.view.s)),Math.min(this.data.length,Math.ceil(this.view.e))), src=visible.length?visible:this.data;let lo=Infinity,hi=-Infinity;for(const b of src){lo=Math.min(lo,this.f(b.l));hi=Math.max(hi,this.f(b.h));}const span=hi-lo||Math.abs(hi)*.02||1,pad=span*.08,mid=(lo+hi)/2+this.shift*span,half=(span/2+pad)*this.scale;this.cachedRange={lo:mid-half,hi:mid+half};return this.cachedRange; }
+  priceRange() { if(this.cachedRange)return this.cachedRange;const visible=this.data.slice(Math.max(0,Math.floor(this.view.s)),Math.min(this.data.length,Math.ceil(this.view.e))), src=visible.length?visible:this.data;let lo=Infinity,hi=-Infinity;for(const b of src){lo=Math.min(lo,this.f(b.l));hi=Math.max(hi,this.f(b.h));}const span=hi-lo||Math.abs(hi)*.02||1,pad=span*.08,mid=(lo+hi)/2+this.shift*span,half=(span/2+pad)*this.scale;let rlo=mid-half,rhi=mid+half;
+    // A price or market cap is never below zero: on a linear scale the padding slides up instead of labelling "-$1.40K".
+    if(!this.opts.log&&lo>=0&&rlo<0){rhi-=rlo;rlo=0;}
+    this.cachedRange={lo:rlo,hi:rhi};return this.cachedRange; }
   yForPrice(p: number): number | null { if(!this.data.length)return null;const r=this.priceRange(), B=this.mainPaneHeight()-42;return B-(this.f(p)-r.lo)/(r.hi-r.lo)*(B-this.T); }
   priceForY(y: number): number { const r=this.priceRange(), B=this.mainPaneHeight()-42;return this.inv(r.lo+(B-y)/(B-this.T)*(r.hi-r.lo)); }
   onRedraw(l:()=>void) { this.listeners.add(l);return()=>{this.listeners.delete(l);}; }
   scheduleRedraw() { this.cachedRange=null; if(this.raf||this.dead)return;this.raf=requestAnimationFrame(()=>{this.raf=0;if(this.dead)return;this.paint();this.listeners.forEach(l=>l());}); }
-  private label(_c: CanvasRenderingContext2D, value: number, step?: number) { return this.axisSupply===1?formatCoinPrice(value):formatCompactUsd(value,step); }
+  private label(_c: CanvasRenderingContext2D, value: number, step?: number) { return this.axisSupply===1?formatCoinPrice(value):formatMc(value,step); }
   /** The chart without the crosshair, kept after each full paint: moving the pointer only pastes it back and draws the
    *  crosshair (a full paint redraws every glow and dither dot; doing that per mousemove lagged the page). */
   private base: HTMLCanvasElement | null = null;

@@ -12,8 +12,8 @@ describe('Radar contract-driven row and trade slots', () => {
   const renderHot = (c = row, window: '1h' | '24h' = '1h') => renderToStaticMarkup(
     <HotStrip coins={[c]} window={window} onWindowChange={() => undefined} selected={null} select={() => undefined} />);
   it('hides absent CA-31 elements and always tags optional Ape Score beta',()=>{
-    const html=renderRow({...row,signal:undefined,spark8h:undefined,beta:{apeScore:87}});
-    expect(html).not.toContain('rt-read'); expect(html).not.toContain('class="spark"'); expect(html).toContain('Beta'); expect(html).toContain('87');
+    const html=renderRow({...row,ekoScore:undefined,spark8h:undefined,beta:{apeScore:87}});
+    expect(html).not.toContain('rt-score'); expect(html).not.toContain('class="spark"'); expect(html).toContain('Beta'); expect(html).toContain('87');
     expect(renderRow()).not.toContain('Beta Ape Score');
   });
   it('shows an accessible unavailable value instead of an incomplete price spark',()=>{
@@ -28,9 +28,11 @@ describe('Radar contract-driven row and trade slots', () => {
     const html=renderToStaticMarkup(<FlowBar flow={row.flow} legend/>); expect(html).toContain('Beta'); expect(html).toContain('86% confidence'); expect(html).toContain('Declared agents'); expect(html).toContain('Likely agents');
     const noSplit=renderToStaticMarkup(<FlowBar flow={{...row.flow,declaredAgentPct:undefined,likelyAgentPct:undefined}} legend/>); expect(noSplit).not.toContain('Declared agents'); expect(noSplit).not.toContain('Likely agents');
   });
-  it('shows one Signal beta marker and no agent confidence line in Hot tiles',()=>{
+  it('shows the EKO score with its band word, no Beta tag and no agent confidence line in Hot tiles',()=>{
     const html=renderHot();
-    expect(html.match(/>Beta</g)).toHaveLength(1); expect(html).not.toContain('confidence');
+    expect(html).not.toContain('>Beta<'); expect(html).not.toContain('confidence'); expect(html).not.toContain('Signal');
+    expect(html).toContain(`Score<b class="num">${row.ekoScore!.value}</b><small class="score-word">Careful</small>`);
+    expect(html).toContain('title="EKO score. Danger is always 0-39, Be careful 40-69, Looks OK 70-100; higher inside a band means a stronger setup.');
   });
   it('shows market cap next to volume and switches the displayed trading window', () => {
     const coin = { ...row, marketCapUsd: 2_500_000, volume1hUsd: 2_000, volume24hUsd: 18_000, change1hPct: 2.5, change24hPct: 21.5 };
@@ -55,8 +57,15 @@ describe('Radar contract-driven row and trade slots', () => {
     expect(html).toContain('<h3>Watch</h3>');expect(html).toContain('>Watch</button>');
     expect(html).toContain('<h3>Trade</h3>');expect(html).toContain('>Amount<');
   });
-  it('calls the signal "Signal · five readings", never agents, with one Beta marker in the column header (BACKEND §7.7)',()=>{
-    expect(partsSource).toContain('Signal · five readings'); expect(partsSource).not.toMatch(/five[- ]agent/i);
-    expect(renderRow()).not.toContain('signal-beta'); expect(radarSource).toContain('className="c-sig r">Signal <span className="tag signal-beta">Beta</span>');
+  it('shows the EKO score, never the beta Signal: a sortable Score column whose cell says the number and the band',()=>{
+    expect(partsSource).not.toContain('Signal · five readings'); expect(partsSource).not.toMatch(/five[- ]agent/i); expect(partsSource).not.toMatch(/[^a]c\.signal\b/);
+    expect(radarSource).toContain('value="Score" {...{ sort, setSort }} className="c-sig r" title={SCORE_TITLE}>Score</SortTh>');
+    const html=renderRow();
+    expect(html).not.toContain('signal-beta'); expect(html).toContain(`<b class="num">${row.ekoScore!.value}</b><span class="score-word">Careful</span>`);
+    expect(html).toContain('rt-score score-careful');
+    for (const [verdict, band, word] of [['danger','danger','Danger'],['clear','ok','OK']] as const) {
+      const other=createRadarRows().find(c=>c.verdict===verdict)!;
+      expect(renderRow(other)).toContain(`rt-score score-${band}`); expect(renderRow(other)).toContain(`>${word}</span>`);
+    }
   });
 });

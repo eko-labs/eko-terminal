@@ -22,14 +22,22 @@ export function activityHot(c: HeatRow): boolean {
   if (c.volumeBaselineUsd === undefined) return c.trades1h >= HOT.newTrades && c.volume1hUsd >= HOT.newVolumeUsd;
   return c.volume1hUsd >= HOT.ratio * c.volumeBaselineUsd;
 }
-/** The original agent path: strong signal, rising price and agents at least 30% of buyers. Needs measured flow. */
+/**
+ * The momentum part of the EKO score (the hour's move, volume against its usual hour and buys against sells), when it
+ * was measured; the heat marks read it where they once read the beta signal. Undefined when missing: the predicates
+ * that use it then pass on price and flow alone.
+ */
+export const momentumOf = (c: Pick<HeatRow, 'ekoScore'>) => c.ekoScore && !c.ekoScore.missing?.includes('momentum') ? c.ekoScore.parts.momentum : undefined;
+const momentumAtLeast = (c: HeatRow, n: number) => { const m = momentumOf(c); return m === undefined || m >= n; };
+const momentumUnder = (c: HeatRow, n: number) => { const m = momentumOf(c); return m === undefined || m < n; };
+/** The original agent path: strong momentum, rising price and agents at least 30% of buyers. Needs measured flow. */
 const agentHot = (c: HeatRow) => !c.unavailable?.includes('flow') && !c.unavailable?.includes('change')
-  && (c.signal === undefined || c.signal.composite >= 70) && c.change1hPct >= 0 && c.flow.agentPct >= 30;
+  && momentumAtLeast(c, 70) && c.change1hPct >= 0 && c.flow.agentPct >= 30;
 export function heatOf(c: HeatRow, { pending = false } = {}): Heat {
   if (pending || c.verdictPending || c.verdict === 'pending') return 'scanning';
   if (c.verdict === 'danger') return 'avoid';
   if (activityHot(c) || agentHot(c)) return 'hot';
-  if (!c.unavailable?.includes('change') && c.change1hPct <= -2 && (c.signal === undefined || c.signal.composite < 62)) return 'fading';
+  if (!c.unavailable?.includes('change') && c.change1hPct <= -2 && momentumUnder(c, 62)) return 'fading';
   return 'normal';
 }
 /** The tag a row shows: Danger rows keep their Danger styling but still say Hot when trading is unusual. */
@@ -43,9 +51,9 @@ export function marking(c: HeatRow, { pending = false, redFlag = false } = {}): 
     // TODO(spec): RadarRow has no match confidence; the inspector supplies CoinCard's redFlag predicate.
     return { kind: 'ember', level: redFlag || (c.exitCost1kPct ?? 0) >= 75 || c.topPlaybook === 'honeypot' ? 3 : 2 };
   }
-  if (!c.unavailable?.includes('change') && c.change1hPct <= -8 && (c.signal === undefined || c.signal.composite < 65)) return { kind: 'ember', level: 1 };
+  if (!c.unavailable?.includes('change') && c.change1hPct <= -8 && momentumUnder(c, 65)) return { kind: 'ember', level: 1 };
   if (heatOf(c) === 'hot') return { kind: 'shimmer', level: c.change1hPct >= 10 && (activityRatio(c) >= 6 || (!c.unavailable?.includes('flow') && c.flow.agentPct >= 40)) ? 3 : 2 };
-  if (!c.unavailable?.includes('change') && !c.unavailable?.includes('flow') && c.change1hPct >= 3 && c.flow.agentPct >= 25 && (c.signal === undefined || c.signal.composite >= 60)) return { kind: 'shimmer', level: 1 };
+  if (!c.unavailable?.includes('change') && !c.unavailable?.includes('flow') && c.change1hPct >= 3 && c.flow.agentPct >= 25 && momentumAtLeast(c, 60)) return { kind: 'shimmer', level: 1 };
   return null;
 }
 export const markClass = (m: Mark) => m ? `mk-${m.kind}-${m.level}` : '';

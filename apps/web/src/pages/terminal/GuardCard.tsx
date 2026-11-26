@@ -107,8 +107,8 @@ function RatingDetail({ card, guard, evidenceOpen = false }: { card?: CoinCardV2
         {!guard && <p className="muted">{GUARD2_UNAVAILABLE_TITLE}</p>}
         {guard && <><p className="num">{guardSnapshotText(guard, now)}</p><p>{C.receipt} {guard.receipt.status} · <Link to={`/receipt/${guard.receipt.id}`}>{C.verify}</Link> · {C.receiptNote}</p></>}
         {card?.legacy && <p>{guardLegacyText(card.legacy)} · <Link to={`/receipt/${card.legacy.receiptId}`}>{C.originalReceipt}</Link></p>}
-        {card && (card.signal || card.spark8h || card.change24hPct) && <CardDetails title={C.signal}>
-          {card.signal && <><h3>{C.signal} <span className="tag">{C.beta}</span></h3><p>{C.descriptive} · {card.verdict?.mode === 'active' ? C.recordedInputs : C.shadowInputs}</p><p>{C.composite} {guard?.level === 'high' ? C.high : card.signal.composite} / 100 · {C.block} {card.signal.asOfBlock}</p><details className="ev"><summary>{C.how}</summary><dl className="kv">{Object.entries(card.signal.readings).map(([key, value]) => <div key={key}><dt>{guardName(key)} · {Math.round(card.signal!.weights[key as keyof typeof card.signal.weights] * 100)}%</dt><dd>{card.signal!.lowData.includes(key as keyof typeof card.signal.readings) ? NOT_CHECKED : `${value} · ${(value * card.signal!.weights[key as keyof typeof card.signal.weights]).toFixed(1)} ${C.points}`}</dd></div>)}</dl></details></>}
+        {/* The beta Signal is not shown: the EKO score (CoinScore.tsx) replaces it on screen. */}
+        {card && (card.spark8h || card.change24hPct) && <CardDetails title={C.price}>
           {card.spark8h && <Spark series={card.spark8h.map(b => b.c)} label={C.spark} />}
           {card.change24hPct && <><h3>{C.change}</h3><MetricView metric={card.change24hPct} card={card} coin={coin} /></>}
         </CardDetails>}

@@ -1,4 +1,4 @@
-import { CoinCardSchema, findingsFirst, FlowSchema, RadarRowSchema, type Bar, type CoinCard, type EvidenceRef, type Flow, type FlowActivity, type FlowTrade, type PlaybookId, type PlaybookMatch, type RadarRow, type Untrusted } from '@eko/shared';
+import { CoinCardSchema, ekoScore, findingsFirst, FlowSchema, RadarRowSchema, type Bar, type CoinCard, type EvidenceRef, type Flow, type FlowActivity, type FlowTrade, type PlaybookId, type PlaybookMatch, type RadarRow, type Untrusted } from '@eko/shared';
 import { createCoinCard } from '../fixtures';
 import { MOCK_HEAD_BLOCK } from '../head';
 import { hashedAddress, hashedTx } from './addresses';
@@ -188,7 +188,12 @@ const demo = COINS.map((c) => {
       flow: missing(['agentPct', 'crewPct', 'humanPct', 'washEstPct'], { flags: ['activity_measured', 'wallet_labels_unavailable'] }) },
   });
   const volume = trades.reduce((n, t) => n + t.usd, 0);
-  const row: RadarRow = RadarRowSchema.parse({ address, name, symbol, launchpad: 'longxyz', quoteSymbol: c.quote.symbol, stage: 'curve',
+  // The EKO score as the edge computes it (views.ts scoreOf, @eko/shared score.ts): pending coins have none.
+  const score = ekoScore({ verdict: level, playbooks, change1hPct: c.change1h, buyUsd1h: flow.activity.buyUsd, sellUsd1h: flow.activity.sellUsd,
+    liquidityUsd: c.liquidityUsd, marketCapUsd: c.mcapUsd, top10Pct: pct(c.holders.top10), devPct: pct(c.holders.dev), earlyHeldPct: pct(c.holders.early),
+    ...(sold ? { sellCheck: 'sellable' as const, exitCost1kPct: c.roundTripPct! } : {}) });
+  if (score) card.ekoScore = score;
+  const row: RadarRow = RadarRowSchema.parse({ ...(score ? { ekoScore: score } : {}), address, name, symbol, launchpad: 'longxyz', quoteSymbol: c.quote.symbol, stage: 'curve',
     priceUsd: c.priceUsd, change1hPct: c.change1h, change24hPct: c.change1h, liquidityUsd: c.liquidityUsd, marketCapUsd: c.mcapUsd,
     verdict: level, verdictPending: level === 'pending', lastChecked: verdict.lastChecked, ratingAgeSec: 4, ...(playbooks[0] ? { topPlaybook: playbooks[0].id } : {}), ageSec: c.ageSec, rank: 30 + c.n,
     flow, exitCost1kPct: c.roundTripPct ?? 0, unavailable: sold ? ['flow', 'signal'] : ['flow', 'signal', 'exitCost'], spark8h: series(c),

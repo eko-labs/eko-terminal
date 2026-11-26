@@ -20,3 +20,4 @@ export * from './telegram.js';
 export * from './census-gate.js';
 
 export * from './rating-price.js';
+export * from './score.js';

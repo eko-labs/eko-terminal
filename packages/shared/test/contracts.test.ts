@@ -16,7 +16,10 @@ import type { WsEvent, WsEventMap, Address } from '../src/index.js';
 
 const attributionGap={reason:'unattributed_swaps',window:'trailing_1h',status:'incomplete',threshold:0.05,totalCount:20,unattributedCount:2,
   totalVolumeUsd:100,unattributedVolumeUsd:10,countShare:0.1,volumeShare:0.1,unknownVolumeCount:0};
-const sampleByName: Record<string, unknown> = { ...samples, ...sensesSamples, ...guardSamples, ...receiptSamples, ...ghostSamples, ...actualOrderSamples, ...swarmSamples, ...reviewSamples, ...scoreboardSamples, ...deployerHistorySamples, AttributionCoverageGap:attributionGap,
+// TODO(spec): additive (2026-11-26). The EKO score (score.ts): a Danger coin capped by its strongest finding.
+const ekoScoreParts={momentum:62,money:48,holders:71,exit:90};
+const ekoScoreSample={value:22,band:'danger',cap:39,parts:ekoScoreParts,missing:['money'],cappedBy:'Dumped at bonding'};
+const sampleByName: Record<string, unknown> = { ...samples, EkoScoreParts:ekoScoreParts, EkoScore:ekoScoreSample, ...sensesSamples, ...guardSamples, ...receiptSamples, ...ghostSamples, ...actualOrderSamples, ...swarmSamples, ...reviewSamples, ...scoreboardSamples, ...deployerHistorySamples, AttributionCoverageGap:attributionGap,
   ShareMeta: { title: 'EKO · Buyer risk snapshot', description: 'Pending', url: 'https://app.eko.example/receipt/sample-receipt', image: 'https://app.eko.example/og/scan/sample.png' },
 };
 const schemas = Object.entries({ ...contracts, ...flags }).filter(([name]) => name.endsWith('Schema')) as [string, z.ZodType][];
@@ -44,6 +47,19 @@ describe('frozen contract samples (FACTS §7, BACKEND §23)', () => {
       }
     });
   }
+
+  it('carries the EKO score additively on summaries, radar rows, pair rows and the coin card',()=>{
+    for (const schema of [contracts.CoinSummarySchema, contracts.RadarRowSchema]) {
+      const base = schema === contracts.RadarRowSchema ? samples.RadarRow : samples.CoinSummary;
+      expect(schema.parse({ ...base, ekoScore: ekoScoreSample }).ekoScore).toEqual(ekoScoreSample);
+      expect(schema.parse(base).ekoScore).toBeUndefined();
+      expect(schema.safeParse({ ...base, ekoScore: { ...ekoScoreSample, band: 'clear' } }).success).toBe(false);
+    }
+    expect(contracts.PairRowSchema.shape.ekoScore).toBe(contracts.CoinSummarySchema.shape.ekoScore);
+    expect(contracts.CoinCardSchema.parse({ ...samples.CoinCard, ekoScore: ekoScoreSample }).ekoScore).toEqual(ekoScoreSample);
+    expect(contracts.EkoScoreSchema.safeParse({ ...ekoScoreSample, value: 101 }).success).toBe(false);
+    expect(contracts.EkoScoreSchema.safeParse({ ...ekoScoreSample, value: 22.5 }).success).toBe(false);
+  });
 
   it('carries measured flow activity additively on the flow response, the coin card and the radar row',()=>{
     const activity=samples.FlowActivity;

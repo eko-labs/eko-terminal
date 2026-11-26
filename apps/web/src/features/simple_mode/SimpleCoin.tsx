@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react';
 import { z } from 'zod';
-import { CHAIN_NETWORK, NETWORKS, RadarRowSchema, type Flow, type RadarRow } from '@eko/shared';
+import { CHAIN_NETWORK, NETWORKS, RadarRowSchema, type EkoScore, type Flow, type RadarRow } from '@eko/shared';
 import { ChartStage } from '../../components/chart/ChartStage';
 import type { CoinTimeframe } from '../../components/chart/coinMath';
 import { CoinDetailScope, CoinSlotScope, TabSections, WalletSlots, useTabSections } from '../../components/coinSlots';
@@ -127,6 +127,9 @@ function SimpleCoinPage({ address }: { address: string }) {
           <div className="sv-strip-line">
             <AnswerChip answer={answer} size="lg" walk="answer" />
             <span className="sv-steer">{STEER[answer.kind]}</span>
+            {/* The EKO score (the card's, else the radar row's); the old Signal score never shows in Simple. */}
+            <StripScore score={card?.ekoScore ?? row?.ekoScore} />
+
           </div>
           <ul className="sv-pills">{keystones.map(r => <Pill key={r.text} reason={r} />)}</ul>
         </div>
@@ -174,6 +177,19 @@ function SimpleCoinPage({ address }: { address: string }) {
       <Walkthrough walk="coin" steps={steps} ready={!!verdict && !!card} />
     </div>
   </CoinDetailScope></CoinSlotScope>;
+}
+
+/** Where the EKO score goes in EKO's strip. Renders nothing until the score's field is on the card and row. */
+/** The EKO score after the steer: the figure, its band word and a gauge; the title says why it sits in its band. */
+const SCORE_WORD: Record<EkoScore['band'], string> = { danger: 'Danger', careful: 'Careful', ok: 'OK' };
+const SCORE_TONE = { danger: 'bad', careful: 'watch', ok: 'good' } as const;
+function StripScore({ score }: { score: EkoScore | undefined }): ReactNode {
+  if (!score) return null;
+  const why = score.cappedBy ? `Capped at ${score.cap}: EKO says ${SCORE_WORD[score.band]}, ${score.cappedBy.toLowerCase()}.` : 'Inside its band a coin sits by its setup: momentum, money behind it, holder spread, how easy it is to exit.';
+  return <span className={`sv-strip-score band-${score.band}`} title={`EKO score. Danger is always 0-39, Be careful 40-69, Looks OK 70-100. ${why}`}>
+    <span className="sv-tr-label">EKO score</span><b className="num">{score.value}</b><i>{SCORE_WORD[score.band]}</i>
+    <PixelGauge pct={score.value} tone={SCORE_TONE[score.band]} height={10} columns={20} />
+  </span>;
 }
 
 function Pill({ reason }: { reason: Reason }) {

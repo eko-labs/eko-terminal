@@ -1,5 +1,5 @@
 import { zeroAddress, type Address } from 'viem';
-import { FlagNameSchema, findingsFirst, type CoinCard, type CoinSummary, type FeedItem, type Flow, type PairRow, type PublicConfig, type RadarRow, type Verdict } from '@eko/shared';
+import { ekoScore, FlagNameSchema, findingsFirst, type CoinCard, type CoinSummary, type EkoScore, type FeedItem, type Flow, type PairRow, type PublicConfig, type RadarRow, type Verdict } from '@eko/shared';
 import { toUntrusted, UNTRUSTED_LIMITS } from '@eko/untrusted';
 import type { Assessment } from './assess.js';
 import { changePct, spark } from './market.js';
@@ -59,7 +59,52 @@ export function pendingVerdict(coin: CoinState, head: number): Verdict {
   return { coin: coin.token, level: 'pending', reasons: [], playbooks: [], receipt: { id, hash: `0x${'0'.repeat(64)}`, status: 'pending' }, schemaVersion: 'verdict-1', asOfBlock: head };
 }
 
+/**
+ * The last hour's buys and sells and the usual hour before it (the average over up to 23 earlier hours, omitted under
+ * an hour of them), in native currency: the score reads only their ratios. One pass back through the day's trades.
+ */
+function hourFlow(c: CoinState, nowSec: number) {
+  const hourStart = nowSec - WINDOW_SEC['1h'], dayStart = nowSec - WINDOW_SEC['24h'];
+  let buy = 0, sell = 0, earlier = 0;
+  for (let i = c.trades.length - 1; i >= 0; i--) {
+    const t = c.trades[i]!;
+    if (t.ts < dayStart) break;
+    if (t.ts >= hourStart) { if (t.side === 'buy') buy += t.hype; else sell += t.hype; } else earlier += t.hype;
+  }
+  const hours = (hourStart - Math.max(dayStart, c.ts)) / 3600;
+  return { buy, sell, volume: buy + sell, ...(hours >= 1 ? { baseline: earlier / hours } : {}) };
+}
+
+/**
+ * The EKO score (@eko/shared score.ts) from what the summary and the check already hold: the verdict and its findings,
+ * the sell check and exit cost, the hour's move and flow, liquidity against market cap (or curve progress), and the
+ * holder shares (left out on a partial history, where they are not known). Absent until the coin has a verdict.
+ */
+function scoreOf(c: CoinState, a: Assessment | undefined, ctx: ViewContext, s: CoinSummary): EkoScore | undefined {
+  if (!a || s.verdict === 'pending') return undefined;
+  const flow = inNative(c) && c.trades.length ? hourFlow(c, ctx.nowSec) : null;
+  const liquidityKnown = !!ctx.hypeUsd && (inNative(c) || a.poolNative !== undefined);
+  // A check restored from before a figure was kept may lack it: absent reads as not measured, never as zero.
+  const stats = a.stats as Partial<Assessment['stats']> | undefined;
+  const holders = !partial(a) && stats?.holders ? { top10Pct: pct(stats.holders.top10Share),
+    ...(stats.dev ? { devPct: pct(stats.dev.heldShare) } : {}), ...(stats.earlyBuyers ? { earlyHeldPct: pct(earlyHeld(a)) } : {}),
+    ...(stats.bundles ? { bundlesHeldPct: pct(stats.bundles.reduce((n, b) => n + b.heldShare, 0)) } : {}) } : {};
+  return ekoScore({ verdict: s.verdict, historyPartial: !!s.historyPartial, hardDanger: s.hardDanger, sellCheck: s.sellCheck?.status, playbooks: a.verdict.playbooks,
+    ...(c.trades.length && !s.unavailable?.includes('change') ? { change1hPct: s.change1hPct } : {}),
+    ...(flow ? { volume1hUsd: flow.volume, volumeBaselineUsd: flow.baseline, buyUsd1h: flow.buy, sellUsd1h: flow.sell } : {}),
+    ...(liquidityKnown ? { liquidityUsd: s.liquidityUsd } : {}),
+    ...(s.marketCapUsd && !s.unavailable?.includes('marketCap') ? { marketCapUsd: s.marketCapUsd } : {}),
+    ...(s.curvePct !== undefined ? { curvePct: s.curvePct } : {}),
+    ...holders,
+    ...(exitCost(a) !== null ? { exitCost1kPct: exitCost(a)! } : {}) });
+}
+
 export function coinSummary(c: CoinState, a: Assessment | undefined, ctx: ViewContext): CoinSummary {
+  const summary = baseSummary(c, a, ctx), score = scoreOf(c, a, ctx, summary);
+  return score ? { ...summary, ekoScore: score } : summary;
+}
+
+function baseSummary(c: CoinState, a: Assessment | undefined, ctx: ViewContext): CoinSummary {
   const top = a ? findingsFirst(a.verdict.playbooks)[0]?.id : undefined;
   const unavailable: NonNullable<CoinSummary['unavailable']> = [...NOT_YET];
   // No HYPE price, or a coin quoted in a token the chain does not convert (its trades are not counted: tracker.ts).
@@ -156,6 +201,8 @@ export function coinCard(c: CoinState, a: Assessment | undefined, ctx: ViewConte
   const cost = exitCost(a);
   const block = a?.block ?? ctx.head;
   const meta = (missing: string[], extra: object = {}) => ({ confidence: 0, asOfBlock: block, unavailable: true, missing, ...extra });
+  // The same score as the coin's Radar row (coinSummary), so the coin page never disagrees with its row.
+  const score = coinSummary(c, a, ctx).ekoScore;
   return {
     identity: { address: c.token, name: toUntrusted(a?.name ?? c.name ?? '', UNTRUSTED_LIMITS.name), symbol: toUntrusted(a?.symbol ?? c.symbol ?? '', UNTRUSTED_LIMITS.symbol),
       deployer: c.creator, createdAt: new Date(c.ts * 1000).toISOString(), launchpad: c.launchpad, stage: c.graduated ? 'graduated' : 'curve',
@@ -182,7 +229,7 @@ export function coinCard(c: CoinState, a: Assessment | undefined, ctx: ViewConte
     // launchpads' tokens are not reviewed: their owner powers are named unavailable in meta.control.
     control: { canChangeTax: false, canBlacklist: false, canPause: false, canMint: false, upgradeable: false },
     flow: flowOf(c, ctx),
-    playbooks: verdict.playbooks, verdict,
+    playbooks: verdict.playbooks, verdict, ...(score ? { ekoScore: score } : {}),
     meta: {
       tradeability: { confidence: cost === null ? 0 : 1, asOfBlock: block, ...(cost === null ? { unavailable: true, missing: ['exitCostPct'] } : { missing: ['exitCostPct.usd100', 'exitCostPct.usd10k'] }),
         flags: [`probe_usd_${Math.round(a?.probeUsd ?? 1000)}`, ...(a?.sellCheckUnavailable ? ['sell_check_not_available'] : [])] },

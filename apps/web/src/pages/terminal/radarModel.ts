@@ -1,14 +1,14 @@
 import { z } from 'zod';
-import { RadarRowSchema, type CoinCard, type RadarRow } from '@eko/shared';
+import { PLAYBOOK_LABELS, RadarRowSchema, type CoinCard, type RadarRow } from '@eko/shared';
 import type { ChannelEvent } from '../../lib/realtime';
 import { activityRatio, displayHeat, heatOf } from '../../lib/heat';
 import { NO_FLAGS, SCAN_DELAYED_AFTER_SEC } from '../../copy/availability';
 import { pick } from '../../lib/chain';
 export { RadarResponseSchema } from '@eko/shared';
-export const SORTS = ['Rank', 'Hottest', '1h move', 'Price', 'Market cap', 'Agent flow', 'Newest', 'Exit cost'] as const;
+export const SORTS = ['Rank', 'Hottest', 'Score', '1h move', 'Price', 'Market cap', 'Agent flow', 'Newest', 'Exit cost'] as const;
 export type Sort = typeof SORTS[number];
 export const ascending = (sort: Sort) => ['Rank', 'Newest', 'Exit cost'].includes(sort);
-// CA-31 signal is descriptive. Hot ranking uses last-hour activity against the usual hour, the 1h move and, when
+// The EKO score sorts only when asked (Score). Hot ranking uses last-hour activity against the usual hour, the 1h move and, when
 // measured, agent buying; Rank keeps the exact server order.
 export const heatScore = (c: RadarRow) => activityRatio(c) * (1 + Math.max(0, c.unavailable?.includes('change') ? 0 : c.change1hPct) / 100)
   + (c.unavailable?.includes('flow') ? 0 : c.flow.agentPct / 10);
@@ -53,12 +53,14 @@ export const scanDelayed = (row: { verdictPending?: boolean }, ageNowSec: number
 const priceOf = (c: RadarRow) => c.priceUnavailable ? undefined : c.priceUsd;
 export const marketCapOf = (c: RadarRow) => c.unavailable?.includes('marketCap') ? undefined : c.marketCapUsd;
 export const sortAvailable = (rows: readonly RadarRow[], sort: Sort) => sort === 'Price' ? rows.some(c => priceOf(c) !== undefined) : sort === 'Market cap' ? rows.some(c => marketCapOf(c) !== undefined)
+  : sort === 'Score' ? rows.some(c => c.ekoScore !== undefined)
   : rows.some(c => sortField(sort) === undefined || !c.unavailable?.includes(sortField(sort)!));
 const sortField = (sort: Sort): NonNullable<RadarRow['unavailable']>[number] | undefined => ({ '1h move':'change', 'Agent flow':'flow', 'Exit cost':'exitCost' } as const)[sort as '1h move'|'Agent flow'|'Exit cost'];
 export function sortRows(rows: readonly RadarRow[], sort: Sort, received?: ReceivedAt): RadarRow[] {
   const list = [...rows];
   if (sort === 'Rank') return list;
-  const value = (c: RadarRow) => sort === 'Price' ? priceOf(c) : sort === 'Market cap' ? marketCapOf(c) : (sortField(sort) && c.unavailable?.includes(sortField(sort)!)) || (sort === 'Hottest' && (c.unavailable?.includes('volume') || c.volume1hUsd === undefined)) ? undefined : sort === 'Hottest' ? heatScore(c) : sort === '1h move' ? c.change1hPct : sort === 'Agent flow' ? c.flow.agentPct : sort === 'Newest' ? -launchedAt(c, received) : c.exitCost1kPct;
+  // Score: the EKO score (its band follows the verdict); a coin without one (pending) sorts last.
+  const value = (c: RadarRow) => sort === 'Score' ? c.ekoScore?.value : sort === 'Price' ? priceOf(c) : sort === 'Market cap' ? marketCapOf(c) : (sortField(sort) && c.unavailable?.includes(sortField(sort)!)) || (sort === 'Hottest' && (c.unavailable?.includes('volume') || c.volume1hUsd === undefined)) ? undefined : sort === 'Hottest' ? heatScore(c) : sort === '1h move' ? c.change1hPct : sort === 'Agent flow' ? c.flow.agentPct : sort === 'Newest' ? -launchedAt(c, received) : c.exitCost1kPct;
   return list.sort((a, b) => { const av = value(a), bv = value(b); return av === undefined ? bv === undefined ? 0 : 1 : bv === undefined ? -1 : ascending(sort) ? av - bv : bv - av; });
 }
 /**
@@ -66,7 +68,7 @@ export function sortRows(rows: readonly RadarRow[], sort: Sort, received?: Recei
  * Columns menu; the choice is remembered on this device (COLUMNS_KEY).
  */
 export const COLUMNS = [
-  { id: 'watch', label: 'Watch for' }, { id: 'sig', label: 'Signal' }, { id: 'price', label: 'Price' }, { id: 'mcap', label: 'Market cap' },
+  { id: 'watch', label: 'Watch for' }, { id: 'sig', label: 'Score' }, { id: 'price', label: 'Price' }, { id: 'mcap', label: 'Market cap' },
   { id: '1h', label: '1h move' }, { id: 'spark', label: 'Last 8h' }, { id: 'flow', label: 'Who’s buying' }, { id: 'liq', label: 'Liquidity' },
   { id: 'exit', label: 'Exit at $1K' },
 ] as const;
@@ -105,8 +107,9 @@ export function applyRadarEvents(rows: readonly RadarRow[], events: readonly Cha
   }
   return next;
 }
-/** What each check is called on screen: in the words a trader uses, not the rule's internal name. */
-export const PLAYBOOK_NAMES: Record<string, string> = { honeypot: 'Honeypot', tax_trap: 'Tax trap', removable_liquidity: 'Liquidity can be pulled', fee_trap_pool: 'Fee-trap pool', stuck_at_bonding: 'Stuck on the curve', wash_to_trend: 'Fake volume', clone_swarm: 'Clone', exempt_insiders: 'Tax-free insiders', bundle_dump: 'Bundled launch', migration_dump: 'Dumped at bonding', malicious_hook: 'Malicious hook', agent_bait: 'Agent bait', serial_deployer: 'Bad dev history', holder_concentration: 'Top-heavy holders', dev_dump: 'Dev dump', run_up: 'Already ran', launch_snipers: 'Snipers', fake_mcap: 'Fake market cap' };
+/** What each check is called on screen: in the words a trader uses, not the rule's internal name. One map in
+ *  @eko/shared (score.ts), so the EKO score's "why" names a finding exactly as the row does. */
+export const PLAYBOOK_NAMES: Readonly<Record<string, string>> = PLAYBOOK_LABELS;
 /** A playbook's display name at the level it matched. `malicious_hook` at Monitor means only that the pool's hook may
  *  change swap amounts and EKO has not reviewed it (no measured anomaly: those are Danger), so it reads "Unreviewed hook". */
 export function playbookName(id: string, level?: string): string {

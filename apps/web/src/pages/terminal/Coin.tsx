@@ -19,7 +19,7 @@ import { useApp } from '../../store/app';
 import { NOT_CHECKED, NOT_INDEXED, CARD_WAIT, FULL_HISTORY, SUB_MINUTE_UNAVAILABLE, emptyTradeWindow } from '../../copy/availability';
 import { heatOf, displayHeat } from '../../lib/heat';
 import { CoinOverview, CoinVerdict } from './CoinCard';
-import { CoinSignalPanel } from './CoinSignal';
+import { CoinScorePanel } from './CoinScore';
 import { useCoin } from './useCoin';
 import { useGuardCoin } from './useGuardCoin';
 import { GuardCard, GuardAssessment } from './GuardCard';
@@ -75,11 +75,12 @@ function CoinPage({address}:{address:string}){
  const px=bars.at(-1)?.c??row?.priceUsd;
  // TODO(spec): CoinCard has no price/change fields. Use its RadarRow for 1h/24h; derive the current price from candles/ticks, and hide unavailable changes.
 
- useEffect(()=>{if((phone||!card?.signal)&&tab==='Signal')setTab('Overview');},[phone,card?.signal,tab]);
  if(data.unknown&&!card&&!verdict&&!guardData.card&&!guardData.assessment)return <div className="shell-page coin-page"><div className="empty"><h1>{NOT_INDEXED}</h1><p>{data.error || CARD_WAIT}</p><button className="btn" onClick={()=>data.retry()}>Check again</button></div><AnalysisPolicyNotice /></div>;
  const top=verdict?.playbooks.find(p=>p.level==='danger')??verdict?.playbooks.find(p=>p.level==='monitor');
  const featureTabs=[...(whosIn?["Who's in"]:[]),...(odds?['Odds']:[])];
- const tabs=phone?['Overview',...featureTabs,'Flow','Trades']:['Overview',...featureTabs,...(card?.signal?['Signal']:[]),'Flow','Trades'];
+ const tabs=['Overview',...featureTabs,'Flow','Trades'];
+ // The EKO score, the card's when it has loaded (the same function as the row's, so they agree): none while pending.
+ const score=verdict?.level==='pending'?undefined:card?.ekoScore??row?.ekoScore;
  const activeValues=tabs;
  const showEvidence=()=>{useOnboarding.getState().markStep('open_evidence');setTab('Overview');setEvidence(true);const id=headerGuard&&headerGuard.mode!=='active'?'guard-shadow-evidence':'coin-evidence';requestAnimationFrame(()=>{document.getElementById(id)?.scrollIntoView({block:'nearest'});document.getElementById(id)?.focus();});};
  const verdictActivity=card?coinVerdictActivity(card,serverNow()):row;
@@ -117,11 +118,11 @@ function CoinPage({address}:{address:string}){
   <ToolRow/>
   <section className="coin-findings" aria-labelledby="coin-findings-h">
    <div className="coin-zone-head"><h2 id="coin-findings-h" className="coin-zone-title">What EKO found</h2><span className="coin-zone-sub">Checks, supply and trading flow for this coin. Not a recommendation.</span></div>
+   {score&&<CoinScorePanel score={score}/>}
    <div className="coin-tabs"><Tabs tabs={tabs} value={tab} onChange={setTab} label="Coin details" id="coin-details"/></div>
    {activeValues.map((name,i)=><TabPanel key={name} id="coin-details" index={i} active={tab===name}>{name==='Overview'?<>{!!delay&&<span className="tag">Delayed ~{delay} s</span>}{guardData.card?<>{verdict&&!primaryGuard&&<CoinVerdict verdict={verdict} identity={card?.identity} activity={verdictActivity??undefined} meta={card?.meta} evidenceOpen={evidence}/>}<GuardCard card={guardData.card} assessment={guardData.assessment??undefined} evidenceOpen={evidence}/></>:guardData.assessment?<GuardAssessment guard={guardData.assessment} evidenceOpen={evidence}/>:card&&verdict?<CoinOverview card={card} verdict={verdict} flows={data.flows} evidenceOpen={evidence} ownToken={ownToken} launchBurn={!!launch} ageSec={data.ageSec}/>:verdict?<CoinVerdict verdict={verdict} identity={card?.identity} activity={verdictActivity??undefined} meta={card?.meta} evidenceOpen={evidence}/>:<div className="skel coin-card-skel" aria-label="Loading coin card"/>}<TabSections tab="Overview"/></>
     :name==="Who's in"?<TabSections tab="Who's in"/>
     :name==='Odds'?<TabSections tab="Odds"/>
-    :name==='Signal'&&card?.signal?<CoinSignalPanel signal={card.signal} series={bars.map(b=>b.c)}/>
     :name==='Flow'?<CoinFlowTab flows={data.flows} markers={markers} labelsUnavailable={labelsOff} nowSec={nowSec}/>
     :<CoinTrades markers={markers} flows={data.flows} labelsUnavailable={labelsOff}/>}</TabPanel>)}
    {!guardData.card&&!guardData.assessment&&<p className="coin-asof">As of block {(verdict?.lastChecked?.block??verdict?.asOfBlock??card?.freshness.block??0).toLocaleString()} · rated {data.ageSec<60?'just now':`${age(data.ageSec)} ago`}</p>}

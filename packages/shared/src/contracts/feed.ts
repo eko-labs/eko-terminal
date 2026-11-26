@@ -4,7 +4,7 @@ import { GuardAssessmentV2Schema, GuardReasonV2Schema, CoinCardV2Schema } from '
 import { GuardFactorIdSchema, GuardReasonCodeSchema } from './guard-consumers.js';
 import { z } from 'zod';
 import { AddressSchema, UntrustedSchema, PlaybookIdSchema, LevelSchema, WalletLabelSchema } from './common.js';
-import { CoinCardSchema, VerdictSchema, CoinCardFlowExtraSchema, CoinSignalSchema } from './coin.js';
+import { CoinCardSchema, VerdictSchema, CoinCardFlowExtraSchema, CoinSignalSchema, EkoScoreSchema } from './coin.js';
 // FACTS §7 and BACKEND §23 (v1.2).
 export const CoinSummarySchema = z.object({
   blueChip: BlueChipSchema.optional(),
@@ -47,6 +47,9 @@ export const CoinSummarySchema = z.object({
   // Additive (2026-10-12): a Danger finding on this coin is one no risk mode accepts (HARD_DANGER_PLAYBOOKS), so the
   // buy is refused even in Degen mode. Absent or false on a Danger coin means Degen mode may accept it with a warning.
   hardDanger: z.boolean().optional(),
+  // TODO(spec): additive (2026-11-26). The EKO score (EkoScoreSchema, score.ts ekoScore): its band always matches
+  // `verdict`. Absent while the verdict is pending. Replaces the beta `signal` on screen; `signal` stays for readers.
+  ekoScore: EkoScoreSchema.optional(),
 });
 export type CoinSummary = z.infer<typeof CoinSummarySchema>;
 export const RadarRowSchema = CoinSummarySchema.extend({

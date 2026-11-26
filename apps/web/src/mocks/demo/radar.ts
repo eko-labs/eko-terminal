@@ -1,4 +1,4 @@
-import { CoinCardSchema, RadarRowSchema, type CoinCard, type RadarRow, type Untrusted } from '@eko/shared';
+import { CoinCardSchema, ekoScore, RadarRowSchema, type CoinCard, type RadarRow, type Untrusted } from '@eko/shared';
 import profiles from './radar-profiles.json';
 import { createCoinCard } from '../fixtures';
 import { quotedCard, quotedRows } from './launchpads';
@@ -33,9 +33,15 @@ const demo = profiles.map((c) => {
     flow, playbooks, verdict, signal, freshness: { block: c.receipt.block, ageSec: 3 }, meta: undefined,
   });
   const top = c.matches.find((m) => m.level === 'danger') ?? c.matches.find((m) => m.level === 'monitor') ?? c.matches[0];
+  // The EKO score from the same function the edge runs (@eko/shared score.ts), so the demo never contradicts its verdicts.
+  const score = ekoScore({ verdict: card.verdict.level, playbooks, change1hPct: c.change1h, liquidityUsd: c.liquidity, marketCapUsd: c.mcap,
+    ...(card.identity.stage === 'curve' && c.curvePct !== undefined ? { curvePct: c.curvePct } : {}),
+    top10Pct: c.supply.top10, devPct: c.supply.dev, bundlesHeldPct: c.supply.bundles, exitCost1kPct: c.exit['1000'] });
+  card.ekoScore = score;
   const row = RadarRowSchema.parse({ address: c.address, name, symbol, launchpad: card.identity.launchpad, stage: card.identity.stage,
     curvePct: c.curvePct, priceUsd: c.price, change1hPct: c.change1h, change24hPct: c.change24h, liquidityUsd: c.liquidity, marketCapUsd: c.mcap,
-    verdict: c.verdict, topPlaybook: top?.id, ageSec: c.ageMin * 60, rank: c.rank, flow, exitCost1kPct: c.exit['1000'], signal, spark8h: c.series });
+    verdict: c.verdict, topPlaybook: top?.id, ageSec: c.ageMin * 60, rank: c.rank, flow, exitCost1kPct: c.exit['1000'], signal, spark8h: c.series,
+    ...(score ? { ekoScore: score } : {}) });
   return { row, card };
 });
 // With flag more_launchpads (VITE_FLAGS), the long.xyz coins quoted in a token follow the 30 profiles (launchpads.ts).

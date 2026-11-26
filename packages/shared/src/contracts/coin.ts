@@ -78,6 +78,28 @@ export const CoinSignalSchema = z.object({
   lowData: z.array(z.enum(['momentum', 'liquidity', 'holders', 'narrative', 'risk'])).optional(),
 });
 export type CoinSignal = z.infer<typeof CoinSignalSchema>;
+/**
+ * TODO(spec): additive (2026-11-26). The EKO score (score.ts ekoScore): one 0-100 number whose band always matches the
+ * verdict (Danger 0-39, Monitor "Be careful" 40-69, Clear "Looks OK" 70-100; a Clear on part of the history at most 84;
+ * a hard Danger at most 10). Inside its band it sits by the coin's setup: four parts, each 0-100. `cap` is the most this
+ * coin can score at its verdict and `cappedBy` says why in plain words (the verdict's strongest finding). `missing` names
+ * the parts computed without their data (counted as 50). Absent while the verdict is pending.
+ */
+export const EkoScorePartsSchema = z.object({
+  momentum: z.number().int().min(0).max(100),
+  money: z.number().int().min(0).max(100),
+  holders: z.number().int().min(0).max(100),
+  exit: z.number().int().min(0).max(100),
+});
+export const EkoScoreSchema = z.object({
+  value: z.number().int().min(0).max(100),
+  band: z.enum(['danger', 'careful', 'ok']),
+  cap: z.number().int().min(0).max(100).optional(),
+  parts: EkoScorePartsSchema,
+  missing: z.array(z.enum(['momentum', 'money', 'holders', 'exit'])).optional(),
+  cappedBy: z.string().max(80).optional(),
+});
+export type EkoScore = z.infer<typeof EkoScoreSchema>;
 export type CoinCardFlowExtra = z.infer<typeof CoinCardFlowExtraSchema>;
 export const AttributionCoverageGapSchema = z.object({
   reason:z.string(), window:z.string(), status:z.enum(['complete','incomplete']), threshold:z.number(),
@@ -226,6 +248,8 @@ export const CoinCardSchema = z.object({
   playbooks: z.array(PlaybookMatchSchema),
   verdict: VerdictSchema,
   signal: CoinSignalSchema.optional(), // CA-31 (proposed)
+  // TODO(spec): additive. The EKO score (EkoScoreSchema); absent while the verdict is pending.
+  ekoScore: EkoScoreSchema.optional(),
   meta: CoinCardMetaSchema.optional(),
   freshness: z.object({
     block: z.number(),

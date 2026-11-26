@@ -137,6 +137,9 @@ describe('a coin EKO joined late (Charlie, Pons graduate)', () => {
     expect(Math.abs(coin.netHype * ETH_USD - liquidity)).toBeGreaterThan(30_000);
     const row = RadarRowSchema.parse(radarRow(coin, a, ctx, 1));
     expect(row).toMatchObject({ verdict: 'clear', historyPartial: a.verdict.historyPartial });
+    // A Clear on part of the history scores at most 84, and its holder part is not measured.
+    expect(row.ekoScore).toMatchObject({ band: 'ok', cap: 84, cappedBy: 'Partly checked' });
+    expect(row.ekoScore!.value).toBeGreaterThanOrEqual(70); expect(row.ekoScore!.value).toBeLessThanOrEqual(84); expect(row.ekoScore!.missing).toContain('holders');
     expect(row.liquidityUsd).toBeCloseTo(liquidity, 6);
     const pair = PairRowSchema.parse(pairRow(coin, a, ctx));
     expect(pair.top10Pct).toBeUndefined(); expect(pair.devPct).toBeUndefined(); expect(pair.earlyHeldPct).toBeUndefined();

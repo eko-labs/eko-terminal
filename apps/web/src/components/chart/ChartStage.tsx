@@ -5,18 +5,21 @@ import type { Address, Bar, ChartMarker, WalletLabel } from '@eko/shared';
 import { Seg, WALLET_LABEL_WORD } from '../ui';
 import { formatCoinPrice, formatCompactUsd } from '../../lib/format';
 import { TimeframeControls } from './TimeframeControls';
-import { ChartCore, EMA_COLORS, type ChartOptions } from './chartCore';
+import { ChartCore, EMA_COLORS, formatMc, type ChartOptions } from './chartCore';
 import { COIN_TIMEFRAMES, type CoinTimeframe, type View } from './coinMath';
 import { FlowLayer, Glyph } from './FlowLayer';
 import { ChartKeySlots, ChartOverlaySlots } from '../coinSlots';
-type Saved = ChartOptions & { mode: 'Line' | 'Candles' };
-const SAVED_KEY = 'eko.chart.v1', DEFAULTS: Saved = { mode: 'Line', volume: true, log: false, ema: [] };
+/** What the price scale reads in: market cap (MC, the default: traders read memecoin charts in it) or the token price. */
+export type ChartAxis = 'MC' | 'Price';
+export const CHART_AXES: readonly ChartAxis[] = ['MC', 'Price'];
+type Saved = ChartOptions & { mode: 'Line' | 'Candles'; axis: ChartAxis };
+const SAVED_KEY = 'eko.chart.v1', DEFAULTS: Saved = { mode: 'Line', volume: true, log: false, ema: [], axis: 'MC' };
 /** The viewer's chart settings, kept in this browser only (a private window starts from the defaults). */
-function loadSaved(): Saved { try { const v = JSON.parse(localStorage.getItem(SAVED_KEY) ?? 'null') as Partial<Saved> | null; return { ...DEFAULTS, ...(v ?? {}), ema: Array.isArray(v?.ema) ? v.ema.filter(n => n in EMA_COLORS) : [] }; } catch { return DEFAULTS; } }
+function loadSaved(): Saved { try { const v = JSON.parse(localStorage.getItem(SAVED_KEY) ?? 'null') as Partial<Saved> | null; return { ...DEFAULTS, ...(v ?? {}), ema: Array.isArray(v?.ema) ? v.ema.filter(n => n in EMA_COLORS) : [], axis: v?.axis === 'Price' ? 'Price' : 'MC' }; } catch { return DEFAULTS; } }
 function save(v: Saved) { try { localStorage.setItem(SAVED_KEY, JSON.stringify(v)); } catch { /* not kept: the chart still works */ } }
 export function ChartStage(p:{market:string;timeframe:CoinTimeframe;onTimeframe:(tf:CoinTimeframe)=>void;bars:Bar[];markers:ChartMarker[];supply:number;verdict:ReactNode;delayedSec?:number;ownToken?:boolean;burnWallet?:Address;launchTs?:number;crewsEnabled?:boolean;labelsUnavailable?:boolean}){
  const humanMarkers=useUi(s=>s.humanMarkers);
- const readout=useRef<HTMLSpanElement>(null),plot=useRef<HTMLDivElement>(null),surface=useRef<HTMLDivElement>(null),scale=useRef<HTMLDivElement>(null),[core,setCore]=useState<ChartCore|null>(null),[saved,setSaved]=useState<Saved>(loadSaved),mode=saved.mode,setMode=(m:'Line'|'Candles')=>update({mode:m}),[axis,setAxis]=useState('Price'),[show,setShow]=useState<Record<WalletLabel,boolean>>({declared_agent:true,likely_agent:true,crew:true,human:humanMarkers});
+ const readout=useRef<HTMLSpanElement>(null),plot=useRef<HTMLDivElement>(null),surface=useRef<HTMLDivElement>(null),scale=useRef<HTMLDivElement>(null),[core,setCore]=useState<ChartCore|null>(null),[saved,setSaved]=useState<Saved>(loadSaved),mode=saved.mode,setMode=(m:'Line'|'Candles')=>update({mode:m}),axis=saved.axis,setAxis=(a:string)=>update({axis:a==='Price'?'Price':'MC'}),[show,setShow]=useState<Record<WalletLabel,boolean>>({declared_agent:true,likely_agent:true,crew:true,human:humanMarkers});
  useEffect(()=>setShow(s=>({...s,human:humanMarkers})),[humanMarkers]);
  function update(next:Partial<Saved>){setSaved(v=>{const merged={...v,...next};save(merged);return merged;});}
  const toggleEma=(n:number)=>update({ema:saved.ema.includes(n)?saved.ema.filter(x=>x!==n):[...saved.ema,n].sort((a,b)=>a-b)});
@@ -26,7 +29,7 @@ export function ChartStage(p:{market:string;timeframe:CoinTimeframe;onTimeframe:
  // re-fits the view to the newest bars; live updates to the same set keep the viewer's zoom and pan.
  useLayoutEffect(()=>{if(!core)return;const set=`${p.timeframe}|${p.bars[0]?.ts??''}`,changed=lastTf.current!==set;core.setData(p.bars,p.timeframe,!changed);if(changed&&p.bars.length)core.animate();if(p.bars.length)lastTf.current=set;},[core,p.bars,p.timeframe]);
  useLayoutEffect(()=>{if(core){core.setMode(mode);core.setOptions({volume:saved.volume,log:saved.log,ema:saved.ema});core.axisSupply=axis==='Price'?1:p.supply;core.scheduleRedraw();}},[core,mode,saved.volume,saved.log,saved.ema,axis,p.supply]);
- useLayoutEffect(()=>{if(!core)return;const sync=()=>{const b=core.data[core.hoverIndex]??core.data.at(-1);if(!b||!readout.current)return;const fmt=(v:number)=>axis==='Price'?formatCoinPrice(v):formatCompactUsd(v*p.supply);readout.current.textContent=`O ${fmt(b.o)} H ${fmt(b.h)} L ${fmt(b.l)} C ${fmt(b.c)} · Vol ${formatCompactUsd(b.vUsd)}`;};sync();return core.onRedraw(sync);},[core,axis,p.supply]);
+ useLayoutEffect(()=>{if(!core)return;const sync=()=>{const b=core.data[core.hoverIndex]??core.data.at(-1);if(!b||!readout.current)return;const fmt=(v:number)=>axis==='Price'||p.supply===1?formatCoinPrice(v):formatMc(v*p.supply);readout.current.textContent=`O ${fmt(b.o)} H ${fmt(b.h)} L ${fmt(b.l)} C ${fmt(b.c)} · Vol ${formatCompactUsd(b.vUsd)}`;};sync();return core.onRedraw(sync);},[core,axis,p.supply]);
  useEffect(()=>{if(!core)return;const el=surface.current!,sc=scale.current!;
  const wheel=(e:WheelEvent)=>{e.preventDefault();const x=e.clientX-plot.current!.getBoundingClientRect().left;if(Math.abs(e.deltaX)>Math.abs(e.deltaY)&&!e.ctrlKey)core.pan(-e.deltaX);else core.zoom(Math.exp(e.deltaY*(e.ctrlKey?.01:.0018)),x);};
  const stretch=(e:WheelEvent)=>{e.preventDefault();core.stretch(e.deltaY);};el.addEventListener('wheel',wheel,{passive:false});sc.addEventListener('wheel',stretch,{passive:false});return()=>{el.removeEventListener('wheel',wheel);sc.removeEventListener('wheel',stretch);};},[core]);
@@ -47,10 +50,10 @@ export function ChartStage(p:{market:string;timeframe:CoinTimeframe;onTimeframe:
  </div></details>;
  const up=(id:number)=>{pointers.current.delete(id);pinch.current=null;drag.current=null;};
  return <div className="cchart">
- <div className="chart-top" role="toolbar" aria-label="Chart controls"><div className="chart-read">{p.verdict}<span className="num coin-ohlc" ref={readout} aria-hidden="true"/>{!!p.delayedSec&&<span className="tag">Delayed ~{p.delayedSec} s</span>}</div><div className="chart-ctl"><Seg options={['Line','Candles']} value={mode} onChange={v=>setMode(v as typeof mode)} label="Chart type"/><TimeframeControls value={p.timeframe} onChange={p.onTimeframe}/><Seg options={['Price','FDV']} value={axis} onChange={setAxis} label="Axis"/>
+ <div className="chart-top" role="toolbar" aria-label="Chart controls"><div className="chart-read">{p.verdict}<span className="num coin-ohlc" ref={readout} aria-hidden="true"/>{!!p.delayedSec&&<span className="tag">Delayed ~{p.delayedSec} s</span>}</div><div className="chart-ctl"><Seg options={['Line','Candles']} value={mode} onChange={v=>setMode(v as typeof mode)} label="Chart type"/><TimeframeControls value={p.timeframe} onChange={p.onTimeframe}/><Seg options={CHART_AXES} value={axis} onChange={setAxis} label="Chart in market cap or price"/>
  {markersMenu}{settingsMenu}</div></div>
  <div className="plate coin-chart" ref={plot} data-timeframe={p.timeframe}>
- <div ref={surface} className="cc-surface" tabIndex={0} role="application" aria-roledescription="chart" aria-label={`${p.market} price chart. Plus and minus zoom, arrow keys move, 0 resets. Keys 1 to 9 select timeframe.`}
+ <div ref={surface} className="cc-surface" tabIndex={0} role="application" aria-roledescription="chart" aria-label={`${p.market} ${axis==='MC'?'market cap':'price'} chart. Plus and minus zoom, arrow keys move, 0 resets. Keys 1 to 9 select timeframe.`}
  onKeyDown={e=>{if(!core||e.target!==e.currentTarget)return;const key=e.key;if(key==='+'||key==='=')core.zoom(.8);else if(key==='-'||key==='_')core.zoom(1.25);else if(key==='0')core.reset();else if(key==='ArrowLeft'||key==='ArrowRight')core.pan((key==='ArrowLeft'?1:-1)*core.paneWidth()*.1);else if(/^[1-9]$/.test(key))p.onTimeframe(COIN_TIMEFRAMES[Number(key)-1]);else return;e.preventDefault();e.stopPropagation();}}
  onPointerDown={e=>{if(!core)return;e.currentTarget.setPointerCapture(e.pointerId);pointers.current.set(e.pointerId,{x:e.clientX,y:e.clientY});drag.current={x:e.clientX,y:e.clientY,view:{...core.view},k:core.scale,shift:core.shift,kind:'plot'};}}
  onPointerMove={e=>{if(!core)return;const box=plot.current!.getBoundingClientRect();if(!pointers.current.has(e.pointerId)){core.hoverAt(e.clientX-box.left,e.clientY-box.top);return;}pointers.current.set(e.pointerId,{x:e.clientX,y:e.clientY});const pts=[...pointers.current.values()];if(pts.length===2){const distance=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);if(pinch.current)core.zoom(pinch.current/distance,(pts[0].x+pts[1].x)/2-plot.current!.getBoundingClientRect().left);pinch.current=distance;return;}const d=drag.current;if(d){core.pan(e.clientX-d.x,d.view);if(Math.abs(e.clientY-d.y)>4)core.lift(e.clientY-d.y,d.shift);}}}
@@ -58,6 +61,6 @@ export function ChartStage(p:{market:string;timeframe:CoinTimeframe;onTimeframe:
  <div ref={scale} className="cc-scale" aria-hidden="true" title="Drag or scroll to stretch the price scale · double-click to fit" onPointerDown={e=>{if(!core)return;e.currentTarget.setPointerCapture(e.pointerId);drag.current={x:e.clientX,y:e.clientY,view:core.view,k:core.scale,shift:core.shift,kind:'scale'};}} onPointerMove={e=>{const d=drag.current;if(core&&d?.kind==='scale')core.stretch((e.clientY-d.y)*3,d.k);}} onPointerUp={e=>up(e.pointerId)} onPointerCancel={e=>up(e.pointerId)} onDoubleClick={()=>core?.autoScale()}/>
  {core&&!p.labelsUnavailable&&<FlowLayer {...p} core={core} show={show}/>}
  {core&&<ChartOverlaySlots core={core}/>}
- </div><div className="coin-chart-phone-options"><Seg options={['Line','Candles']} value={mode} onChange={v=>setMode(v as typeof mode)} label="Chart type"/><Seg options={['Price','FDV']} value={axis} onChange={setAxis} label="Axis"/>{markersMenu}{settingsMenu}</div>
+ </div><div className="coin-chart-phone-options"><Seg options={['Line','Candles']} value={mode} onChange={v=>setMode(v as typeof mode)} label="Chart type"/><Seg options={CHART_AXES} value={axis} onChange={setAxis} label="Chart in market cap or price"/>{markersMenu}{settingsMenu}</div>
  </div>;
 }
