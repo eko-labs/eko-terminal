@@ -56,7 +56,7 @@
 .seg button:hover:not(:disabled){color:var(--ink);background:#ffffff0a}
 .seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .seg button:disabled{color:var(--faint);opacity:.55;cursor:not-allowed}
-.seg button[aria-pressed=true]{background:var(--dither-dots) 0 0/var(--dither-size),var(--btn-sel);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 50%,transparent);color:var(--ink)}
+.seg button[aria-pressed=true]{background:var(--seg-dither),var(--btn-sel);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 50%,transparent);color:var(--ink)}
 /* Tabs: an underline names the chosen tab; above it a dot field fades up from the rule. */
 .tabs{display:flex;gap:4px;border-bottom:1px solid var(--rule);overflow-x:auto;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
@@ -167,7 +167,7 @@ select.select option{background:var(--raise);color:var(--ink)}
  .info-btn{width:44px;height:44px}
 }
 .info-pop{max-width:min(300px,calc(100vw - 32px));background:var(--raise)}
-.seg-ind{background:var(--dither-dots) 0 0/var(--dither-size),var(--btn-sel);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 50%,transparent)}
+.seg-ind{background:var(--seg-dither),var(--btn-sel);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 50%,transparent)}
 .heat-tag.hot{background:var(--lit);color:var(--brand-ink)}
 .heat-tag.hot svg{fill:currentColor}
 .btn-primary{color:var(--brand-ink)}

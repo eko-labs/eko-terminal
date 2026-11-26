@@ -7,7 +7,7 @@
 .sv-switch{display:inline-flex;flex:none;align-items:center;gap:2px;padding:3px;border:1px solid var(--btn-edge);border-radius:var(--r2);background:var(--panel)}
 .sv-switch button{min-width:0;min-height:0;height:30px;padding:0 14px;border:0;border-radius:var(--r1);background:none;font:600 13px/1 var(--sans);letter-spacing:.01em;color:var(--muted);cursor:pointer;transition:background .15s,color .15s}
 .sv-switch button:hover{color:var(--ink);background:#ffffff0a}
-.sv-switch button[aria-checked=true]{background:var(--dither-dots) 0 0/var(--dither-size),var(--btn-sel);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 50%,transparent);color:var(--ink)}
+.sv-switch button[aria-checked=true]{background:var(--seg-dither),var(--btn-sel);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 50%,transparent);color:var(--ink)}
 .sv-switch button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .apphdr .sv-switch{margin-left:4px}
 .sv-switch.compact button{height:28px;padding:0 11px;font-size:12px}
@@ -175,7 +175,7 @@
 .sv-lenses::-webkit-scrollbar{display:none}
 .sv-lenses button{flex:none;height:32px;padding:0 13px;border:0;border-radius:var(--r1);background:none;font:500 13px/1 var(--sans);color:var(--muted);cursor:pointer;white-space:nowrap;transition:color .15s,background .15s}
 .sv-lenses button:hover{color:var(--ink);background:#ffffff0a}
-.sv-lenses button[aria-checked=true]{background:var(--dither-dots) 0 0/var(--dither-size),var(--btn-sel);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 50%,transparent);color:var(--ink)}
+.sv-lenses button[aria-checked=true]{background:var(--seg-dither),var(--btn-sel);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 50%,transparent);color:var(--ink)}
 .sv-lenses button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .sv-sort{display:inline-flex;align-items:center;gap:8px;flex:none;font:500 13px var(--sans);color:var(--muted)}
 .sv-sort select{height:38px;min-width:150px}

@@ -29,6 +29,8 @@
  --dither-dots:radial-gradient(color-mix(in srgb,var(--accent) 34%,transparent) .7px,transparent .8px);
  --dither-ink:radial-gradient(#04111a1f .7px,transparent .8px);
  --dither-size:4px 4px;
+ /* The chosen segment's dither: a still, uneven field of dots (lib/dither.ts installSegmentDither), the even grid until it is drawn. */
+ --seg-dither:var(--dither-dots) 0 0/var(--dither-size);
 
 }
 

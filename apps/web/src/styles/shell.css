@@ -139,7 +139,7 @@ html,body,#root{height:auto;min-height:100%;overflow:visible}body{overflow:auto;
 .side-risk .seg button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:9px 0 8px;font-size:12.5px;color:var(--muted);letter-spacing:.01em}
 .side-risk .seg button:hover{color:var(--ink)}
 .side-risk .seg button[aria-pressed=true]{color:var(--ink);background:none}
-.side-risk .seg-ind{background:var(--dither-dots) 0 0/var(--dither-size),var(--btn-sel);
+.side-risk .seg-ind{background:var(--seg-dither),var(--btn-sel);
  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 55%,transparent),0 0 14px -4px color-mix(in srgb,var(--accent) 60%,transparent)}
 .risk-level{display:inline-flex;align-items:flex-end;gap:2px;height:10px}
 .risk-level i{width:3px;border-radius:1px;background:var(--rule2);transition:background .2s,box-shadow .2s}

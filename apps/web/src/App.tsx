@@ -29,6 +29,7 @@ import { deploymentMismatch } from './lib/deployment';
 import { TradeProvider } from './components/trade/TradeContext';
 import { FEATURES, type FeatureViews } from './features';
 import { ViewChain, lastFlags, mayHaveView, rememberFlags, viewPage } from './components/views';
+import { installSegmentDither } from './lib/dither';
 
 const pages = new Map([...ROUTES, ...INTERNAL_ROUTES].map((route) => [route, lazy(route.load)]));
 /** Wallet-gated Mission Control pages still say what they are before asking for a wallet. */
@@ -49,6 +50,8 @@ export function App({ walletEnabled = false, pageNeedsWallet = false }: { wallet
   const signedInRef = useRef(signedIn); signedInRef.current = signedIn;
   useShortcuts();
   useEffect(() => { trackEvent({ name: 'page_view' }); }, [path]);
+  // The chosen segment's still, uneven dither (lib/dither.ts), drawn once.
+  useEffect(() => { installSegmentDither(); }, []);
   useEffect(() => {
     captureReferral();
     const controller = new AbortController(); let client: Realtime | null = null;

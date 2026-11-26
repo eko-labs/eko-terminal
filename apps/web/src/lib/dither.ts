@@ -47,6 +47,22 @@ const FIELDS:Record<TextureKind,(k:number,f:number,t:number)=>Field>={
 };
 const SIZES:Record<TextureKind,[number,number]>={dh:[900,64],de:[900,64],dg:[420,240],dw:[640,120]};
 
+/**
+ * The chosen segment's plate (Simple | Full, 1h | 24h, timeframes): a still tile of the same seeded noise as the heat
+ * textures, so its dots thicken and thin in patches instead of sitting on an even grid. Drawn once on load (a 120×40
+ * tile, a few milliseconds) into --seg-dither (styles/tokens.css keeps the even grid until then). Never animated.
+ */
+const SEG: readonly string[] = ['rgba(120,190,240,.22)', 'rgba(150,206,242,.36)', 'rgba(196,230,252,.5)'];
+/** Wide swings: some patches nearly empty, some dense, as the heat ember reads, but still. */
+export function segmentField(u: number, v: number, x: number, y: number): number {
+  return 1.5 * (fbm(x / 9 + 3.1, y / 6 + 1.7) - .3) + .12 * Math.sin(u * 4.2 + v * 2.1);
+}
+export function installSegmentDither() {
+  if (typeof document === 'undefined') return;
+  try { document.documentElement.style.setProperty('--seg-dither', `url(${texture(120, 40, segmentField, SEG, { cell: 3, dot: 1.2, scale: 2 })}) 0 0/120px 40px`); }
+  catch { /* no canvas: the even grid stays */ }
+}
+
 export function installDither(){
  if(typeof document==='undefined')return;
  const run=()=>{const root=document.documentElement.style;
