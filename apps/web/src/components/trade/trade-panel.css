@@ -181,3 +181,6 @@
 .guarded-trade-panel .tp-get[data-side=sell] .tp-get-v{color:var(--ink)}
 .guarded-trade-panel .tp-get-sub{grid-column:1/-1;text-align:right;font:var(--type-meta);font-size:11px;font-variant-numeric:tabular-nums;color:var(--faint)}
 @media(pointer:coarse){.guarded-trade-panel .tp-unitsw button{min-height:36px;height:36px}.guarded-trade-panel .tp-quick-sw,.guarded-trade-panel .tp-bal{min-height:36px}}
+/* Waiting on a quote or a price: the LED ring and a shimmering line, in the button's own size. */
+.guarded-trade-panel .tp-submit.tp-working{display:flex;align-items:center;justify-content:center;gap:10px}
+.guarded-trade-panel .tp-reading .led{vertical-align:middle;margin:-4px 7px -4px 0}

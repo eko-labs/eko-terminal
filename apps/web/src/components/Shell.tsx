@@ -6,6 +6,7 @@ import { useApp } from '../store/app';
 import { useOnboarding } from '../store/onboarding';
 import { useOutside } from './hooks';
 import { IconAlert, IconCheck, IconClose, IconInfo } from './icons';
+import { LedMatrix } from './ui/Led';
 import { CHAIN_KEY } from '../lib/chain';
 import { CHAIN_COPY } from '../copy/chain';
 
@@ -92,7 +93,7 @@ export function Toasts() {
       {toasts.length > 1 ? <button className="btn sm toasts-clear" onClick={dismissAll}>Dismiss all ({toasts.length})</button> : null}
       {toasts.map((t) => (
         <div key={t.id} className={`toast toast--${t.kind}`}>
-          <span className="toast-ico">{t.kind === 'ok' ? <IconCheck size={14} /> : t.kind === 'info' ? <IconInfo size={14} /> : <IconAlert size={14} />}</span>
+          <span className={`toast-ico${t.led ? ` toast-led toast-led--${t.led.tone}` : ''}`}>{t.led ? <LedMatrix pattern={t.led.pattern} tone={t.led.tone} size={14} cycles={3} /> : t.kind === 'ok' ? <IconCheck size={14} /> : t.kind === 'info' ? <IconInfo size={14} /> : <IconAlert size={14} />}</span>
           <div>
             <strong>{t.title}</strong>
             {t.body ? <p>{t.body}</p> : null}

@@ -7,6 +7,8 @@ import { projectGuardLevelToV1, guardInertText, type CoinCardMeta, type Playbook
 import { GUARD_LABELS, GUARD_SHADOW, GUARD_CANDIDATE, guardGapText } from '../../copy/guard';
 import { IconAlert, IconCheck, IconChevron, IconFlame, IconInfo, IconOct, IconEye } from '../icons';
 import { VerdictExplanation } from './VerdictExplanation';
+import { LedMatrix, Shimmer } from './Led';
+export { LedMatrix, LedWait, Shimmer, useTurnedTo } from './Led';
 
 const VERDICTS = {
   clear: { label: NO_FLAGS, Icon: IconCheck },
@@ -21,7 +23,7 @@ const VERDICT_EXPLANATION = {
   monitor: 'Monitor means the guard found warning signs. Review the evidence before trading.',
   danger: 'Danger means the guard found a high-risk condition. Review the evidence before trading.',
 };
-export function VerdictChip({ level, size, detail, runUp, stateLabel, verdictPending = false, scanDelayed = false, evaluatedPlaybooks, meta, missing, guard, showGaps = true, historyPartial }: { level: VerdictLevel; size?: 'lg'; detail?: string; runUp?: number; stateLabel?: string; verdictPending?: boolean; scanDelayed?: boolean; evaluatedPlaybooks?: PlaybookId[]; meta?: CoinCardMeta; missing?: string[]; guard?: GuardAssessmentV2; showGaps?: boolean; historyPartial?: Verdict['historyPartial'] }) {
+export function VerdictChip({ level, size, detail, runUp, stateLabel, verdictPending = false, scanDelayed = false, evaluatedPlaybooks, meta, missing, guard, showGaps = true, historyPartial, ledSize }: { level: VerdictLevel; size?: 'lg'; ledSize?: number; detail?: string; runUp?: number; stateLabel?: string; verdictPending?: boolean; scanDelayed?: boolean; evaluatedPlaybooks?: PlaybookId[]; meta?: CoinCardMeta; missing?: string[]; guard?: GuardAssessmentV2; showGaps?: boolean; historyPartial?: Verdict['historyPartial'] }) {
   if (guard) {
     const projected = projectGuardLevelToV1(guard.level), Icon = VERDICTS[projected].Icon;
     const gap = guardGapText(guard), shadow = guard.mode !== 'active';
@@ -40,7 +42,8 @@ export function VerdictChip({ level, size, detail, runUp, stateLabel, verdictPen
   const checking = verdictPending, delayed = checking && scanDelayed;
   const context = !checking && level === 'clear' ? stateLabel : undefined;
   const className = `verdict ${context ? 'neutral' : level}${checking ? ' scanning' : ''}${delayed ? ' delayed' : ''}${size === 'lg' ? ' lg' : ''}`;
-  const content = <>{!context && <Icon />}{context ? <span className="verdict-state" title={typeof context === 'string' ? context : undefined}>{context}</span> : delayed ? SCAN_DELAYED : checking ? SCANNING : label}{detail && <span className="verdict-detail">· {detail}</span>}</>;
+  // Still checking: a blue LED ring chasing round and the word shimmering, in place of the icon (styles/ui.css .led).
+  const content = <>{!context && (checking && !delayed ? <LedMatrix pattern="ring" size={ledSize ?? (size === 'lg' ? 16 : 14)} /> : <Icon />)}{context ? <span className="verdict-state" title={typeof context === 'string' ? context : undefined}>{context}</span> : delayed ? SCAN_DELAYED : checking ? <Shimmer>{SCANNING}</Shimmer> : label}{detail && <span className="verdict-detail">· {detail}</span>}</>;
   if (runUp !== undefined && !checking && level !== 'pending' && level !== 'info') {
     // A Dead or Inactive coin has no run-up to speak of: the chip keeps its explanation but drops "· Run-up 0".
     const over = !!context && /^(Dead|Inactive)\b/.test(context);

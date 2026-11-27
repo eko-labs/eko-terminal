@@ -185,11 +185,11 @@ describe('packet 036 Guard card fixtures', () => {
     expect(html).not.toContain('Signal · five readings'); expect(html).not.toContain('Last 8h'); expect(html).not.toContain('24h change');
     expect(retainPersisted(views.high, null)).toBe(views.high); expect(retainPersisted(null, null)).toBeNull();
     expect(retainGuardCard(card, { ...card, verdict: null })).toBe(card);
-    expect(render(<GuardCard card={{ ...card, verdict: null }} assessment={views.incomplete} />)).not.toContain('Scanning…');
+    expect(render(<GuardCard card={{ ...card, verdict: null }} assessment={views.incomplete} />)).not.toContain('Checking…');
     // No Guard 2 result is stated plainly, not shown as a scan in progress: nothing is scanning before a release.
     const none = render(<GuardCard card={{ ...card, verdict: null }} />);
-    expect(none).not.toContain('Scanning…'); expect(none).toContain('has not been released');
-    expect(render(<GuardCard card={{ ...card, verdict: views.incomplete }} />)).not.toContain('Scanning…');
+    expect(none).not.toContain('Checking…'); expect(none).toContain('has not been released');
+    expect(render(<GuardCard card={{ ...card, verdict: views.incomplete }} />)).not.toContain('Checking…');
   });
   it('renders supplied price fields and never the beta Signal', () => {
     const card = CoinCardV2Schema.parse({ ...rawCard, signal: guardSamples.CoinSignalV2, change24hPct: observed('returnPct', '2', 'pct'), spark8h: [{ ts: 1, o: 1, h: 2, l: 1, c: 2, vUsd: 1 }, { ts: 2, o: 2, h: 3, l: 2, c: 3, vUsd: 1 }] });

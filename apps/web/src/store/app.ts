@@ -25,6 +25,9 @@ import { socket, type WsState } from '../lib/ws';
 import { useShell } from './shell';
 import { SETTINGS_COPY } from '../copy/settings';
 import { useUi, applyUiMotion } from './ui';
+import type { LedPattern } from '../lib/led';
+/** A toast's LED in place of its icon (components/ui/Led.tsx): plays a few cycles, then holds still. */
+export interface ToastLed { pattern: LedPattern; tone: 'blue' | 'ice' | 'coral' }
 
 function accountFromMe(me: import('@eko/shared').Me): Account {
   return { id: me.account.id, kind: me.account.wallet ? 'wallet' : 'guest', walletAddress: me.account.wallet?.toLowerCase() ?? null, displayName: null, role: 'user' };
@@ -77,7 +80,7 @@ interface State {
   portfolioRev: number;
   paletteOpen: boolean;
   helpOpen: boolean;
-  toasts: { id: number; kind: 'info' | 'ok' | 'warn' | 'error'; title: string; body?: string; action?: { label: string; run: () => void } }[];
+  toasts: { id: number; kind: 'info' | 'ok' | 'warn' | 'error'; title: string; body?: string; action?: { label: string; run: () => void }; led?: ToastLed }[];
 
 }
 

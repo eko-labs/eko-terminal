@@ -280,6 +280,9 @@
 .gv .verdict svg{width:20px;height:20px}
 .gv .guard-chip .verdict{height:44px}
 .gv-flags{font:var(--type-body);color:var(--ink);max-width:40ch}
+/* The coral fall that plays once when a coin turns Danger while open: at the end of the label row above the chip, out of the layout. */
+.gv{position:relative}.led.gv-fall{position:absolute;top:-5px;right:0}
+.glance-wait .led{vertical-align:-2px}
 .glance-verdict-hit:hover .gv-flags{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule3)}
 .glance{display:flex;flex-direction:column;align-items:flex-start;gap:6px;width:100%;padding:0;background:none;border:0;text-align:left;color:var(--ink);font:inherit}
 button.glance{cursor:pointer}
@@ -482,3 +485,6 @@ button.glance:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
    gaps between them (auto-fit stretched each column to fill the row). */
 @media(min-width:701px){.glance-row{grid-template-columns:repeat(auto-fill,150px);justify-content:start;gap:20px 32px}.glance-row>:nth-child(n+9){display:none}}
 .glance .pgauge-blank{visibility:hidden}
+/* The glance verdict while the card loads ("Checking…" with its LED) keeps the width the waiting chip always had, so the
+   glance row reflows no further than before when the card lands. */
+@media(min-width:900px){.gv .verdict.scanning{min-width:11.4em;justify-content:flex-start}}

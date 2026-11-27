@@ -14,7 +14,7 @@ vi.mock('../../lib/useMedia',()=>({useMedia:()=>false}));
 describe('CA-35 availability',()=>{
   it('separates Scanning from Not fully checked and names missing checks',()=>{
     const scanning=render(<VerdictChip level="pending" verdictPending/>);
-    expect(scanning).toContain('Scanning…');expect(scanning).toContain('aria-busy="true"');
+    expect(scanning).toContain('Checking…');expect(scanning).toContain('aria-busy="true"');
     const pending=render(<VerdictChip level="pending" evaluatedPlaybooks={['agent_bait']} meta={{tradeability:{confidence:0,asOfBlock:1,unavailable:true,missing:['simulations','exitCosts']}}}/>);
     expect(pending).toContain('Not fully checked');expect(pending).toContain('buy-then-sell simulation');expect(pending).toContain('exit costs');expect(pending).toContain('honeypot');expect(pending).toContain('aria-busy="false"');expect(pending).not.toContain('scanning');
   });

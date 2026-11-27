@@ -9,6 +9,7 @@ import type { WsState } from '../../lib/ws';
 import { fetchParsed, MOCKS } from '../../lib/api';
 import { Link } from '../../lib/Link';
 import { navigate, usePath } from '../../lib/router';
+import { checkingLabel, resolveAddress } from '../../lib/resolveCoin';
 import { onHeaderBackgroundClick } from '../../lib/mainFocus';
 import { isCurrent, resolveRoute } from '../../routes';
 import { useApp } from '../../store/app';
@@ -16,7 +17,7 @@ import { useShell } from '../../store/shell';
 import { useUi } from '../../store/ui';
 import { WalletButton } from '../Header';
 import { useNow } from '../hooks';
-import { Seg, UntrustedText } from '../ui';
+import { LedMatrix, Seg, Shimmer, UntrustedText } from '../ui';
 import { CompactVerdictChip } from '../GuardCompact';
 import { formatAge } from '../../lib/format';
 import { PolicyLinks } from '../PolicyLinks';
@@ -39,7 +40,7 @@ const SearchSchema = z.object({ rows: z.array(CoinSummarySchema) });
  * are listed under the box to pick from (copycats share tickers, so EKO never guesses), none says so.
  */
 export function ScanBox({ focus = false, onDone }: { focus?: boolean; onDone?: () => void }) {
-  const [query, setQuery] = useState(''); const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState(''); const [busy, setBusy] = useState(false); const [checking, setChecking] = useState<string | null>(null);
   const [found, setFound] = useState<{ q: string; rows: CoinSummary[] } | null>(null);
   const input = useRef<HTMLInputElement>(null), form = useRef<HTMLFormElement>(null);
   const open = (address: string) => { navigate(`/coin/${address}`); setQuery(''); setFound(null); onDone?.(); };
@@ -61,14 +62,15 @@ export function ScanBox({ focus = false, onDone }: { focus?: boolean; onDone?: (
   }, []);
   return <form ref={form} data-tour="scan" className="scanbox" role="search" onSubmit={async (e) => {
     e.preventDefault(); const q = query.trim(); if (!q || busy) return;
-    if (ADDRESS.test(q)) { open(q); return; }
-    setBusy(true);
+    setBusy(true); setFound(null);
+    if (ADDRESS.test(q)) { setChecking(q); try { await resolveAddress(q); } finally { setBusy(false); setChecking(null); open(q); } return; }
     try {
       const { rows } = await fetchParsed(`/search?q=${encodeURIComponent(q)}`, SearchSchema);
       if (rows.length === 1) open(rows[0]!.address); else setFound({ q, rows });
     } catch (err) { useApp.getState().toast({ kind: 'error', title: 'Search failed', body: (err as Error).message }); }
     finally { setBusy(false); }
   }}><input ref={input} autoFocus={focus} aria-label={C.search} placeholder={C.search} value={query} onChange={(e) => { setQuery(e.target.value); setFound(null); }} enterKeyHint="go" autoComplete="off" spellCheck={false} /><button type="submit" disabled={busy || !query.trim()} aria-label={C.scan}>{busy ? '…' : '↗'}</button><kbd>/</kbd>
+    {checking && <div className="scanbox-results scanbox-checking" role="status"><LedMatrix pattern="sweep" size={14} /><Shimmer>{checkingLabel(checking)}</Shimmer></div>}
     {found && <div className="scanbox-results" role="status">{found.rows.length
       ? <><p className="scanbox-head">{found.rows.length} coins match “{found.q}”. Check the address before you trade.</p><ul>{found.rows.map(r => <li key={r.address}><button type="button" onClick={() => open(r.address)}>
           <span className="scanbox-sym">$<UntrustedText value={r.symbol} /></span><span className="scanbox-name"><UntrustedText value={r.name} /></span>
@@ -130,6 +132,10 @@ export function streamNotice(state: WsState, delayedSec: number, waitedMs: numbe
   if (state === 'connecting') return waitedMs < CONNECT_GRACE_MS ? null : C.connecting;
   return state === 'closed' ? C.offline : C.reconnecting;
 }
+/** The stream badge's LED: ice scanning while it reconnects, a slow coral breath while offline. */
+function StreamLed({ state }: { state: WsState }) {
+  return state === 'closed' ? <LedMatrix pattern="pulse" tone="coral" size={12} speed={0.5} /> : <LedMatrix pattern="scan" tone="ice" size={12} />;
+}
 export function Header() {
   const path = usePath(), config = useShell((s) => s.config), state = useShell((s) => s.wsState), delay = useShell((s) => s.delayedSec), now = useNow(), views = useActiveViews();
   const [mounted] = useState(() => Date.now());
@@ -137,7 +143,7 @@ export function Header() {
   const notice = streamNotice(state, delay, Date.now() - mounted);
   // Healthy: the status stays readable to assistive tech (and to the e2e checks) but is not drawn; the clock stands alone.
   const status = notice ?? (state === 'open' ? C.live : C.connecting);
-  return <header className="apphdr" onClick={onHeaderBackgroundClick}><BrandLink /><HeaderSlots />{!shellHidden(views, 'crumb') && <nav className="apphdr-crumb" aria-label="Breadcrumb">{trail.map((label, i) => <span key={`${i}-${label}`} aria-current={i === trail.length - 1 ? 'page' : undefined}>{label}</span>)}</nav>}<span className="apphdr-end"><TokenCa /><span role="status" data-testid="stream-status" data-state={state} className={notice ? `apphdr-badge${state === 'open' ? ' delayed' : ''}` : 'sr'}>{notice && <i aria-hidden="true" />}{status}</span><span className="num apphdr-clock" aria-hidden="true">{new Date(now).toISOString().slice(11, 19)} UTC</span></span></header>;
+  return <header className="apphdr" onClick={onHeaderBackgroundClick}><BrandLink /><HeaderSlots />{!shellHidden(views, 'crumb') && <nav className="apphdr-crumb" aria-label="Breadcrumb">{trail.map((label, i) => <span key={`${i}-${label}`} aria-current={i === trail.length - 1 ? 'page' : undefined}>{label}</span>)}</nav>}<span className="apphdr-end"><TokenCa /><span role="status" data-testid="stream-status" data-state={state} className={notice ? `apphdr-badge${state === 'open' ? ' delayed' : ''}` : 'sr'}>{notice && (state === 'open' ? <i aria-hidden="true" /> : <StreamLed state={state} />)}{notice && state !== 'open' && state !== 'closed' ? <Shimmer>{status}</Shimmer> : status}</span>{!notice && state === 'open' && <LedMatrix className="apphdr-live" pattern="pulse" size={12} />}<span className="num apphdr-clock" aria-hidden="true">{new Date(now).toISOString().slice(11, 19)} UTC</span></span></header>;
 }
 export function MobileBar() {
   const views = useActiveViews();

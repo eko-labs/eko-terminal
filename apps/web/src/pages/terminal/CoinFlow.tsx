@@ -1,5 +1,5 @@
 import { CHAIN_NETWORK, NETWORKS, type ChartMarker, type Flow, type FlowActivity, type FlowTrade, type FlowWallet } from '@eko/shared';
-import { WALLET_LABEL_WORD } from '../../components/ui';
+import { LedWait, WALLET_LABEL_WORD } from '../../components/ui';
 import { Glyph } from '../../components/chart/FlowLayer';
 import { CHAIN_KEY } from '../../lib/chain';
 import { uniqueKeys } from '../../lib/keys';
@@ -30,7 +30,7 @@ function Side({ side }: { side: 'buy' | 'sell' }) { return <span className={`coi
 /** Buy vs sell per window: one row each for 5m, 1h and 24h. */
 export function FlowWindows({ flows, labelsUnavailable, compact = false }: { flows: Flow[]; labelsUnavailable?: boolean; compact?: boolean }) {
   const rows = byWindow(flows);
-  if (!rows.length) return <div className="skel coin-flow-skel" aria-label="Loading flow" />;
+  if (!rows.length) return <LedWait className="coin-flow-skel" label="Loading flow" text="Reading the flow…" />;
   if (!rows.some(f => f.activity) && !rows.some(f => labelsMeasured(f, labelsUnavailable))) return <p className="coin-empty">{NOT_CHECKED} · buy and sell flow is not measured for this coin.</p>;
   if (rows.every(f => f.activity && f.activity.buys + f.activity.sells === 0)) return <p className="coin-empty">No trades in the last 24 hours.</p>;
   return <div className={`coin-flow-windows${compact ? ' compact' : ''}`} role="table" aria-label="Buy and sell flow by window">
@@ -62,7 +62,7 @@ function WalletList({ title, wallets, nowSec, empty }: { title: string; wallets:
 /** The hour's largest buyers and sellers by USD, from the 1h flow. */
 export function LargestWallets({ flow, markers, nowSec }: { flow: Flow | undefined; markers: ChartMarker[]; nowSec: number }) {
   const a: FlowActivity | undefined = flow?.activity;
-  if (!flow) return <div className="skel coin-flow-skel" aria-label="Loading wallets" />;
+  if (!flow) return <LedWait className="coin-flow-skel" label="Loading wallets" text="Reading the wallets…" />;
   if (!a) {
     // Labelled markers, where a server serves them.
     const recent = markers.filter(m => m.ts >= nowSec - 3600).sort((x, y) => y.sizeUsd - x.sizeUsd).slice(0, 6);
@@ -99,7 +99,7 @@ export function CoinTrades({ markers, flows, labelsUnavailable }: { markers: Cha
   const labelled = !labelsUnavailable && markers.length > 0, recentKeys = uniqueKeys(recent, t => `${t.tx}:${t.side}:${t.ts}`);
   return <section className="panel coin-card-panel"><div className="panel-head coin-section-head"><h3>Latest trades</h3><span className="muted">{labelled ? 'Labelled wallets' : 'Last 24 hours, newest first'}</span></div><div className="panel-body">
     {labelled ? <MarkerTable markers={markers.slice(-32).reverse()} />
-      : !day ? <div className="skel coin-flow-skel" aria-label="Loading trades" />
+      : !day ? <LedWait className="coin-flow-skel" label="Loading trades" text="Reading the trades…" />
       : !day.activity ? <p className="coin-empty">{NOT_CHECKED} · trades are not listed for this coin.</p>
       : !recent.length ? <p className="coin-empty">No trades in the last 24 hours.</p>
       : <div className="coin-table-wrap"><table className="table coin-trades"><thead><tr><th>Time (UTC)</th><th>Side</th><th>Wallet</th><th className="r">Size</th><th className="r">Tx</th></tr></thead><tbody>{recent.map((t, i) => <tr key={recentKeys[i]}>

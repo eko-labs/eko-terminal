@@ -1,4 +1,5 @@
 import type { Alert } from '@eko/shared';
+import type { LedPattern } from './led';
 
 /**
  * What a new alert's pop-up says: a first-party label for its kind and the coin, then the alert's own sentence, short.
@@ -20,4 +21,19 @@ export function alertSummary(alert: Alert): { title: string; body: string } {
   const symbol = alert.symbol?.text ? plain(alert.symbol.text, 16) : '';
   const title = `${KIND[alert.kind] ?? 'New alert'}${symbol ? ` · $${symbol.replace(/^\$/, '')}` : ''}`;
   return { title, body: plain(alert.body || alert.title, 140) };
+}
+
+/**
+ * The LED a new alert's pop-up shows in place of the plain icon, by what happened: money leaving (a dev sold, dump risk
+ * rose) falls in coral; a new match sparkles; a verdict change scans in the Monitor colour; price and curve moves
+ * breathe in blue. Other kinds keep the plain icon.
+ */
+export function alertLed(kind: Alert['kind']): { pattern: LedPattern; tone: 'blue' | 'ice' | 'coral' } | undefined {
+  switch (kind) {
+    case 'dev_sell': case 'dump_risk': return { pattern: 'fall', tone: 'coral' };
+    case 'launch_match': return { pattern: 'sparkle', tone: 'blue' };
+    case 'verdict_change': return { pattern: 'scan', tone: 'ice' };
+    case 'price': case 'curve': return { pattern: 'pulse', tone: 'blue' };
+    default: return undefined;
+  }
 }

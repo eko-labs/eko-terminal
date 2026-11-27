@@ -39,15 +39,19 @@ describe('terminal header', () => {
     expect(status(html)).toContain('class="sr"');
     expect(status(html)).toContain('data-testid="stream-status"');
     expect(status(html)).toContain('>Live<');
+    // Live is drawn only as a small blue LED breathing beside the clock.
+    expect(html).toMatch(/<span class="led apphdr-live" aria-hidden="true"[^>]*><canvas[^>]*data-pattern="pulse" data-tone="blue">/);
   });
   it('raises a quiet badge when data is delayed or the stream drops', () => {
     set({ wsState: 'open', delayedSec: 45 });
     expect(status(render(<Header />))).toContain('class="apphdr-badge delayed"');
     expect(status(render(<Header />))).toContain('Delayed ~45 s');
+    // Reconnecting: an ice LED scanning and the word shimmering; offline: a slow coral breath (components/ui/Led.tsx).
     set({ wsState: 'reconnecting', delayedSec: 0 });
-    expect(status(render(<Header />))).toMatch(/class="apphdr-badge".*Reconnecting/);
+    expect(render(<Header />)).toMatch(/class="apphdr-badge">.*data-pattern="scan" data-tone="ice".*<span class="shimmer "[^>]*>Reconnecting<\/span>/);
     set({ wsState: 'closed' });
-    expect(status(render(<Header />))).toMatch(/class="apphdr-badge".*Offline/);
+    expect(render(<Header />)).toMatch(/class="apphdr-badge">.*data-pattern="pulse" data-tone="coral".*Offline/);
+    expect(render(<Header />)).not.toContain('apphdr-live');
   });
   it('gives a first connection a grace period before admitting it is still connecting', () => {
     expect(streamNotice('open', 0, 0)).toBeNull();

@@ -10,6 +10,8 @@ html,body,#root{height:auto;min-height:100%;overflow:visible}body{overflow:auto;
 /* Top right: the UTC clock alone. A quiet badge joins it only while data is delayed or the stream is down. */
 .apphdr-end{margin-left:auto;display:flex;align-items:center;gap:14px;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
 .apphdr-clock{min-width:12ch;text-align:right}
+/* The live stream's LED: a small blue breath beside the clock; the words stay for assistive tech. */
+.apphdr-live{margin-right:-8px}
 /* The token's contract address, copied on click (config `token`). */
 .token-ca{display:inline-flex;align-items:center;gap:8px;height:26px;padding:0 6px 0 10px;border:1px solid var(--btn-edge);border-radius:var(--r1);background:transparent;color:var(--ink2);font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap}
 .token-ca:hover,.token-ca:focus-visible{color:var(--ink);border-color:var(--ink2)}
@@ -36,6 +38,7 @@ html,body,#root{height:auto;min-height:100%;overflow:visible}body{overflow:auto;
 .scanbox{position:relative}
 .scanbox-results{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:60;background:var(--panel);border:1px solid var(--rule2);border-radius:var(--r2);box-shadow:var(--shadow-pop);padding:6px}
 .scanbox-results ul{list-style:none;margin:0;padding:0;max-height:min(380px,60vh);overflow:auto}
+.scanbox-checking{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:12px;color:var(--ink2)}
 .scanbox-head{margin:4px 6px 6px;font-size:12px;line-height:1.4;color:var(--muted);text-wrap:pretty}
 .scanbox .scanbox-results button{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"sym verdict" "name name" "meta meta";place-items:center start;gap:2px 8px;width:100%;height:auto;min-width:0;min-height:44px;padding:8px;border:0;border-radius:var(--r1);background:none;text-align:left;color:var(--ink)}
 .scanbox-results li+li{border-top:1px solid var(--rule)}
@@ -185,6 +188,7 @@ html,body,#root{height:auto;min-height:100%;overflow:visible}body{overflow:auto;
 .eko-shell .toast--ok .toast-ico{color:var(--clear)}
 .eko-shell .toast--error .toast-ico{background:var(--danger-bg);color:var(--danger);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--danger) 50%,transparent)}
 .eko-shell .toast--warn .toast-ico{color:var(--monitor)}
+.eko-shell .toast-ico.toast-led{display:grid;place-items:center;background:var(--plate)}
 .eko-shell .toast .icon-btn{flex:none;width:22px;height:22px;display:grid;place-items:center;padding:0;color:var(--muted)}
 .eko-shell .toast .icon-btn:hover{color:var(--ink)}
 /* On a phone the bottom of the screen is the trade sheet's Buy and Sell: notifications sit at the top instead. */

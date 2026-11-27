@@ -1,7 +1,7 @@
 import { PlaybookIdSchema, type CoinCardMeta, type PlaybookId } from '@eko/shared';
-export const SCANNING = 'Scanning…';
+export const SCANNING = 'Checking…';
 /** Fast Scan normally lands within seconds; past this age a pending row is waiting, not scanning.
- * TODO(spec): FRONTEND §3.4 defines only "Scanning…"; the 60 s threshold and "Scan delayed" copy need sign-off. */
+ * TODO(spec): FRONTEND §3.4 defines only "Scanning…" (the chip now says "Checking…" beside its LED ring); the 60 s threshold and "Scan delayed" copy need sign-off. */
 export const SCAN_DELAYED_AFTER_SEC = 60;
 export const SCAN_DELAYED = 'Scan delayed';
 export const SCAN_DELAYED_DETAIL = "No verdict yet. This launch is waiting in the scan queue; Trade stays off until the guard's first scan finishes.";

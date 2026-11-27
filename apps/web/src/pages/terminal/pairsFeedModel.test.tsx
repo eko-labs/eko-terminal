@@ -99,8 +99,8 @@ describe('pairs columns and guard', () => {
   it('labels a first scan that has waited past the Fast Scan window as delayed, not scanning', () => {
     const pending = { ...row, verdictPending: true, ageSec: 10 };
     const html = (now: number) => renderToStaticMarkup(<ul><PairView row={pending} now={now} at={1000} stale={false} select={() => {}} trade={() => {}} /></ul>);
-    expect(html(1000)).toContain('Scanning…'); expect(html(1000)).not.toContain('Scan delayed');
-    expect(html(51_000)).toContain('Scan delayed'); expect(html(51_000)).not.toContain('Scanning…');
+    expect(html(1000)).toContain('Checking…'); expect(html(1000)).not.toContain('Scan delayed');
+    expect(html(51_000)).toContain('Scan delayed'); expect(html(51_000)).not.toContain('Checking…');
     expect(html(51_000)).toMatch(/<button[^>]*disabled=""[^>]*title="Waiting for the guard&#x27;s first scan\."/);
     expect(scanDelayed({ verdictPending: false }, 3600)).toBe(false);
   });
@@ -109,7 +109,7 @@ describe('pairs columns and guard', () => {
       const scanning = { ...row, verdict, verdictPending: true };
       expect(pairTradeDisabled(scanning)).toBe(true);
       const html = renderToStaticMarkup(<ul><PairView row={scanning} now={1000} at={1000} stale={false} select={() => {}} trade={() => {}} /></ul>);
-      expect(html).toContain('Scanning…');
+      expect(html).toContain('Checking…');
       expect(html).toMatch(/<button[^>]*disabled=""[^>]*title="Waiting for the guard&#x27;s first scan\."/);
     }
     expect(pairTradeDisabled({ ...row, verdictPending: false, verdict: 'clear' })).toBe(false);

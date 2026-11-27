@@ -4,7 +4,7 @@ import { GlanceRow } from '../../components/coinSlots';
 import { exitMeasured, sellCheckNotAvailable, sellCheckOf } from '../../lib/sellCheck';
 import { playbookName, usd } from './radarModel';
 import { PARTLY_CHECKED } from '../../copy/availability';
-import { VerdictChip } from '../../components/ui';
+import { LedMatrix, Shimmer, VerdictChip, useTurnedTo } from '../../components/ui';
 
 /**
  * The coin page's glance row: what a trader takes in within two seconds, before the chart. The page's own tiles are the
@@ -90,12 +90,15 @@ export function CoinGlance({ card, verdict, row, guard, onVerdict }: { card: Coi
   // A coin EKO joined late has no holder count: its Top 10 tile would only say "Not checked", so a measured stat takes its place.
   const holders = card?.meta?.supply?.flags?.includes('history_partial') ? null : holdersGlance(card);
   const loading = !card && !verdict && !guard;
+  // A coin that turns Danger while it is open: a short coral fall beside the verdict, once (never on the first load).
+  const [fell, settled] = useTurnedTo(verdict?.level, 'danger');
   return <GlanceRow tone={v?.tone ?? 'neutral'} own={[
     { order: 0, node: <button type="button" data-tour="verdict" className="glance-verdict-hit" onClick={onVerdict} aria-describedby="glance-verdict-hint">
       {/* The verdict in the site's own chip, made large, with its strongest flags after it. */}
       <span className="gv"><span className="gv-label">EKO says</span>
-        <VerdictChip level={verdict?.level ?? 'pending'} size="lg" showGaps={false} {...(verdict?.historyPartial ? { historyPartial: verdict.historyPartial } : {})} />
-        <span className="gv-flags">{v?.line ?? 'Checks still running'}</span></span><span id="glance-verdict-hint" className="sr-only">Opens the evidence</span></button> },
+        {fell && <LedMatrix className="gv-fall" pattern="fall" tone="coral" size={22} cycles={1} onDone={settled} />}
+        <VerdictChip level={verdict?.level ?? 'pending'} size="lg" ledSize={20} verdictPending={loading} showGaps={false} {...(verdict?.historyPartial ? { historyPartial: verdict.historyPartial } : {})} />
+        <span className="gv-flags">{v?.line ?? (loading ? <Shimmer>Reading the chain…</Shimmer> : 'Checks still running')}</span></span><span id="glance-verdict-hint" className="sr-only">Opens the evidence</span></button> },
     { order: 10, node: <GlanceTile label="Can you sell?" value={sell?.value ?? 'Not checked'} line={sell?.line} tone={sell?.tone ?? 'neutral'} loading={loading} {...(sell?.gauge !== undefined ? { gauge: sell.gauge } : {})}
       target={{ tab: 'Overview', section: 'coin-tradeability' }} /> },
     ...(backing || loading ? [{ order: 20, node: <GlanceTile label={backing?.label ?? 'Pool backing'} value={backing?.value ?? ''} line={backing?.line} tone={backing?.tone ?? 'neutral'} loading={loading} {...(backing?.gauge !== undefined ? { gauge: backing.gauge } : {})}

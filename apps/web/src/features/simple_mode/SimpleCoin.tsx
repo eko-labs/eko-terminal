@@ -7,7 +7,7 @@ import { CoinDetailScope, CoinSlotScope, FactSlots, TabSections, WalletSlots, us
 import { IconAlert, IconCheck, IconCopy, IconInfo, IconOct, IconOut } from '../../components/icons';
 import { TradePanel } from '../../components/trade/TradePanel';
 import { antiSnipeDeadline } from '../../components/trade/tradePanelModel';
-import { Seg, TabPanel, Tabs, UntrustedText, inertText } from '../../components/ui';
+import { LedMatrix, LedWait, Seg, Shimmer, TabPanel, Tabs, UntrustedText, inertText, useTurnedTo } from '../../components/ui';
 import { WatchButton } from '../../components/WatchButton';
 import { launchpadLabel } from '../../copy/chain';
 import { featureLink, type CoinDetailTab } from '../../features';
@@ -68,6 +68,10 @@ function SimpleCoinPage({ address }: { address: string }) {
   const answer = answerOf({ level: verdict?.level ?? 'pending', historyPartial: verdict?.historyPartial, guard });
   const keystones = reasonsOf(verdict, guard, card), allReasons = reasonsOf(verdict, guard, card, 12);
   const dont = answer.kind === 'dont';
+  // Waiting on the card: the plate runs the LED ring and the line under it shimmers (the same words, so nothing moves).
+  const waiting = !card && !verdict && !data.error;
+  // A coin that turns Don't buy while it is open: a short coral fall beside the plate, once (never on the first load).
+  const [fell, settled] = useTurnedTo(verdict ? answer.kind : undefined, 'dont');
   const px = row?.priceUnavailable ? undefined : bars.at(-1)?.c ?? row?.priceUsd;
   const symbol = identity ? inertText(identity.symbol.text) : undefined;
   const head = headerStats(card, row, flows, px, formatCoinPrice), chips = changeChips(row, bars);
@@ -126,8 +130,9 @@ function SimpleCoinPage({ address }: { address: string }) {
       <section className={`sv-strip sv-strip-${answer.kind}${score ? ' has-score' : ''}`} aria-label="EKO says" aria-live="polite">
         <div className="sv-strip-col sv-strip-answer">
           <span className="sv-tr-label">EKO says</span>
-          <span className={`sv-verdict sv-verdict-${answer.kind}`} data-walk="answer"><AnswerIcon kind={answer.kind} />{answer.word}</span>
-          <p className="sv-steer">{STEER[answer.kind]}</p>
+          <span className="sv-verdict-wrap"><span className={`sv-verdict sv-verdict-${answer.kind}`} data-walk="answer">{answer.kind === 'checking' ? <><LedMatrix pattern="ring" size={24} /><Shimmer>{answer.word}</Shimmer></> : <><AnswerIcon kind={answer.kind} />{answer.word}</>}</span>
+            {fell && <LedMatrix className="sv-verdict-fall" pattern="fall" tone="coral" size={28} cycles={1} onDone={settled} />}</span>
+          <p className="sv-steer">{waiting ? <Shimmer>{STEER.checking}</Shimmer> : STEER[answer.kind]}</p>
           <ul className="sv-pills">{keystones.map(r => <Pill key={r.text} reason={r} />)}</ul>
         </div>
         {/* The EKO score (the card's, else the radar row's); the old Signal score never shows in Simple. */}
@@ -260,7 +265,7 @@ function FlowCard({ flows }: { flows: Flow[] }) {
 function TradesTable({ rows, loading, nowSec }: { rows: ReturnType<typeof tradeRows>; loading: boolean; nowSec: number }) {
   const [filter, setFilter] = useState<TradeFilter>('all');
   const shown = filterTrades(rows, filter).slice(0, 80);
-  if (loading) return <div className="skel coin-flow-skel" aria-label="Loading trades" />;
+  if (loading) return <LedWait className="coin-flow-skel" label="Loading trades" text="Reading the trades…" />;
   if (!rows.length) return <p className="sv-note">No trades listed for the last 24 hours.</p>;
   return <div className="sv-trades">
     <div className="sv-trade-filters" role="group" aria-label="Show trades">{TRADE_FILTERS.map(f => <button key={f.id} type="button" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>{f.label}</button>)}</div>

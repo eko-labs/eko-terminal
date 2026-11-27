@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import { BarSchema, ChartMarkerSchema, CoinCardSchema, VerdictSchema, FlowSchema, type Bar, type ChartMarker, type CoinCard, type Verdict, type Address, type Flow } from '@eko/shared';
 import { fetchParsed, isRateLimited, ApiError, MOCKS } from '../../lib/api';
+import { takePrimed } from '../../lib/resolveCoin';
 import { useRealtime } from '../../lib/RealtimeContext';
 import { aggregateTick, reconcileCandleTicks, bucketStart, seconds, type CoinTimeframe } from '../../components/chart/coinMath';
 import { markerId } from '../../components/chart/markerMath';
@@ -18,7 +19,7 @@ export function useCoin(address:string,tf:CoinTimeframe,fullHistory=false){
  useEffect(()=>{const t=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(t);},[]);
  useEffect(()=>{const ac=new AbortController(),opts={signal:ac.signal},base=`/coins/${encodeURIComponent(address)}`;setError('');setUnknown(false);
  // Separate promises let the smaller verdict render before the full card.
- void fetchParsed(`${base}/verdict`,VerdictSchema,opts).then(setVerdict).catch(fail);
+ void (takePrimed(address)??fetchParsed(`${base}/verdict`,VerdictSchema,opts)).then(v=>{if(!ac.signal.aborted)setVerdict(v);}).catch(e=>{if(!ac.signal.aborted)fail(e);});
  void fetchParsed(base,CoinCardSchema,opts).then(c=>{setCard(c);setFreshAt(Date.now()-c.freshness.ageSec*1000);}).catch(fail);
  // Flow (buy / sell per window, largest wallets, latest trades) is measured on request: refreshed every 30 s.
  const loadFlows=()=>Promise.all(['5m','1h','24h'].map(w=>fetchParsed(`${base}/flow?window=${w}`,FlowSchema,opts))).then(f=>{if(!ac.signal.aborted)setFlows(f);});

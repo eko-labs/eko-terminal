@@ -76,6 +76,7 @@
 .sv-search-box input{flex:1;min-width:0;height:54px;border:0;outline:0;background:none;color:var(--ink);font:400 17px/1 var(--sans)}
 .sv-search-box input::placeholder{color:var(--muted)}
 .sv-search-note{margin:12px 2px 0;color:var(--ink2);font-size:15px}
+.sv-search-checking{flex:1;min-width:0;display:flex;align-items:center;height:54px;color:var(--ink2);font:400 17px/1 var(--sans);white-space:nowrap;overflow:hidden}
 .sv-search-found ul{display:grid;gap:6px;margin:10px 0 0;padding:0;list-style:none}
 .sv-search-found button{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;min-height:56px;padding:8px 14px;border:1px solid var(--edge);border-radius:var(--r2);background:var(--panel);text-align:left}
 .sv-search-found button:hover{background:var(--raise)}

@@ -7,7 +7,7 @@ import { useApp } from '../../store/app';
 import { TradeFlowError } from '../../lib/tradeFlow';
 import { serverNow } from '../../lib/clock';
 import { formatCoinPrice } from '../../lib/format';
-import { inertText } from '../ui';
+import { inertText, LedMatrix, Shimmer } from '../ui';
 import { GuardCompact } from '../GuardCompact';
 import { AnalysisPolicyNotice } from '../PolicyLinks';
 import { REAL_FUNDS, FEE_CURVE_ZERO } from '../../copy';
@@ -120,6 +120,8 @@ export function TradePanelView({ gate, tier, phase, priceUsd, priceUnavailable, 
   const { input, snapshot } = gate, q = snapshot.quote && quoteMatches(snapshot.quote, input) && snapshot.requestKey === tradeRequestKey(input) ? snapshot.quote : null;
   const block = panelBlock(gate), warnings = q?.guard.checks.filter(c => c.status === 'warn') ?? [];
   const needsAck = warnings.some(c => !snapshot.acknowledged.includes(c.code));
+  // Waiting on a quote or the native coin's price: in progress, so the button says so with the LED ring and a shimmer.
+  const working = block === C.loading || block === C.refresh || (!!gate.nativeUnknown && block === nativePriceText(gate.nativeUnknown));
   const authBlocked = block === C.connect || block === C.wallet_mismatch;
   const showVerify = verification && !busy && (authBlocked || connectOpened);
   const selling = input.side === 'sell' && !!sell, h = sell?.holding;
@@ -171,7 +173,7 @@ export function TradePanelView({ gate, tier, phase, priceUsd, priceUnavailable, 
           <span className={`tp-big${buy ? ' tp-big-unit' : ''}`}>{unit === 'usd' && <span className="tp-unit" aria-hidden="true">$</span>}<input id={amountId} className={`input num${unit === 'native' ? ' tp-in-native' : ''}`} type="number" min="0" step="any" inputMode="decimal" value={Number.isFinite(entered) ? entered : ''} onChange={e => changeAmount(e.target.value)} />
             {buy && <span className="tp-unitsw" role="group" aria-label="Enter the amount in">{(['native', 'usd'] as const).map(u => <button type="button" key={u} aria-pressed={unit === u} onClick={() => buy.setUnit(u)}>{u === 'native' ? native : '$'}</button>)}</span>}</span>
           {buy && <div className="tp-sub">{unit === 'native'
-            ? <span className="tp-equiv">{nativeUsd === null ? nativePriceText(native) : Number.isFinite(input.amountUsd) ? <>≈ {formatUsdShort(input.amountUsd)}</> : null}</span>
+            ? <span className="tp-equiv">{nativeUsd === null ? <span className="tp-reading"><LedMatrix pattern="scan" size={12} /><Shimmer>{nativePriceText(native)}</Shimmer></span> : Number.isFinite(input.amountUsd) ? <>≈ {formatUsdShort(input.amountUsd)}</> : null}</span>
             : <span className="tp-equiv">{nativeUsd !== null && Number.isFinite(input.amountUsd) ? <>≈ {formatNative(usdToNative(input.amountUsd, nativeUsd))} {native}</> : null}</span>}
             {holdLine}</div>}
           <div className={`tp-amounts${buy ? ' tp-amounts-edit' : ''}${quickOn ? ' tp-amounts-quick' : ''}`}>{editing
@@ -190,7 +192,7 @@ export function TradePanelView({ gate, tier, phase, priceUsd, priceUnavailable, 
     {showVerify && <TradeWalletVerification verification={verification} fromTradeConnect={connectOpened} />}
     {!(showVerify && authBlocked) && (block === C.connect && !gate.wallet
       ? connectOpened ? <WalletButton trade /> : <button className="btn tp-submit" onClick={connect}>{C.connect}</button>
-      : block ? <button className="btn tp-submit" disabled>{block === C.notTraded ? C.notTradedButton : block}</button>
+      : block ? <button className={`btn tp-submit${working ? ' tp-working' : ''}`} disabled>{block === C.notTraded ? C.notTradedButton : working ? <><LedMatrix pattern="ring" size={14} /><Shimmer>{block}</Shimmer></> : block}</button>
       : needsAck ? <button className="btn tp-submit" disabled={busy} onClick={acknowledge}>{C.acknowledge}</button>
       : <button data-side={input.side} className={`btn tp-submit${input.side === 'buy' ? ' btn-primary' : ''}`} disabled={busy} onClick={submit}>{confirm ? C.confirm : input.side === 'buy' ? L.buy : L.sell} {selling ? `${sell!.pct}%` : buy ? amountText(buy.amount) : dollars(input.amountUsd)}</button>)}
     {snapshot.error && snapshot.error !== 'not_traded' && <button className="btn tp-retry" disabled={busy} onClick={retry}>{C.retry}</button>}

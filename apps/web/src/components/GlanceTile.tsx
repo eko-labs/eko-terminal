@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useCoinDetail } from './coinSlots';
 import { MiniBars } from './ui/charts';
 import type { CoinDetailTab } from '../features';
+import { LedMatrix } from './ui/Led';
 
 /**
  * A glance tile, read in two seconds, in the radar's stat style: the figure (monospace), a pixel gauge drawn by the
@@ -44,7 +45,7 @@ export function Dots({ filled, tone = 'neutral', label }: { filled: number; tone
 export function GlanceTile({ label, value, line, tone = 'neutral', gauge, dots, target, loading, title }: GlanceTileProps) {
   const detail = useCoinDetail();
   const body = <>
-    <span className="glance-value num">{loading ? <span className="glance-wait" aria-label="Loading">—</span> : value}</span>
+    <span className="glance-value num">{loading ? <span className="glance-wait" role="img" aria-label="Loading"><LedMatrix pattern="scan" size={16} /></span> : value}</span>
     {loading ? <PixelGauge pct={0} tone="neutral" /> : gauge !== undefined && <PixelGauge pct={gauge} tone={tone} />}
     {dots !== undefined && !loading && <Dots filled={dots} tone={tone} />}
     {/* A tile with neither keeps the gauge's room, so every label in a row sits on one line. */}

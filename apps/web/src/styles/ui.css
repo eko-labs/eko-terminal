@@ -134,8 +134,20 @@ select.select option{background:var(--raise);color:var(--ink)}
 .tabs-ind{position:absolute;left:0;bottom:-1px;height:2px;background:var(--lit);transition:transform .42s var(--e-spring),width .42s var(--e-spring);pointer-events:none}
 .tabs.has-ind button[aria-selected=true]::after{display:none}
 .verdict.pending{position:relative;overflow:hidden}
-.verdict.scanning::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,#8fcaf033,transparent);transform:translateX(-100%);animation:scan-sweep 1.1s linear infinite}
-@keyframes scan-sweep{to{transform:translateX(100%)}}
+.verdict.scanning{gap:7px}
+.verdict.scanning .led{margin-left:-2px}
+
+/* The LED indicator (components/ui/Led.tsx): a 7×7 dot panel on a canvas, its bloom allowed to spill a little past
+   its box without taking layout room. */
+.led{position:relative;display:inline-block;flex:none;width:var(--led-size);height:var(--led-size);vertical-align:middle;pointer-events:none}
+.led canvas{position:absolute;top:calc(var(--led-spill) * -1);left:calc(var(--led-spill) * -1);width:calc(var(--led-size) + 2 * var(--led-spill));height:calc(var(--led-size) + 2 * var(--led-spill))}
+/* Shimmer: the words keep their own colour, and a lighter band passes through them, then rests; so contrast only
+   ever rises. One phase for the page (Shimmer sets a matching negative delay). */
+.shimmer{background:linear-gradient(100deg,currentColor 0 38%,color-mix(in srgb,currentColor 25%,#fff) 50%,currentColor 62% 100%) 100% 0/260% 100% no-repeat;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:eko-shimmer 2s steps(48) infinite}
+@keyframes eko-shimmer{0%{background-position:100% 0}62%,100%{background-position:0 0}}
+/* A loading block in a skeleton's place: the skeleton's class keeps the size; this replaces its grey bar. */
+.led-wait{display:flex;align-items:center;justify-content:center;gap:10px;min-width:0;color:var(--muted);font:500 12px/1.3 var(--sans);letter-spacing:.01em;text-align:left}
+.led-wait.skel{background:none;animation:none}
 
 .verdict.info{color:var(--accent);border-color:var(--accent);background:var(--info-bg)}
 .verdict-detail{font-weight:400;opacity:.85}
@@ -176,8 +188,8 @@ select.select option{background:var(--raise);color:var(--ink)}
 .seg-ind,.tabs-ind{transition-duration:var(--dur-3)}
 .fold-body,.fold-tog svg{transition-duration:var(--dur-3)}
 .fold:not(.open) .fold-inner{transition-delay:var(--dur-3)}
-:root[data-motion='off'] .verdict.scanning::after{animation:none}
-@media(prefers-reduced-motion:reduce){.verdict.scanning::after{animation:none}}
+:root[data-motion='off'] .shimmer{animation:none;background:none;-webkit-text-fill-color:currentColor}
+@media(prefers-reduced-motion:reduce){:root:not([data-motion='on']) .shimmer{animation:none;background:none;-webkit-text-fill-color:currentColor}}
 .chart-plate{display:block;background:var(--plate);border:1px solid var(--edge);border-radius:var(--r2)}
 
 
