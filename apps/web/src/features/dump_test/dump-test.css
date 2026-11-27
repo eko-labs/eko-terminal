@@ -1,0 +1,38 @@
+/* Dump test (flag dump_test): the glance tile's figure, the Overview section's pixel bars, and the coin list figure.
+   Coral for a fall of 60% or more, Monitor ice for 25-60%, the clear blue under 25%. Readable at 360px. */
+.dt-bad{--t:var(--danger)}.dt-watch{--t:var(--monitor)}.dt-good{--t:var(--clear)}.dt-none{--t:var(--faint)}
+.dt-v{color:var(--t)}
+.dt{display:flex;flex-direction:column;gap:14px;min-width:0}
+.dt-lead{margin:0;font:var(--type-body);color:var(--ink);max-width:80ch}
+.dt-note{margin:0;font:var(--type-meta);color:var(--muted);max-width:80ch}
+.dt-skel{height:180px}
+/* One grid for all rows (each row a subgrid), so the bars line up whatever each row holds. */
+.dt-rows{display:grid;grid-template-columns:112px minmax(120px,1fr) 60px minmax(0,max-content);gap:10px 14px;margin:0;padding:0;list-style:none}
+.dt-row{grid-column:1/-1;display:grid;grid-template-columns:subgrid;align-items:center;min-width:0}
+.dt-label{font:500 11px/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);white-space:nowrap}
+.dt-pct{font:600 15px/1 var(--mono);text-align:right;color:var(--t)}
+.dt-held{font:var(--type-meta);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dt-n{color:var(--faint)}
+.dt-empty .dt-label,.dt-empty .dt-pct{color:var(--faint)}
+.dt-all{margin-top:4px;padding-top:12px;border-top:1px solid var(--rule2)}
+.dt-all .dt-label{color:var(--ink)}
+.dt-all .dt-pct{font-size:18px}
+/* Pixel bars: square cells, a dim track, the fall lit in its tone; all insiders dithered. */
+.dt-bar{display:grid;grid-template-columns:repeat(30,minmax(0,1fr));gap:2px;height:12px;min-width:0}
+.dt-bar i{background:var(--rule2)}
+.dt-bar i.on{background:var(--t)}
+.dt-bar-all{height:16px}
+.dt-bar-all i.on{background:var(--dither-ink) 0 0/var(--dither-size),var(--t)}
+.dt-bar.dt-none{background:radial-gradient(var(--rule3) .7px,transparent .8px) 0 0/3px 3px}
+.dt-keep{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;margin:0;padding:12px 14px;border:1px solid var(--rule2);border-left:3px solid var(--t);background:var(--raise)}
+.dt-keep>span:first-child{font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.dt-keep b{font:600 22px/1 var(--mono);color:var(--t)}
+.dt-keep-note{font:var(--type-meta);color:var(--muted)}
+/* The coin lists' figure. */
+.dt-cell{font:600 14px/1 var(--mono);color:var(--t);white-space:nowrap}
+.dt-cell.dt-none{font-weight:400;color:var(--faint)}
+@media(max-width:600px){
+  .dt-rows{display:flex;flex-direction:column;gap:10px}
+  .dt-row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:'label pct' 'bar bar' 'held held';gap:6px 14px}
+  .dt-label{grid-area:label}.dt-pct{grid-area:pct}.dt-row .dt-bar{grid-area:bar}.dt-held{grid-area:held;white-space:normal}
+}
