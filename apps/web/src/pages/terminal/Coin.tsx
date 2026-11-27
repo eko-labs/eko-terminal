@@ -11,6 +11,7 @@ import { ChartStage } from '../../components/chart/ChartStage';
 import { IconLab, IconOut } from '../../components/icons';
 import type { CoinTimeframe } from '../../components/chart/coinMath';
 import { fetchParsed, api, MOCKS } from '../../lib/api';
+import { fetchCoinRow } from '../../lib/coinRow';
 import { formatAge, formatCoinPrice } from '../../lib/format';
 import { Link } from '../../lib/Link';
 import { useMedia } from '../../lib/useMedia';
@@ -45,7 +46,7 @@ const short=(s:string)=>`${s.slice(0,6)}…${s.slice(-4)}`;
 export { RAW_TRADES_NOTE } from './CoinFlow';
 export default function Coin({params}:{params:Record<string,string>}){return <CoinPage key={params.address} address={params.address}/>;}
 function CoinPage({address}:{address:string}){
- const [tf,setTf]=useState<CoinTimeframe>('5m'),[tab,setTab]=useState('Overview'),[evidence,setEvidence]=useState(false),[row,setRow]=useState<RadarRow|null>(null),[agents,setAgents]=useState<Agent[]>([]),[burns,setBurns]=useState<BurnEvent[]>([]),[sheet,setSheet]=useState(false);
+ const [tf,setTf]=useState<CoinTimeframe>('5m'),[tab,setTab]=useState('Overview'),[evidence,setEvidence]=useState(false),[row,setRow]=useState<RadarRow|null>(null),[rowWait,setRowWait]=useState(true),[agents,setAgents]=useState<Agent[]>([]),[burns,setBurns]=useState<BurnEvent[]>([]),[sheet,setSheet]=useState(false);
  const [fullHistory,setFullHistory]=useState(false),[sideRequest,setSideRequest]=useState<{side:'buy'|'sell';at:number}|null>(null);
  const sheetRef=useRef<HTMLElement>(null),[sheetHeight,setSheetHeight]=useState(140);
 
@@ -60,7 +61,7 @@ function CoinPage({address}:{address:string}){
  const identity=card?.identity??guardData.card?.identity??knownCoinIdentity(address);
  const primaryGuard=guardData.assessment?.mode==='active'?guardData.assessment:verdict?.guardV2?.mode==='active'?verdict.guardV2:undefined;
  const headerGuard=primaryGuard??(!verdict?guardData.assessment??undefined:undefined);
- useEffect(()=>{const ac=new AbortController();void fetchParsed('/radar',z.object({rows:z.array(RadarRowSchema)}),{signal:ac.signal}).then(r=>setRow(r.rows.find(c=>c.address.toLowerCase()===address.toLowerCase())??null)).catch(()=>undefined);if(MOCKS || me?.account.wallet) void fetchParsed('/agents',z.object({agents:z.array(AgentSchema)}),{signal:ac.signal}).then(r=>setAgents(r.agents.filter(a=>a.kind==='onchain'))).catch(()=>undefined);return()=>ac.abort();},[address, me?.account.wallet]);
+ useEffect(()=>{const ac=new AbortController();setRowWait(true);void fetchCoinRow(address,ac.signal).then(r=>{setRow(r);setRowWait(false);}).catch(e=>{if((e as Error).name!=='AbortError')setRowWait(false);});if(MOCKS || me?.account.wallet) void fetchParsed('/agents',z.object({agents:z.array(AgentSchema)}),{signal:ac.signal}).then(r=>setAgents(r.agents.filter(a=>a.kind==='onchain'))).catch(()=>undefined);return()=>ac.abort();},[address, me?.account.wallet]);
  // TODO(spec): PublicConfig has no own-token address field. Use an explicit deployment address; never infer it from an untrusted symbol.
  const ownToken=!!import.meta.env.VITE_EKO_TOKEN_ADDRESS&&address.toLowerCase()===String(import.meta.env.VITE_EKO_TOKEN_ADDRESS).toLowerCase();
  useEffect(()=>{if(!ownToken)return;const ac=new AbortController();void fetchParsed('/burn/events',z.object({rows:z.array(BurnEventSchema)}),{signal:ac.signal}).then(r=>setBurns(r.rows)).catch(()=>undefined);return()=>ac.abort();},[ownToken]);
@@ -103,6 +104,7 @@ function CoinPage({address}:{address:string}){
    <div className="sub coin-tags">{row&&<HeatTag heat={displayHeat({...row,verdict:verdict?.level??row.verdict})}/>}<BlueChipBadge value={card?.blueChip} /><span className="coin-ca"><span className="addr coin-addr" title={address}>{short(address)}</span><button className="iconbtn coin-copy" aria-label="Copy address" title="Copy address" onClick={()=>void navigator.clipboard?.writeText(address).then(()=>toast({kind:'ok',title:'Address copied'})).catch(()=>undefined)}>⧉</button>{elsewhere&&<a className="coin-elsewhere" href={elsewhere.href} target="_blank" rel="noopener noreferrer" title={`Open on ${elsewhere.label}`}>{elsewhere.label}<IconOut/></a>}</span>{(identity||row)&&<span className="coin-facts">{identity&&<><span className="coin-fact">{launchpadLabel(identity.launchpad, identity.stage === 'graduated')}</span>{quotedIn(card?.identity.quoteSymbol??row?.quoteSymbol)&&<span className="coin-fact" title={`Quoted in ${card?.identity.quoteSymbol??row?.quoteSymbol}`}>{quotedIn(card?.identity.quoteSymbol??row?.quoteSymbol)}</span>}<span className="coin-fact">{identity.stage==='graduated'?'Migrated':identity.stage==='unknown'?'Stage not checked':POOL_LAUNCHPADS.has(identity.launchpad)?'Uniswap pool':`Curve ${card?.identity.curvePct??'—'}%`}</span></>}{row&&<span className="coin-fact coin-age">{formatAge(row.ageSec)} old</span>}</span>}</div>
    <dl className="coin-price">
     <div className="coin-stat coin-stat-price"><dt className="sr-only">Price</dt><dd><b>{px===undefined || row?.priceUnavailable ? (!data.card&&!data.verdict&&!data.error ? <span className="glance-wait" role="img" aria-label="Loading"><LedMatrix pattern="scan" size={18} /></span> : NOT_CHECKED) : <Roll value={formatCoinPrice(px)}/>}</b></dd></div>
+    {!row&&rowWait&&['1h','24h','FDV','Liquidity'].map(l=><div key={l} className="coin-stat coin-stat-wait"><dt>{l}</dt><dd><span className="glance-wait" role="img" aria-label="Loading"><LedMatrix pattern="scan" size={12} /></span></dd></div>)}
     {row&&<div className="coin-stat"><dt>1h</dt><dd className={`num${row.change1hPct>0?' up':row.change1hPct<0?' down':''}`}>{changeText(row.change1hPct)}</dd></div>}
     {row?.change24hPct!==undefined&&<div className="coin-stat"><dt>24h</dt><dd className={`num${row.change24hPct>0?' up':row.change24hPct<0?' down':''}`}>{changeText(row.change24hPct)}</dd></div>}
     {row&&<div className="coin-stat" title="Fully diluted value: price × total supply, the same figure as Radar"><dt>FDV</dt><dd className="num">{row.marketCapUsd===undefined||row.unavailable?.includes('marketCap') ? NOT_CHECKED : usd(row.marketCapUsd)}</dd></div>}

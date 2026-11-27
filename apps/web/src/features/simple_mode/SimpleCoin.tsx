@@ -12,6 +12,7 @@ import { WatchButton } from '../../components/WatchButton';
 import { launchpadLabel } from '../../copy/chain';
 import { featureLink, type CoinDetailTab } from '../../features';
 import { fetchParsed } from '../../lib/api';
+import { fetchCoinRow } from '../../lib/coinRow';
 import { CHAIN_KEY } from '../../lib/chain';
 import { serverNow } from '../../lib/clock';
 import { coinElsewhere } from '../../lib/coinLinks';
@@ -58,8 +59,7 @@ function SimpleCoinPage({ address }: { address: string }) {
   const [row, setRow] = useState<RadarRow | null>(null);
   useEffect(() => {
     const ac = new AbortController();
-    void fetchParsed('/radar', z.object({ rows: z.array(RadarRowSchema) }), { signal: ac.signal })
-      .then(r => setRow(r.rows.find(c => c.address.toLowerCase() === address.toLowerCase()) ?? null)).catch(() => undefined);
+    void fetchCoinRow(address, ac.signal).then(setRow).catch(() => undefined);
     return () => ac.abort();
   }, [address]);
   const { card, verdict, bars, markers, flows } = data;

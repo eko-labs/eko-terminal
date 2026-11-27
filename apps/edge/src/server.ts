@@ -139,6 +139,17 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
   };
   app.get('/v1/radar', radar);
   app.get('/v2/radar', radar);
+  // One coin's row, for its page (it needs only this, not the 100-row list): from the shared list when the coin is on
+  // it, else built for that coin alone. `row` is null for a coin the edge does not follow.
+  const oneRow = async (req: { params: { address: string } }) => {
+    const key = req.params.address.toLowerCase();
+    const listed = radarCache?.body.rows.find(r => r.address.toLowerCase() === key);
+    if (listed) return { row: listed };
+    const coin = isAddress(req.params.address, { strict: false }) ? edge.tracker.coin(req.params.address) : undefined;
+    return { row: coin ? withExtras(coin, radarRow(coin, edge.assessment(coin.token), edge.ctx(), 0)) : null };
+  };
+  app.get<{ Params: { address: string } }>('/v1/radar/:address', oneRow);
+  app.get<{ Params: { address: string } }>('/v2/radar/:address', oneRow);
 
   app.get<{ Querystring: { stage?: string } }>('/v2/pairs', async (req) => {
     const ctx = edge.ctx(), stage = (req.query.stage ?? 'new') as PairRow['column'];

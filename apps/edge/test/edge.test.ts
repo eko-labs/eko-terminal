@@ -251,6 +251,10 @@ describe('server', () => {
     const app = buildServer(edge);
     const get = async (url: string) => { const r = await app.inject({ method: 'GET', url }); return { status: r.statusCode, body: r.json() }; };
     expect(RadarResponseSchema.parse((await get('/v2/radar')).body).rows[0]).toMatchObject({ address: token.toLowerCase(), verdict: 'clear' });
+    // One coin's row for its page, the same as its row in the list; null for a coin the edge does not follow.
+    const one = (await get(`/v1/radar/${token}`)).body.row;
+    expect(one.address.toLowerCase()).toBe(token.toLowerCase()); expect(one.verdict).toBe('clear');
+    expect((await get('/v1/radar/0x000000000000000000000000000000000000dEaD')).body).toEqual({ row: null });
     expect(CoinCardSchema.parse((await get(`/v1/coins/${token}`)).body).identity.address).toBe(token.toLowerCase());
     expect(VerdictSchema.parse((await get(`/v1/coins/${token}/verdict`)).body).level).toBe('clear');
     expect((await get(`/v2/coins/${token}`)).body).toEqual({ version: 2, card: null });
