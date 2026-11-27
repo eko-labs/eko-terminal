@@ -84,7 +84,7 @@
 @keyframes row-flash{0%{background-color:#8fcaf02a}}
 /* Features' figures (placeSlots.tsx coinRow): a short coloured figure after the verdict. */
 /* On a phone-width table the coin and verdict keep their room: features' columns give way (Simple's list shows them). */
-.rt .c-place{width:72px}
+.rt .c-place{width:88px}
 @container(max-width:440px){.rt .c-place{display:none}}
 @container (max-width:1160px){.rt .c-liq{display:none}}
 @container (max-width:1020px){.rt .c-act{display:none}}

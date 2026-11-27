@@ -44,6 +44,11 @@ export interface ChainProfile {
   venue: 'elysium' | 'rhc'; outcomeVersion: string;
   mcp: { name: string; title: string };
   text: ChainText;
+  /**
+   * The launchpads whose coins EKO follows on this chain, as agents filter on them (CoinSummary.launchpad ids) and read
+   * them ("Pons"). The MCP server's descriptions and the coins tool's launchpad filter come from this list.
+   */
+  launchpads: readonly { id: string; name: string }[];
 }
 
 export interface LogFilter { address?: Address | Address[]; topics: (Hex | Hex[] | null)[] }

@@ -29,7 +29,7 @@
 .dt-keep b{font:600 22px/1 var(--mono);color:var(--t)}
 .dt-keep-note{font:var(--type-meta);color:var(--muted)}
 /* The coin lists' figure. */
-.dt-cell{font:600 14px/1 var(--mono);color:var(--t);white-space:nowrap}
+.dt-cell{font:600 13px/1 var(--mono);color:var(--t);white-space:nowrap}
 .dt-cell.dt-none{font-weight:400;color:var(--faint)}
 @media(max-width:600px){
   .dt-rows{display:flex;flex-direction:column;gap:10px}

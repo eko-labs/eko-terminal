@@ -265,3 +265,39 @@
 /* Phone: the split's single column must shrink to the page, and the journal filters scroll sideways in their own row
    instead of widening it (at 44 px touch targets they are ~414 px wide). */
 @media(max-width:700px){:where(.mission-screen) .mc-split{grid-template-columns:minmax(0,1fr)}:where(.mission-screen) .mc-split>*{min-width:0}:where(.mission-screen) .mc-toolbar .seg{max-width:100%;overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap}:where(.mission-screen) .mc-toolbar .seg::-webkit-scrollbar{display:none}:where(.mission-screen) .mc-toolbar .seg>button{flex:none}}
+
+/* Live activity (agent page): the status line, today's counts and one row per MCP call, newest first. */
+:where(.mission-screen) .mc-liveact{margin-bottom:16px;min-width:0}
+:where(.mission-screen) .mc-liveact .panel-head{flex-wrap:wrap;gap:6px 14px}
+:where(.mission-screen) .mc-liveact .note{margin:0 0 12px;font-size:13px;color:var(--muted)}
+:where(.mission-screen) .mc-link-status{display:inline-flex;align-items:center;gap:8px;margin:0;font-size:13px;color:var(--ink2)}
+:where(.mission-screen) .mc-link-status.is-connected{color:var(--accent)}
+:where(.mission-screen) .mc-link-dot{width:7px;height:7px;border-radius:50%;background:var(--rule3);flex:none}
+:where(.mission-screen) .mc-link-status.is-idle .mc-link-dot{background:var(--muted)}
+:where(.mission-screen) .mc-today{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;margin:0 0 14px;border:1px solid var(--rule);border-radius:var(--r2);background:var(--rule);overflow:hidden}
+:where(.mission-screen) .mc-today>div{padding:8px 10px;background:var(--plate);min-width:0}
+:where(.mission-screen) .mc-today dt{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:where(.mission-screen) .mc-today dd{margin:2px 0 0;font-size:17px;color:var(--ink)}
+:where(.mission-screen) .mc-calls{list-style:none;margin:0;padding:0;max-height:420px;overflow-y:auto}
+:where(.mission-screen) .mc-call{display:grid;grid-template-columns:64px 18px minmax(0,1fr) auto;gap:0 10px;align-items:start;padding:9px 0;border-top:1px solid var(--rule)}
+:where(.mission-screen) .mc-call:first-child{border-top:0}
+:where(.mission-screen) .mc-call time{font-size:12px;color:var(--muted);padding-top:2px}
+:where(.mission-screen) .mc-call-led{display:flex;justify-content:center;padding-top:2px}
+:where(.mission-screen) .mc-call-led>i{width:5px;height:5px;margin-top:5px;border-radius:50%;background:var(--rule3)}
+:where(.mission-screen) .mc-call.is-fresh{background:linear-gradient(90deg,#8fcaf00f,transparent 70%)}
+:where(.mission-screen) .mc-call-body{display:flex;flex-direction:column;gap:3px;min-width:0}
+:where(.mission-screen) .mc-call-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;min-width:0}
+:where(.mission-screen) .mc-call-top b{font:500 14px var(--sans);color:var(--ink);overflow-wrap:anywhere}
+:where(.mission-screen) .mc-call-tool{font:12px var(--mono);color:var(--muted)}
+:where(.mission-screen) .mc-call-coin{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:13px;color:var(--ink2);min-width:0}
+:where(.mission-screen) .mc-call-sym{font:500 13px var(--mono);color:var(--ink);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:where(.mission-screen) .mc-score{font-size:12px;white-space:nowrap}
+:where(.mission-screen) .mc-score.band-ok{color:var(--clear)}
+:where(.mission-screen) .mc-score.band-careful{color:var(--monitor)}
+:where(.mission-screen) .mc-score.band-danger{color:var(--danger)}
+:where(.mission-screen) .mc-call-why,:where(.mission-screen) .mc-call-note{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+:where(.mission-screen) .mc-call-note{color:var(--ink2)}
+:where(.mission-screen) .mc-call.is-error .mc-call-top b{color:var(--danger)}
+:where(.mission-screen) .mc-calls-empty{margin:0;font-size:14px;color:var(--ink2)}
+@media(max-width:1100px){:where(.mission-screen) .mc-today{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:700px){:where(.mission-screen) .mc-today{grid-template-columns:repeat(2,minmax(0,1fr))}:where(.mission-screen) .mc-today>div:last-child:nth-child(odd){grid-column:span 2}:where(.mission-screen) .mc-call{grid-template-columns:56px 14px minmax(0,1fr);gap:0 6px}:where(.mission-screen) .mc-call time{font-size:11px}:where(.mission-screen) .mc-call>.mc-dec{grid-column:3;justify-self:start;margin-top:4px}}

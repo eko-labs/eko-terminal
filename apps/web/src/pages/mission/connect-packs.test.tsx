@@ -2,7 +2,7 @@ import { renderToStaticMarkup as render } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PackSchema } from '@eko/shared';
 import generated from '../../../../../harness-packs/generated/packs.json';
-import { connectionReceived, fillPack, packAvailable } from '../../lib/mission';
+import { checkConnection, connectionReceived, fillPack, KEY_MASK, mcpUrlOf, packAvailable, pasteReady } from '../../lib/mission';
 import { demoPresets } from '../../mocks/demo/mission-packs';
 import { ConnectScreen, PackCards } from './Connect';
 import { createMissionDemo } from '../../mocks/demo/mission';
@@ -32,15 +32,37 @@ describe('096 Connect with generated launch packs', () => {
     const desktop = render(<ConnectScreen packs={packs.filter(p => p.platform === 'claude_desktop')} presets={demoPresets} flags={{}} phase="launch_week" />);
     expect(desktop).toContain('Settings, Developer, Edit Config'); expect(desktop).toContain('Node.js 18');
   });
-  it('only confirms a persisted journal entry, never a successful auth or empty result; surfaces errors', async () => {
+  it('confirms only a call made with the key (or, without the activity route, a persisted journal entry); surfaces errors', async () => {
     const entry = createMissionDemo(1790852400000).journals.dca[0];
-    const fetch = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ rows: [], cursor: null })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ rows: [entry], cursor: null })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ error: 'internal_error', message: 'Journal storage is unavailable' }), { status: 500 }));
+    const today = { calls: 0, checks: 0, allowed: 0, denied: 0, needsApproval: 0, prepared: 0, notes: 0 }, since = '2026-11-27T00:00:00.000Z';
+    const call = { id: 'c1', agentId: 'sample-agent', ts: '2026-11-27T12:00:00.000Z', tool: 'coin_verdict', ok: true };
+    const res = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
+    const fetch = vi.fn().mockResolvedValueOnce(res({ calls: [], lastCallAt: null, since, today }))
+      .mockResolvedValueOnce(res({ calls: [call], lastCallAt: call.ts, since, today: { ...today, calls: 1 } }))
+      .mockResolvedValueOnce(res({ error: 'not_found', message: 'Not available.' }, 404)).mockResolvedValueOnce(res({ rows: [], cursor: null }))
+      .mockResolvedValueOnce(res({ error: 'not_found', message: 'Not available.' }, 404)).mockResolvedValueOnce(res({ rows: [entry], cursor: null }))
+      .mockResolvedValueOnce(res({ error: 'internal_error', message: 'Activity is unavailable' }, 500));
     vi.stubGlobal('fetch', fetch);
-    expect(await connectionReceived('sample-agent')).toBe(false);
-    expect(await connectionReceived('sample-agent')).toBe(true);
-    await expect(connectionReceived('sample-agent')).rejects.toMatchObject({ status: 500 });
-    expect(fetch.mock.calls.every(([path]) => path === '/v1/agents/sample-agent/journal?limit=1')).toBe(true);
+    // One agent per case: reads of one resource are spaced seconds apart (requestControl), which is not under test here.
+    expect(await connectionReceived('sample-a')).toBe(false);
+    expect(await checkConnection('sample-b')).toMatchObject({ received: true, call: { tool: 'coin_verdict' } });
+    expect(await connectionReceived('sample-c')).toBe(false);
+    expect(await connectionReceived('sample-d')).toBe(true);
+    await expect(connectionReceived('sample-e')).rejects.toMatchObject({ status: 500 });
+    expect(fetch.mock.calls.map(([path]) => path)).toEqual(['/v1/agents/sample-a/activity', '/v1/agents/sample-b/activity', '/v1/agents/sample-c/activity',
+      '/v1/agents/sample-c/journal?limit=1', '/v1/agents/sample-d/activity', '/v1/agents/sample-d/journal?limit=1', '/v1/agents/sample-e/activity']);
+  });
+  it('builds paste-ready setups with the key only in what is copied', () => {
+    const url = mcpUrlOf(packs, 'https://fixture.invalid/mcp');
+    expect(url).toMatch(/^https:\/\/.+\/mcp$/);
+    const shown = pasteReady('https://fixture.invalid/mcp', KEY_MASK), real = pasteReady('https://fixture.invalid/mcp', 'eko_your_key_here');
+    expect(real.claudeCode).toBe('claude mcp add --transport http eko https://fixture.invalid/mcp --header "Authorization: Bearer eko_your_key_here"');
+    expect(JSON.parse(real.json)).toEqual({ mcpServers: { eko: { url: 'https://fixture.invalid/mcp', headers: { Authorization: 'Bearer eko_your_key_here' } } } });
+    expect(real.curl).toContain('-H "Authorization: Bearer eko_your_key_here"'); expect(real.curl).toContain('"name":"coins"');
+    expect(real.starter).toBe('EKO_KEY=eko_your_key_here EKO_MCP_URL=https://fixture.invalid/mcp npx tsx examples/agent-starter/agent.ts');
+    expect(Object.values(shown).join('\n')).not.toContain('eko_your_key_here');
+    const html = render(<ConnectScreen packs={packs} presets={demoPresets} flags={{}} phase="launch_week" />);
+    expect(html).toContain('Paste-ready setup'); expect(html).toContain('Cursor and other MCP clients'); expect(html).toContain('Plain HTTP (curl)');
+    for (const tool of ['coins', 'watch', 'new_launches', 'deployer_history', 'trade_prepare']) expect(html).toContain(`<code>${tool}</code>`);
   });
 });

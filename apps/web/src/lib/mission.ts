@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { AgentSchema, AgentDetailSchema, ApprovalSchema, JournalEntrySchema, PolicySchema, UncheckedOrderSchema, ApiKeyInfoSchema, PackSchema, ApiKeyCreatedSchema } from '@eko/shared';
-import type { Flags, Agent } from '@eko/shared';
+import { AgentActivitySchema, AgentSchema, AgentDetailSchema, ApprovalSchema, JournalEntrySchema, PolicySchema, UncheckedOrderSchema, ApiKeyInfoSchema, PackSchema, ApiKeyCreatedSchema } from '@eko/shared';
+import type { Flags, Agent, AgentCall, Pack } from '@eko/shared';
 import { ApiError, fetchParsed, api } from './api';
 
 export const AgentsResponse = z.object({ agents: z.array(AgentSchema) });
@@ -72,10 +72,53 @@ export function fillPack(template: string, key: string, mcpUrl = import.meta.env
   return template.replaceAll('{{API_KEY}}', key).replaceAll('{{MCP_URL}}', mcpUrl || '{{MCP_URL}}');
 }
 
-// TODO(spec): MCP and API currently have no cross-process agents WS event for
-// journal writes. Verify the persisted owner-only journal on WS hints and while
-// waiting, until that event is available. Authentication alone is not a check-in.
-export async function connectionReceived(id: string, signal?: AbortSignal) {
+/**
+ * The agent's MCP calls (GET /agents/:id/activity): the newest first and the counts since `since` (the viewer's local
+ * midnight). Every call made with the agent's key counts, read tools included, and each new one is also pushed on the
+ * owner's `agents` channel (kind `call`).
+ */
+export const loadActivity = (id: string, since: string, signal?: AbortSignal) =>
+  fetchParsed(`/agents/${encodeURIComponent(id)}/activity?since=${encodeURIComponent(since)}`, AgentActivitySchema, { signal });
+
+/**
+ * Whether the agent has reached EKO yet: any MCP call made with its key (its activity), and the earliest one listed.
+ * An edge without the activity route (404) falls back to the persisted owner-only journal, as before. An empty answer
+ * is not a check-in, and neither is signing in.
+ */
+export async function checkConnection(id: string, signal?: AbortSignal): Promise<{ received: boolean; call?: AgentCall }> {
+  try {
+    const a = await fetchParsed(`/agents/${encodeURIComponent(id)}/activity`, AgentActivitySchema, { signal });
+    const call = a.calls.at(-1);
+    return call ? { received: true, call } : { received: false };
+  } catch (error) {
+    if (!(error instanceof ApiError && error.status === 404)) throw error;
+  }
   const page = await fetchParsed(`/agents/${encodeURIComponent(id)}/journal?limit=1`, JournalResponse, { signal });
-  return page.rows.length > 0;
+  return { received: page.rows.length > 0 };
+}
+export async function connectionReceived(id: string, signal?: AbortSignal) {
+  return (await checkConnection(id, signal)).received;
+}
+
+/** The MCP server's URL as the packs carry it (the first http(s) URL ending in /mcp in a template), else VITE_MCP_URL. */
+export function mcpUrlOf(packs: readonly Pack[], fallback: string = import.meta.env.VITE_MCP_URL ?? ''): string {
+  for (const p of packs) { const m = /https?:\/\/[^\s"'<>]+\/mcp\b/.exec(p.configTemplate); if (m) return m[0]; }
+  return fallback || 'https://ekoterminal.com/mcp';
+}
+/** The key on screen: never the real one, only its shape. */
+export const KEY_MASK = 'eko_••••••••••••••••';
+/**
+ * Ready-to-paste setups for one key: Claude Code's command (the claude_code pack's own syntax), the JSON an MCP client
+ * with remote servers takes (Cursor and others: url plus headers), a plain curl call, and the starter agent. `key` is
+ * the real key only when copying; on screen it is KEY_MASK.
+ */
+export function pasteReady(url: string, key: string) {
+  const json = JSON.stringify({ mcpServers: { eko: { url, headers: { Authorization: `Bearer ${key}` } } } }, null, 2);
+  const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'coins', arguments: { sort: 'hottest', limit: 5 } } });
+  return {
+    claudeCode: `claude mcp add --transport http eko ${url} --header "Authorization: Bearer ${key}"`,
+    json,
+    curl: [`curl -s ${url} \\`, '  -H "Content-Type: application/json" \\', '  -H "Accept: application/json, text/event-stream" \\', `  -H "Authorization: Bearer ${key}" \\`, `  -d '${body}'`].join('\n'),
+    starter: `EKO_KEY=${key} EKO_MCP_URL=${url} npx tsx examples/agent-starter/agent.ts`,
+  };
 }

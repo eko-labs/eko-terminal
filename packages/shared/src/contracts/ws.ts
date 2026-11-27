@@ -7,7 +7,7 @@ import { RadarRowSchema, PairRowSchema, FeedItemSchema, TickSchema } from './fee
 import { BurnEventSchema, BurnStatsWithExtrasSchema } from './burn.js';
 import { AlertSchema, ErrorCodeSchema } from './api.js';
 import { EntitlementsSchema } from './entitlements.js';
-import { AgentSchema, JournalEntrySchema, PreflightResultSchema, ApprovalSchema } from './harness.js';
+import { AgentSchema, AgentCallSchema, JournalEntrySchema, PreflightResultSchema, ApprovalSchema } from './harness.js';
 import { TradeOrderSchema } from './trading.js';
 // BACKEND §23 CA-1: this map alone defines the payloads and event kinds.
 export const WsEventMapSchema = z.object({
@@ -18,7 +18,7 @@ export const WsEventMapSchema = z.object({
   flow: z.object({ marker: ChartMarkerSchema, flow: FlowSchema }),
   burns: z.object({ burn: BurnEventSchema, stats: BurnStatsWithExtrasSchema }),
   alerts: z.object({ alert: AlertSchema, entitlements: EntitlementsSchema }),
-  agents: z.object({ agent: AgentSchema, journal: JournalEntrySchema, preflight: PreflightResultSchema.extend({ agentId: z.string(), clientOrderRef: z.string() }) }),
+  agents: z.object({ agent: AgentSchema, journal: JournalEntrySchema, preflight: PreflightResultSchema.extend({ agentId: z.string(), clientOrderRef: z.string() }), call: AgentCallSchema }),
   approvals: z.object({ approval: ApprovalSchema }),
   orders: z.object({ order: TradeOrderSchema }),
 });

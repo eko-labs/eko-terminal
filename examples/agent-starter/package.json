@@ -1,0 +1,13 @@
+{
+  "name": "eko-agent-starter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A dry-run agent that watches EKO over MCP, asks preflight and journals its reasoning. Never signs or sends.",
+  "scripts": {
+    "start": "npx tsx agent.ts"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

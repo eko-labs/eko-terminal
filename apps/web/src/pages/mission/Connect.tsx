@@ -2,9 +2,12 @@ import { riskModeLabel } from '../../copy/shell';
 import { MISSION_LABELS as L, MISSION_TEXT as T, CONNECT_STEPS as STEPS } from '../../copy/mission';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { z } from 'zod';
-import { UnsignedTxSchema, type AgentDetail, type Flags, type Pack } from '@eko/shared';
+import { UnsignedTxSchema, type AgentCall, type AgentDetail, type Flags, type Pack } from '@eko/shared';
 import { fetchParsed } from '../../lib/api';
-import { connectionReceived, createAgent, createKey, fillPack, loadPacks, loadPresets, packAvailable, type PresetsResponse } from '../../lib/mission';
+import { checkConnection, createAgent, createKey, fillPack, KEY_MASK, loadPacks, loadPresets, mcpUrlOf, packAvailable, pasteReady, type PresetsResponse } from '../../lib/mission';
+import { LedMatrix } from '../../components/ui/Led';
+import { AGENT_LIVE as LIVE } from '../../copy/mission';
+import { agoText, useNow } from './parts';
 import { useOnboarding } from '../../store/onboarding';
 import { useShell } from '../../store/shell';
 import { useApp } from '../../store/app';
@@ -40,6 +43,8 @@ export function ConnectScreen({ packs, presets, flags, phase }: { packs: Pack[];
   const [selection, setSelected] = useState<Platform>(available[0]?.platform ?? 'claude_code'), [name, setName] = useState(''), [preset, setPreset] = useState<string>(L.balanced), [agent, setAgent] = useState<AgentDetail | null>(null), [visibleKey, setVisibleKey] = useState(''), [keyIssued, setKeyIssued] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState(''), [waiting, setWaiting] = useState(false), [connected, setConnected] = useState(false), [sessionConfirmed, setSessionConfirmed] = useState(false);
   const selected = selection === 'onchain' && flags.onchain_guardrails && phase !== 'launch_week' || available.some((p) => p.platform === selection) ? selection : available[0]?.platform ?? 'claude_code';
   const key = useRef(''), mounted = useRef(true), generation = useRef(0);
+  const [firstCall, setFirstCall] = useState<AgentCall | null>(null), now = useNow();
+  const mcpUrl = mcpUrlOf(packs);
   const pack = available.find((p) => p.platform === (selected === 'onchain' ? 'generic_mcp' : selected)), p = presets.find((p) => p.name === preset)?.policy;
   const agentName = name.trim() || T.defaultAgent(PLATFORM_COPY[selected][0].split(' ')[0]);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; key.current = ''; generation.current++; }; }, []);
@@ -52,9 +57,10 @@ export function ConnectScreen({ packs, presets, flags, phase }: { packs: Pack[];
       pending = true;
       const onboardingOwner = useOnboarding.getState().owner;
       try {
-        const received = await connectionReceived(agent.id, controller.signal);
+        const { received, call } = await checkConnection(agent.id, controller.signal);
         if (!controller.signal.aborted && mounted.current && generation.current === run && received) {
           if (useOnboarding.getState().owner === onboardingOwner) useOnboarding.getState().markStep('connect_agent');
+          if (call) setFirstCall((c) => c ?? call);
           setConnected(true); setWaiting(false); key.current = ''; setVisibleKey('');
         }
       } catch (error) {
@@ -62,13 +68,20 @@ export function ConnectScreen({ packs, presets, flags, phase }: { packs: Pack[];
       } finally { pending = false; }
     };
     const unsubscribe = rt?.subscribe('agents', (e) => {
+      // The agent's first MCP call with its key arrives here the moment it is made.
+      if (e.kind === 'call' && e.data.agentId === agent.id) {
+        if (generation.current !== run || !mounted.current) return;
+        useOnboarding.getState().markStep('connect_agent');
+        setFirstCall((c) => c ?? e.data); setConnected(true); setWaiting(false); key.current = ''; setVisibleKey('');
+        return;
+      }
       if ((e.kind === 'preflight' && e.data.agentId === agent.id) || (e.kind === 'agent' && e.data.id === agent.id)) void check();
     }, check);
     const timer = waiting ? setInterval(() => void check(), 3000) : undefined;
     if (waiting) void check();
     return () => { controller.abort(); unsubscribe?.(); if (timer) clearInterval(timer); };
   }, [rt, agent?.id, waiting, connected]);
-  const select = (platform: Platform) => { if (busy) return; generation.current++; key.current = ''; setVisibleKey(''); setKeyIssued(false); setAgent(null); setError(''); setWaiting(false); setConnected(false); setSessionConfirmed(false); setSelected(platform); };
+  const select = (platform: Platform) => { if (busy) return; generation.current++; key.current = ''; setVisibleKey(''); setKeyIssued(false); setAgent(null); setError(''); setWaiting(false); setConnected(false); setFirstCall(null); setSessionConfirmed(false); setSelected(platform); };
   const ensureAgent = async () => {
     if (agent) return agent;
     const a = await createAgent(agentName, selected === 'onchain' ? 'onchain' : ROBINHOOD_MCP?.kind ?? 'other', preset.toLowerCase());
@@ -92,7 +105,7 @@ export function ConnectScreen({ packs, presets, flags, phase }: { packs: Pack[];
   };
   const verify = async () => {
     if (busy) return; setBusy(true); setError(''); setVisibleKey('');
-    try { const a = await ensureAgent(), received = await connectionReceived(a.id); setWaiting(!received); setConnected(received); if (received) key.current = ''; }
+    try { const a = await ensureAgent(), { received, call } = await checkConnection(a.id); setWaiting(!received); setConnected(received); if (call) setFirstCall((c) => c ?? call); if (received) key.current = ''; }
     catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
   if (!pack) return <div className="page"><h1>{L.connectAnAgent}</h1><p>{L.noInstallPacksAreAvailableYet}</p></div>;
@@ -112,12 +125,21 @@ export function ConnectScreen({ packs, presets, flags, phase }: { packs: Pack[];
     { title: STEPS.key[3], description: setup[2] ? `${setup[2]} ${STEPS.keyCheckBelow}` : STEPS.keyCheck, content: <>{owner && <JournalConsentSetting owner={owner} />}<p className="cn-note">{ADVISORY}</p><p className="lab-foot">{BUILT_ON}. {NON_AFFILIATION}</p></> },
   ];
   steps.push({ title: STEPS.approvals, description: ADVISORY });
+  // One copy per client: on screen the key is masked; each copy button fills in the real key while this page holds it.
+  const shown = pasteReady(mcpUrl, keyIssued ? KEY_MASK : '<YOUR_KEY>'), real = () => pasteReady(mcpUrl, key.current || '<YOUR_KEY>');
+  const ready = !oauth(selected) && <section className="panel cn-ready" aria-label={LIVE.pasteReady}><div className="panel-head"><h2>{LIVE.pasteReady}</h2><span className="muted">{keyIssued ? LIVE.pasteReadyNote : LIVE.pasteReadyAfterKey}</span></div><div className="panel-body">
+    <CodeBlock label={LIVE.claudeCode} code={shown.claudeCode} copy={() => real().claudeCode} />
+    <CodeBlock label={LIVE.mcpJson} code={shown.json} copy={() => real().json} />
+    <CodeBlock label={LIVE.curl} code={shown.curl} copy={() => real().curl} />
+    <CodeBlock label={LIVE.starter} code={shown.starter} copy={() => real().starter} />
+    <p className="note">{LIVE.starterNote}</p></div></section>;
+  const arrived = firstCall && <p className="cn-arrived" role="status"><LedMatrix pattern="pulse" size={14} /><span>{LIVE.firstCall(firstCall.tool, agoText(Math.max(0, now - Date.parse(firstCall.ts)) / 1000))}</span></p>;
   return <div className="page mission-screen"><div className="page-head"><div><h1>{L.connectAnAgent}</h1><p>{C.connectIntro}</p></div><Link className="btn cn-head-link" to="/mission">{L.missionControl}<IconArrow /></Link></div><div className="cn-assure"><IconShield /><div><p><b>{C.credentials}</b></p><p>{ADVISORY}</p></div></div><p className="lab-foot">{BUILT_ON}. {NON_AFFILIATION}</p>
     <PackCards packs={packs} flags={flags} phase={phase} selected={selected} select={select} />
     <div className="cn-grid"><div className="cn-main"><section className="panel"><div className="panel-head"><h2>{L.setUp}{' '}{PLATFORM_COPY[selected][0]}</h2><span className="muted">{oauth(selected) ? L.oauthSignInNoKey : L.harnessApiKey} {L.about}{' '}{selected === 'generic_mcp' || selected === 'claude_desktop' || selected === 'onchain' ? '5' : '2'} {L.minutes}</span></div><div className="panel-body"><ol className="cn-steps">
       {steps.map((step, i) => <li key={`${selected}-${i}`}><span className="cn-n num">{i + 1}</span><div className="cn-step"><b>{step.title}</b><p>{step.description}</p>{step.content && <div className="cn-el">{step.content}</div>}</div></li>)}
-    </ol>{selected === 'claude_connector' && <p className="cn-note">{C.connectorNote}</p>}</div></section><section className="panel cn-test"><div className="panel-head"><h2>{L.testTheConnection}</h2>{connected && <span className="tag">{L.connected}</span>}</div><div className="panel-body"><p>{connected ? C.connected : waiting ? C.pendingVerify : L.weLlWaitForYourAgentS}</p><div className="cn-test-go"><button className="btn btn-primary btn-lg" disabled={busy || !signedIn || (!oauth(selected) && !keyIssued)} title={signedIn ? undefined : C.connectToCreate} onClick={() => void verify()}>{L.testTheConnection}</button>{!keyIssued && !oauth(selected) && <span className="note">{L.generateAKeyFirst}</span>}{agent && <Link className="btn btn-ghost" to={`/mission/agents/${agent.id}?tab=journal`}>{L.openJournal}</Link>}</div></div></section>{error && <p role="alert">{error}</p>}</div>
-    <aside className="cn-aside"><section className="panel"><div className="panel-head"><h3>{L.newAgent}</h3><span className="muted">{L.appliedWhenItSCreated}</span></div><div className="panel-body cn-agent"><label className="field"><span className="label">{L.name}</span><input className="input" value={name} disabled={!!agent || busy} maxLength={40} placeholder={agentName} onChange={(e) => setName(e.target.value)} /></label><div className="field"><span className="label">{L.policyPreset}</span><div className="cn-presets" role="radiogroup" aria-label={L.policyPreset}>{presets.map(({ name, policy }) => <button key={name} className="cn-preset" role="radio" disabled={!!agent || busy} aria-checked={preset === name} onClick={() => setPreset(name)}><b>{riskModeLabel(name)}</b><span>{L.upTo}{' '}{policy.maxPositionUsd === undefined ? '—' : money(policy.maxPositionUsd)} {L.perOrder}</span></button>)}</div></div>{p && <dl className="kv"><dt>{L.maxPosition}</dt><dd>{p.maxPositionUsd === undefined ? '—' : money(p.maxPositionUsd)}</dd><dt>{L.stopAfterADailyLossOf}</dt><dd>{p.maxDailyLossUsd === undefined ? '—' : money(p.maxDailyLossUsd)}</dd><dt>{L.blocksCoinsFlagged}</dt><dd>{p.blockPlaybookLevel === 'monitor' ? L.monitorAndDanger : L.danger}</dd><dt>{L.maxRoundTripCost}</dt><dd>{p.maxRoundTripCostPct}%</dd><dt>{L.minLiquidity}</dt><dd>{money(p.minLiquidityUsd ?? 0)}</dd><dt>{flags.approvals ? L.needsApprovalAbove : L.deniedAboveApprovalLimit}</dt><dd>{p.approvalAboveUsd === undefined ? '—' : money(p.approvalAboveUsd)}</dd></dl>}<p className="note">{L.approvalsArriveAtTokenLaunchUntilThen}</p></div></section><section className="panel"><div className="panel-head"><h3>{L.whatYourAgentGets}</h3><span className="muted">{L.mcpTools}</span></div><div className="panel-body cn-tools">{[[L.senses, ['coin_verdict', 'coin_card', 'playbook_match']], [L.guardrails, ['preflight', ...(flags.approvals ? ['request_approval'] : [])]], [L.flightRecorder, ['journal', ...(flags.unchecked_orders ? ['recall'] : [])]]].map(([group, tools]) => <div className="cn-tool-group" key={String(group)}><span className="eyebrow">{group}</span><ul>{(tools as string[]).map((tool) => <li key={tool}><code>{tool}</code></li>)}</ul></div>)}</div></section></aside></div><p className="lab-foot">{NON_AFFILIATION} {L.preflightIsARiskCheckAgainstYour}</p>
+    </ol>{selected === 'claude_connector' && <p className="cn-note">{C.connectorNote}</p>}</div></section>{ready}<section className="panel cn-test"><div className="panel-head"><h2>{L.testTheConnection}</h2>{connected && <span className="tag">{L.connected}</span>}</div><div className="panel-body">{arrived}<p>{connected ? C.connected : waiting ? <span className="cn-waiting"><LedMatrix pattern="ring" size={14} />{C.pendingVerify}</span> : L.weLlWaitForYourAgentS}</p><div className="cn-test-go"><button className="btn btn-primary btn-lg" disabled={busy || !signedIn || (!oauth(selected) && !keyIssued)} title={signedIn ? undefined : C.connectToCreate} onClick={() => void verify()}>{L.testTheConnection}</button>{!keyIssued && !oauth(selected) && <span className="note">{L.generateAKeyFirst}</span>}{agent && <Link className="btn btn-ghost" to={`/mission/agents/${agent.id}?tab=activity`}>{LIVE.watchLive}</Link>}</div></div></section>{error && <p role="alert">{error}</p>}</div>
+    <aside className="cn-aside"><section className="panel"><div className="panel-head"><h3>{L.newAgent}</h3><span className="muted">{L.appliedWhenItSCreated}</span></div><div className="panel-body cn-agent"><label className="field"><span className="label">{L.name}</span><input className="input" value={name} disabled={!!agent || busy} maxLength={40} placeholder={agentName} onChange={(e) => setName(e.target.value)} /></label><div className="field"><span className="label">{L.policyPreset}</span><div className="cn-presets" role="radiogroup" aria-label={L.policyPreset}>{presets.map(({ name, policy }) => <button key={name} className="cn-preset" role="radio" disabled={!!agent || busy} aria-checked={preset === name} onClick={() => setPreset(name)}><b>{riskModeLabel(name)}</b><span>{L.upTo}{' '}{policy.maxPositionUsd === undefined ? '—' : money(policy.maxPositionUsd)} {L.perOrder}</span></button>)}</div></div>{p && <dl className="kv"><dt>{L.maxPosition}</dt><dd>{p.maxPositionUsd === undefined ? '—' : money(p.maxPositionUsd)}</dd><dt>{L.stopAfterADailyLossOf}</dt><dd>{p.maxDailyLossUsd === undefined ? '—' : money(p.maxDailyLossUsd)}</dd><dt>{L.blocksCoinsFlagged}</dt><dd>{p.blockPlaybookLevel === 'monitor' ? L.monitorAndDanger : L.danger}</dd><dt>{L.maxRoundTripCost}</dt><dd>{p.maxRoundTripCostPct}%</dd><dt>{L.minLiquidity}</dt><dd>{money(p.minLiquidityUsd ?? 0)}</dd><dt>{flags.approvals ? L.needsApprovalAbove : L.deniedAboveApprovalLimit}</dt><dd>{p.approvalAboveUsd === undefined ? '—' : money(p.approvalAboveUsd)}</dd></dl>}<p className="note">{L.approvalsArriveAtTokenLaunchUntilThen}</p></div></section><section className="panel"><div className="panel-head"><h3>{L.whatYourAgentGets}</h3><span className="muted">{L.mcpTools}</span></div><div className="panel-body cn-tools"><p className="note">{C.coverage}</p>{[[L.senses, ['coin_verdict', 'coin_card', 'playbook_match', 'deployer_history']], [LIVE.discover, ['coins', 'new_launches', 'watch']], [L.guardrails, ['preflight', 'trade_prepare', ...(flags.approvals ? ['request_approval'] : [])]], [L.flightRecorder, ['journal', ...(flags.unchecked_orders ? ['recall'] : [])]]].map(([group, tools]) => <div className="cn-tool-group" key={String(group)}><span className="eyebrow">{group}</span><ul>{(tools as string[]).map((tool) => <li key={tool}><code>{tool}</code></li>)}</ul></div>)}</div></section></aside></div><p className="lab-foot">{NON_AFFILIATION} {L.preflightIsARiskCheckAgainstYour}</p>
   </div>;
 }
 export default function Connect() {

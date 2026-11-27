@@ -27,7 +27,9 @@ export function mayHaveView(features: readonly { views?: FeatureViews }[], path:
   return path !== undefined && features.some(f => !!f.views?.pages[path]);
 }
 
-const useViewState = create<{ active: readonly FlagName[] }>(() => ({ active: [] }));
+const useViewState = create<{ active: readonly FlagName[]; nav: number }>(() => ({ active: [], nav: 0 }));
+/** A view's `hideNav` answer changed (it read state the shell does not watch): the menu is drawn again. */
+export const refreshNav = () => useViewState.setState(s => ({ nav: s.nav + 1 }));
 
 /**
  * The flags /config gave on this browser's last visit, so a returning visitor's page can be drawn at once with the view
@@ -82,8 +84,9 @@ export function ViewChain({ children }: { children: Render }) {
 }
 /** The views in use now, for the shell around the page (none while no feature offers one, or none is chosen). */
 export function useActiveViews(): FeatureViews[] {
-  const flags = useFlags(), active = useViewState(s => s.active);
-  return useMemo(() => activeViews(viewFeatures(FEATURES, flags), active), [flags, active]);
+  const flags = useFlags(), active = useViewState(s => s.active), nav = useViewState(s => s.nav);
+  // `nav` is a dependency on purpose: a new array makes the menu ask each view's hideNav again (refreshNav).
+  return useMemo(() => activeViews(viewFeatures(FEATURES, flags), active), [flags, active, nav]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 type Page = LazyExoticComponent<ComponentType<{ params: Record<string, string> }>>;

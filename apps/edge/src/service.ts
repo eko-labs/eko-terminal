@@ -9,6 +9,8 @@ import type { Historian } from './historian.js';
 import type { FunderTracer } from './funders.js';
 import { FEATURE_POINTS, HORIZON_SEC } from './outcomes.js';
 import type { ViewContext } from './views.js';
+import { rankCoins } from './rank.js';
+import type { SavedProbe } from './probe-snapshot.js';
 
 export interface EdgeOptions {
   /** Re-check a coin no more often than this (default 10 minutes; the first check runs as soon as it launches). */
@@ -42,11 +44,13 @@ export class Edge {
   private running = 0;
   /** Per coin: when a failed check may be retried, and how many failed in a row (backoff doubles to 30 minutes). */
   private readonly failed = new Map<string, { until: number; n: number }>();
-  /** Per coin: its trade count when last probed (a coin nobody traded since needs no scheduled re-check). */
+  /** Per coin: its trade count when last probed (a coin nobody traded since needs no scheduled re-check). Kept with the
+   *  probe across restarts (probe-snapshot.ts). */
   private readonly probedTrades = new Map<string, number>();
   /** All checks wait until then after the RPC provider reports its quota spent. */
   private pausedUntil = 0;
-  readonly counters = { assessed: 0, honeypotsRefused: 0, failures: 0, startedAt: new Date().toISOString() };
+  /** `probesRestored`: checks put back from the probe snapshot at start (restoreProbes). */
+  readonly counters = { assessed: 0, honeypotsRefused: 0, failures: 0, probesRestored: 0, startedAt: new Date().toISOString() };
   private readonly opts: Required<Omit<EdgeOptions, 'log' | 'memory'>> & Pick<EdgeOptions, 'log' | 'memory'>;
   /** Per live coin, how many of MEASURE_AT have been recorded. */
   private readonly measured = new Map<string, number>();
@@ -98,19 +102,22 @@ export class Edge {
     const p = this.probes.get(k), coin = this.tracker.coins.get(k);
     if (!p || sellCheckOutstanding(p)) return true;
     if (earlyEnded(p, nowMs)) return true;
-    return !!coin && coin.trades.length !== (this.probedTrades.get(k) ?? 0);
+    // More trades than at the probe: it traded since. Fewer happens only while a restart replays the coin's last hour
+    // (Tracker.restore takes those trades out until the replay brings them back): nothing new yet.
+    return !!coin && coin.trades.length > (this.probedTrades.get(k) ?? 0);
   }
 
   /**
-   * Queue every tracked coin that needs a check, most recently active first (its last trade, or its launch), and re-sort
-   * the whole queue each round: after a restart every followed coin is due at once (hundreds on Robinhood Chain), and a
-   * coin that is trading now must not wait behind a day of quiet launches.
+   * Queue every tracked coin that needs a check and re-sort the whole queue each round: coins with no verdict yet (never
+   * checked, or the sell test still owed) first, then the rest, each in the radar list's order (rank.ts: the last
+   * hour's volume, then the newest launch), so the list's first page is refreshed first. After a restart without saved
+   * probes every followed coin is due at once (hundreds on Robinhood Chain).
    */
   schedule() {
     const nowMs = this.opts.now();
-    const active = (c: CoinState) => Math.max(c.ts, c.trades.at(-1)?.ts ?? 0);
-    const due = [...this.tracker.coins.values()].filter(c => !this.inFlight.has(c.token.toLowerCase()) && this.due(c.token, nowMs))
-      .sort((a, b) => active(b) - active(a)).map(c => c.token.toLowerCase());
+    const ranked = rankCoins([...this.tracker.coins.values()].filter(c => !this.inFlight.has(c.token.toLowerCase()) && this.due(c.token, nowMs)), Math.floor(nowMs / 1000));
+    const unjudged = (c: CoinState) => { const p = this.probes.get(c.token.toLowerCase()); return !p || sellCheckOutstanding(p); };
+    const due = [...ranked.filter(unjudged), ...ranked.filter(c => !unjudged(c))].map(c => c.token.toLowerCase());
     this.queue.splice(0, this.queue.length, ...due);
     this.queued.clear(); for (const k of due) this.queued.add(k);
     this.pump();
@@ -229,8 +236,56 @@ export class Edge {
 
   /** Drop checks for coins the tracker has forgotten. */
   prune() {
-    for (const key of this.probes.keys()) if (!this.tracker.coins.has(key)) { this.probes.delete(key); this.judged.delete(key); this.measured.delete(key); this.probedTrades.delete(key); }
+    for (const key of this.probes.keys()) if (!this.tracker.coins.has(key)) { this.probes.delete(key); this.judged.delete(key); this.measured.delete(key); this.probedTrades.delete(key); this.warmTried.delete(key); }
     for (const key of this.failed.keys()) if (!this.tracker.coins.has(key)) this.failed.delete(key);
+  }
+
+  /**
+   * Every cached check with the coin's trade count when it was taken, for the probe snapshot (probe-snapshot.ts): tracked
+   * coins in the radar list's order, then checks restored for coins the start-up replay has not brought back yet.
+   */
+  savedProbes(): SavedProbe[] {
+    const out: SavedProbe[] = [], seen = new Set<string>();
+    const add = (k: string) => { const probe = this.probes.get(k); if (!probe || seen.has(k)) return; seen.add(k); out.push({ token: k, trades: this.probedTrades.get(k) ?? 0, probe }); };
+    for (const c of rankCoins(this.tracker.coins.values(), Math.floor(this.opts.now() / 1000))) add(c.token.toLowerCase());
+    for (const k of this.probes.keys()) add(k);
+    return out;
+  }
+
+  /**
+   * Put back checks saved before a restart (probe-snapshot.ts), before the server serves: a coin shows its last verdict
+   * and score as soon as the tracker has it again, instead of "Still checking" until a new check lands. Each keeps its
+   * real `at`, so one older than recheckSec is re-checked in the background as usual. A check already taken in this
+   * process wins. Coins the tracker does not get back are dropped by the first prune() after the replay.
+   */
+  restoreProbes(saved: readonly SavedProbe[]): number {
+    let n = 0;
+    for (const s of saved) {
+      const k = s.token.toLowerCase();
+      if (this.probes.has(k)) continue;
+      this.probes.set(k, s.probe); this.probedTrades.set(k, s.trades); n++;
+    }
+    this.counters.probesRestored += n;
+    return n;
+  }
+
+  /** Coins warm() has tried to judge (once each: a judge that throws is not retried every tick). */
+  private readonly warmTried = new Set<string>();
+  /**
+   * Judge coins with a cached check but no verdict yet, for at most `budgetMs` (no RPC). The counts over every coin
+   * (cachedLevel: the radar's totals, alert filters) read the last verdict, which a check or a page view computes; a
+   * restored check that needs no new one would otherwise count as pending until someone opened the coin.
+   */
+  warm(budgetMs = 50): number {
+    const until = Date.now() + budgetMs;
+    let n = 0;
+    for (const k of this.probes.keys()) {
+      if (Date.now() >= until) break;
+      if (this.judged.has(k) || this.warmTried.has(k) || !this.tracker.coins.has(k)) continue;
+      this.warmTried.add(k);
+      try { this.assessment(k); n++; } catch (error) { this.opts.log?.('warm_failed', { coin: k, error: String((error as Error).message).slice(0, 160) }); }
+    }
+    return n;
   }
 
   /** The level from the coin's last computed verdict, without recomputing it (for counts over every coin). */

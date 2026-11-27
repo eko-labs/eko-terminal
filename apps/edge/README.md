@@ -3,7 +3,9 @@
 One service: it follows Montra launches on Elysium (chain 99901), checks each coin, and serves the API the EKO web
 app speaks, the built web app and landing site, wallet sign-in, trade preparation and the agent connector (MCP). Its
 state is one SQLite file on a volume; it holds no signing keys. A restart replays the last `BACKFILL_BLOCKS` of chain
-history.
+history. Beside the database it keeps the followed coins (`columns.json`, `src/snapshot.ts`) and each coin's last check
+(`probes.json`, `src/probe-snapshot.ts`), written every minute and at shutdown: after a deploy every coin shows its
+last verdict and score at once, and only checks older than ten minutes are redone, first-page coins first.
 
 **Who can do what, what it holds and what it trusts: [ARCHITECTURE.md](ARCHITECTURE.md).**
 

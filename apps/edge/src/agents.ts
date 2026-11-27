@@ -9,6 +9,7 @@ import type { Assessment } from './assess.js';
 import type { CoinState } from './tracker.js';
 import { ELYSIUM_PROFILE } from './chains/profiles.js';
 import type { ChainProfile } from './chains/types.js';
+import type { AgentActivityLog } from './agent-activity.js';
 
 /**
  * Mission Control: a signed-in wallet registers its AI agents, gives each an API key and a policy, and sees
@@ -140,6 +141,16 @@ export class AgentStore {
   /** Journal rows of every kind for an account's agents in the last day. */
   agentRowsToday(accountId: string): number {
     return (this.db.prepare('SELECT count(*) AS n FROM journal j JOIN agents a ON a.id = j.agent_id WHERE a.account_id = ? AND j.ts > ?').get(accountId, now() - 86_400) as { n: number }).n;
+  }
+  /** One agent's journal since `sinceSec`: EKO's decisions by outcome, the trades it prepared and the agent's own notes. */
+  countsSince(agentId: string, sinceSec: number) {
+    const rows = this.db.prepare(`SELECT kind, json_extract(payload, '$.decision') AS decision, preflight_id IS NULL AS own, count(*) AS n FROM journal
+      WHERE agent_id = ? AND ts >= ? GROUP BY kind, decision, own`).all(agentId, sinceSec) as { kind: string; decision: string | null; own: number; n: number }[];
+    const sum = (f: (r: typeof rows[number]) => boolean) => rows.filter(f).reduce((s, r) => s + Number(r.n), 0);
+    const decided = (r: typeof rows[number]) => r.kind === 'decision' && !r.own;
+    return { checks: sum(decided), allowed: sum(r => decided(r) && r.decision === 'allow'), denied: sum(r => decided(r) && r.decision === 'deny'),
+      needsApproval: sum(r => decided(r) && r.decision === 'needs_approval'), prepared: sum(r => r.kind === 'order' && !r.own),
+      notes: sum(r => !!r.own && ['session_start', 'outcome', 'note'].includes(r.kind)) };
   }
   /** Approvals still waiting on the owner for one agent. */
   pendingApprovals(agentId: string): number {
@@ -300,9 +311,9 @@ export async function preflight(d: PreflightDeps, agent: AgentRow, clientOrderRe
 export function packs(mcpUrl: string): Pack[] {
   return [
     { platform: 'claude_code', stage: 'T', version: 1, configTemplate: `claude mcp add --transport http eko ${mcpUrl} --header "Authorization: Bearer {{API_KEY}}"`,
-      instructions: 'Run this in a terminal where Claude Code is installed, then ask Claude to check a coin with EKO before it trades.' },
+      instructions: 'Run this in a terminal where Claude Code is installed (claude mcp list shows eko), then ask Claude to list coins with EKO, check one before it trades, and call preflight before every order.' },
     { platform: 'generic_mcp', stage: 'T', version: 1, configTemplate: JSON.stringify({ mcpServers: { eko: { type: 'http', url: mcpUrl, headers: { Authorization: 'Bearer {{API_KEY}}' } } } }, null, 2),
-      instructions: 'Add this server to any MCP client that supports streamable HTTP. Read tools work without a key; preflight and the journal need it.' },
+      instructions: 'Add this server to any MCP client that supports streamable HTTP. Read tools (coins, watch, coin_verdict and the rest) work without a key; preflight, trade_prepare and the journal need it.' },
     { platform: 'claude_desktop', stage: 'T', version: 1, configTemplate: JSON.stringify({ mcpServers: { eko: { command: 'npx', args: ['-y', 'mcp-remote', mcpUrl, '--header', 'Authorization: Bearer {{API_KEY}}'] } } }, null, 2),
       instructions: 'Paste into Claude Desktop\'s config file (Settings → Developer → Edit Config) and restart Claude Desktop.' },
   ];
@@ -310,7 +321,7 @@ export function packs(mcpUrl: string): Pack[] {
 
 const fail = (reply: FastifyReply, status: number, error: string, message: string) => reply.code(status).send({ error, message });
 
-export function registerAgentRoutes(app: FastifyInstance, agents: AgentStore, auth: { need: (req: FastifyRequest, reply: FastifyReply) => Account | null }, opts: { mcpUrl: (req: FastifyRequest) => string; onApproval?: (accountId: string, a: Approval) => void }) {
+export function registerAgentRoutes(app: FastifyInstance, agents: AgentStore, auth: { need: (req: FastifyRequest, reply: FastifyReply) => Account | null }, opts: { mcpUrl: (req: FastifyRequest) => string; onApproval?: (accountId: string, a: Approval) => void; activity?: AgentActivityLog }) {
   const mine = (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const acct = auth.need(req, reply); if (!acct) return null;
     const a = agents.get(acct.id, req.params.id);
@@ -382,6 +393,12 @@ export function registerAgentRoutes(app: FastifyInstance, agents: AgentStore, au
   app.get<{ Params: { id: string }; Querystring: { cursor?: string; kind?: string; limit?: string } }>('/v1/agents/:id/journal', async (req, reply) => {
     const a = mine(req, reply); if (!a) return reply;
     return agents.journalPage(a.id, { ...(req.query.cursor ? { cursor: req.query.cursor } : {}), ...(req.query.kind ? { kind: req.query.kind } : {}), ...(req.query.limit ? { limit: Number(req.query.limit) } : {}) });
+  });
+  // Mission Control's live activity: the agent's newest MCP calls and today's counts (`since`: the owner's midnight).
+  app.get<{ Params: { id: string }; Querystring: { since?: string } }>('/v1/agents/:id/activity', async (req, reply) => {
+    const a = mine(req, reply); if (!a) return reply;
+    if (!opts.activity) return fail(reply, 404, 'not_found', 'Live activity is not available on this server.');
+    return opts.activity.activity(agents, a, req.query.since);
   });
   app.get<{ Params: { id: string } }>('/v1/agents/:id/unchecked-orders', async (req, reply) => { const a = mine(req, reply); return a ? { rows: [] } : reply; });
   app.get<{ Querystring: { status?: string } }>('/v1/approvals', async (req, reply) => {

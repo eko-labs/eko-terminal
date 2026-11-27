@@ -19,7 +19,14 @@ const attributionGap={reason:'unattributed_swaps',window:'trailing_1h',status:'i
 // TODO(spec): additive (2026-11-26). The EKO score (score.ts): a Danger coin capped by its strongest finding.
 const ekoScoreParts={momentum:62,money:48,holders:71,exit:90};
 const ekoScoreSample={value:22,band:'danger',cap:39,parts:ekoScoreParts,missing:['money'],cappedBy:'Dumped at bonding'};
-const sampleByName: Record<string, unknown> = { ...samples, EkoScoreParts:ekoScoreParts, EkoScore:ekoScoreSample, ...sensesSamples, ...guardSamples, ...receiptSamples, ...ghostSamples, ...actualOrderSamples, ...swarmSamples, ...reviewSamples, ...scoreboardSamples, ...deployerHistorySamples, AttributionCoverageGap:attributionGap,
+// TODO(spec): additive (2026-11-27). One agent MCP call as its owner's live view shows it, and the activity read.
+const agentCallSample={id:'call-1',agentId:'agt_1',ts:'2026-11-27T12:00:00.000Z',tool:'trade_prepare',ok:true,ms:31,
+  coin:{address:'0xabababababababababababababababababababab',symbol:{text:'FIX',flags:[],truncated:false},verdict:'clear',score:78,band:'ok'},
+  trade:{status:'ready',side:'buy',amountUsd:25,amountIn:'8000000000000000',minOut:'1000',approvals:0},results:0};
+const agentActivitySample={calls:[agentCallSample,{id:'call-0',agentId:'agt_1',ts:'2026-11-27T11:59:58.000Z',tool:'journal',ok:true,journal:{kind:'note',text:{text:'Skipped: score 41.',flags:[],truncated:false}}},
+  {id:'call-x',agentId:'agt_1',ts:'2026-11-27T11:59:50.000Z',tool:'preflight',ok:false,error:'clientOrderRef must be 8-64 letters.'}],
+  lastCallAt:'2026-11-27T12:00:00.000Z',since:'2026-11-27T00:00:00.000Z',today:{calls:3,checks:1,allowed:1,denied:0,needsApproval:0,prepared:1,notes:1}};
+const sampleByName: Record<string, unknown> = { ...samples, EkoScoreParts:ekoScoreParts, EkoScore:ekoScoreSample, AgentCall:agentCallSample, AgentActivity:agentActivitySample, ...sensesSamples, ...guardSamples, ...receiptSamples, ...ghostSamples, ...actualOrderSamples, ...swarmSamples, ...reviewSamples, ...scoreboardSamples, ...deployerHistorySamples, AttributionCoverageGap:attributionGap,
   ShareMeta: { title: 'EKO · Buyer risk snapshot', description: 'Pending', url: 'https://app.eko.example/receipt/sample-receipt', image: 'https://app.eko.example/og/scan/sample.png' },
 };
 const schemas = Object.entries({ ...contracts, ...flags }).filter(([name]) => name.endsWith('Schema')) as [string, z.ZodType][];

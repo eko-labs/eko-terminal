@@ -3,7 +3,7 @@ import type { RadarRow } from '@eko/shared';
 import { GlanceTile } from '../../components/GlanceTile';
 import { KeyFact } from '../../components/KeyFact';
 import { ApiError } from '../../lib/api';
-import { changeText, fallOf, GROUP_LABEL, keepLine, loadDump, NOT_MEASURED, sentence, shareText, summaryOf, tokensText, toneOf, VENUE, type Dump, type Figure } from './model';
+import { changeText, drainsHard, fallOf, figureFall, figureLine, figureShort, figureText, figureTone, GROUP_LABEL, keepLine, loadDump, moneyTone, NOT_MEASURED, sentence, shareText, summaryOf, tokensText, toneOf, VENUE, type Dump, type Figure } from './model';
 import './dump-test.css';
 
 /**
@@ -27,7 +27,7 @@ function useDump(coin: string) {
 }
 
 const TARGET = { tab: 'Overview' as const, section: 'dump-test' };
-const TILE_TITLE = 'EKO estimates how far the price would fall if the coin\'s insiders sold everything they hold at once, and what $100 held now would then be worth, fees included.';
+const TILE_TITLE = 'EKO estimates how far the price would fall if the coin\'s insiders sold everything they hold at once, and what $100 bought now would then come back as, fees included.';
 
 /** The glance tile: "If insiders dump", −83%, "$100 → $17", coloured by how far. */
 export function DumpGlance({ coin }: { coin: string }) {
@@ -38,9 +38,9 @@ export function DumpGlance({ coin }: { coin: string }) {
 export function DumpTile({ reply }: { reply: Dump | null }) {
   const a = reply?.measured ? reply.all : null;
   if (!a || a.changePct === null || a.usd100 === null) return null;
-  const tone = toneOf(a.changePct);
-  return <GlanceTile label="If insiders dump" value={<span className={`dt-v dt-${tone}`}>{changeText(a.changePct)}</span>} line={keepLine(a.usd100)} tone={tone}
-    gauge={fallOf(a.changePct)} target={TARGET} title={TILE_TITLE} />;
+  const tone = figureTone(a);
+  return <GlanceTile label="If insiders dump" value={<span className={`dt-v dt-${tone}`}>{figureText(a)}</span>} line={figureLine(a)} tone={tone}
+    gauge={figureFall(a)} target={TARGET} title={TILE_TITLE} />;
 }
 
 /** Simple's key fact: the same figure, in its list of facts. */
@@ -50,24 +50,26 @@ export function DumpFact({ coin }: { coin: string }) {
 export function DumpFactView({ reply }: { reply: Dump | null }) {
   const a = reply?.measured ? reply.all : null;
   if (!a || a.changePct === null || a.usd100 === null) return null;
-  return <KeyFact label="If insiders dump" value={changeText(a.changePct)} line={keepLine(a.usd100)} tone={toneOf(a.changePct)} title={TILE_TITLE} />;
+  return <KeyFact label="If insiders dump" value={figureText(a)} line={figureLine(a)} tone={figureTone(a)} title={TILE_TITLE} />;
 }
 
-/** A fall as a row of pixel bars, lit in its tone. */
+/** A fall (or a draining curve buyer's loss) as a row of pixel bars, lit in its tone. */
 const CELLS = 30;
-export function DumpBar({ changePct, strong = false }: { changePct: number; strong?: boolean }) {
-  const f = fallOf(changePct), lit = f > 0 ? Math.max(1, Math.round(CELLS * f / 100)) : 0;
-  return <span className={`dt-bar dt-${toneOf(changePct)}${strong ? ' dt-bar-all' : ''}`} aria-hidden="true">
+export function DumpBar({ changePct, strong = false, fall = fallOf(changePct), tone = toneOf(changePct) }: { changePct: number; strong?: boolean; fall?: number; tone?: ReturnType<typeof toneOf> }) {
+  const f = fall, lit = f > 0 ? Math.max(1, Math.round(CELLS * f / 100)) : 0;
+  return <span className={`dt-bar dt-${tone}${strong ? ' dt-bar-all' : ''}`} aria-hidden="true">
     {Array.from({ length: CELLS }, (_, i) => <i key={i} className={i < lit ? 'on' : undefined} />)}
   </span>;
 }
 
 function GroupRow({ g }: { g: Figure }) {
   const all = g.id === 'all', held = g.wallets === 0 ? 'none held' : `${tokensText(g.tokens)} · ${shareText(g.sharePct)} of supply`;
+  // A group that would drain the curve and take most of a buyer's money reads Drains, its bar that buyer's loss.
+  const hard = g.changePct !== null && drainsHard(g), tone = g.changePct === null ? null : hard ? 'bad' as const : toneOf(g.changePct);
   return <li className={`dt-row${all ? ' dt-all' : ''}${g.wallets === 0 ? ' dt-empty' : ''}`}>
     <span className="dt-label">{GROUP_LABEL[g.id]}</span>
-    {g.changePct === null ? <span className="dt-bar dt-none" aria-hidden="true" /> : <DumpBar changePct={g.changePct} strong={all} />}
-    <span className={`dt-pct num${g.changePct === null ? '' : ` dt-${toneOf(g.changePct)}`}`}>{g.changePct === null ? '—' : changeText(g.changePct)}</span>
+    {g.changePct === null ? <span className="dt-bar dt-none" aria-hidden="true" /> : <DumpBar changePct={g.changePct} strong={all} fall={hard ? figureFall(g) : fallOf(g.changePct)} tone={tone!} />}
+    <span className={`dt-pct num${tone ? ` dt-${tone}` : ''}`}>{g.changePct === null ? '—' : hard ? 'Drains' : changeText(g.changePct)}</span>
     <span className="dt-held num">{held}{g.wallets > 1 && <span className="dt-n"> · {g.wallets} wallets</span>}</span>
   </li>;
 }
@@ -89,7 +91,7 @@ export function DumpView({ reply }: { reply: Dump }) {
         {reply.groups.map(g => <GroupRow key={g.id} g={g} />)}
         <GroupRow g={a} />
       </ul>
-      {a.usd100 !== null && a.changePct !== null && <p className={`dt-keep dt-${toneOf(a.changePct)}`}><span>Your $100</span><b className="num">{keepLine(a.usd100).replace('$100 ', '')}</b><span className="dt-keep-note">if all insiders sold first{reply.sellFeePct ? `, after the ${Number(reply.sellFeePct.toFixed(2))}% sell fee` : ', fees included'}</span></p>}
+      {a.usd100 !== null && a.changePct !== null && <p className={`dt-keep dt-${a.drains ? moneyTone(a.usd100) : toneOf(a.changePct)}`}><span>Your $100</span><b className="num">{keepLine(a.usd100).replace('$100 ', '')}</b><span className="dt-keep-note">if all insiders sold first{reply.sellFeePct ? `, after the ${Number(reply.sellFeePct.toFixed(2))}% sell fee` : ', fees included'}</span></p>}
     </>}
     <p className="dt-note">
       An estimate, not a forecast. Each line is one group selling alone; All insiders is all of them at once. EKO counts
@@ -103,7 +105,7 @@ export function DumpView({ reply }: { reply: Dump }) {
 export function DumpCell({ row }: { row: RadarRow }) {
   const s = summaryOf(row);
   if (!s) return <span className="dt-cell dt-none" title="No dump test for this coin yet">—</span>;
-  return <span className={`dt-cell dt-${toneOf(s.changePct)}`} title={`If insiders dump: ${changeText(s.changePct)} · ${keepLine(s.usd100)} (EKO estimates)`}>{changeText(s.changePct)}</span>;
+  return <span className={`dt-cell dt-${figureTone(s)}`} title={`If insiders dump: ${figureText(s)} · ${figureLine(s)} (EKO estimates)`}>{figureShort(s)}</span>;
 }
 
 export default DumpSection;

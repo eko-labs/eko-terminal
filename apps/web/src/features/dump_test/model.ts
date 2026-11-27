@@ -22,7 +22,7 @@ export const DumpSchema = z.discriminatedUnion('measured', [
 export type Dump = z.infer<typeof DumpSchema>;
 export type Measured = Extract<Dump, { measured: true }>;
 export type Figure = z.infer<typeof FigureSchema>;
-export const SummarySchema = z.object({ changePct: z.number().min(-100).max(0), usd100: z.number().min(0).max(100), sharePct: z.number().min(0).max(100) });
+export const SummarySchema = z.object({ changePct: z.number().min(-100).max(0), usd100: z.number().min(0).max(100), sharePct: z.number().min(0).max(100), drains: z.literal(true).optional() });
 export type Summary = z.infer<typeof SummarySchema>;
 
 /** The Radar row's figure, or null when the row has none (or not in this shape). */
@@ -45,6 +45,26 @@ export function loadDump(coin: string, now = Date.now()): Promise<Dump> {
 
 /** How far the price falls, as a positive percent. */
 export const fallOf = (changePct: number) => Math.max(0, -changePct);
+/** Below this, a buyer on a curve insiders could drain loses most of their money: the figure reads "Drains". */
+export const DRAINS_BELOW_USD = 50;
+type Shown = { changePct: number | null; usd100: number | null; drains?: true };
+/**
+ * On a curve insiders could drain (take all its ETH, buyers' too), the price barely moves, as most of a curve's
+ * reserves are virtual: the % fall means nothing there. What counts is what a $100 buyer keeps. "Drains" (coral) only
+ * when that is under DRAINS_BELOW_USD; otherwise the money is the headline ("$100 → $92").
+ */
+export const drainsHard = (a: Shown) => !!a.drains && (a.usd100 ?? 0) < DRAINS_BELOW_USD;
+/** A $100 buyer's tone: $80 or more good, $50-80 Monitor ice, under $50 coral. */
+export const moneyTone = (usd100: number): Extract<GlanceTone, 'good' | 'watch' | 'bad'> => usd100 >= 80 ? 'good' : usd100 >= 50 ? 'watch' : 'bad';
+/** The figure as shown: "Drains", "$100 → $92" on a curve insiders could drain, else the fall. */
+export const figureText = (a: Shown) => (drainsHard(a) ? 'Drains' : a.drains ? keepLine(a.usd100 ?? 0) : changeText(a.changePct ?? 0));
+export const figureTone = (a: Shown) => (a.drains ? moneyTone(a.usd100 ?? 0) : toneOf(a.changePct ?? 0));
+/** What the lists sort by and the gauge shows, 0-100: the fall, or on a draining curve what a $100 buyer loses. */
+export const figureFall = (a: Shown) => (a.drains ? Math.max(0, 100 - (a.usd100 ?? 0)) : fallOf(a.changePct ?? 0));
+/** The line under the figure: what $100 comes back as, or (where that is the headline) why. */
+export const figureLine = (a: Shown) => (a.drains && !drainsHard(a) ? 'Insiders could drain the curve' : keepLine(a.usd100 ?? 0));
+/** A list cell's short form: "Drains", "$100→$92", "−83%". */
+export const figureShort = (a: Shown) => (a.drains && !drainsHard(a) ? `$100→${dollarsText(a.usd100 ?? 0)}` : figureText(a));
 /** Severity: a fall of 60% or more is coral (bad), 25-60% Monitor ice (watch), under 25% good. */
 export function toneOf(changePct: number): Extract<GlanceTone, 'good' | 'watch' | 'bad'> {
   const f = fallOf(changePct);
@@ -78,8 +98,9 @@ export function sentence(r: Measured): string {
   if (a.changePct === null || a.usd100 === null) return `Insiders hold ${shareText(a.sharePct)} of supply, but EKO could not price a sale that size in this coin's pool.`;
   const top = r.groups.filter(g => g.wallets > 0).sort((x, y) => y.sharePct - x.sharePct)[0];
   const most = top && r.groups.filter(g => g.wallets > 0).length > 1 ? ` The biggest part is with ${GROUP_WORD[top.id as GroupId]} (${shareText(top.sharePct)}).` : '';
-  if (a.drains) return `EKO estimates insiders hold enough (${shareText(a.sharePct)} of supply) to take all the ETH in the curve if they sold at once: the price would fall ${Math.round(fallOf(a.changePct))}% and holders after them could not sell.${most}`;
-  return `EKO estimates that if insiders sold everything they hold (${shareText(a.sharePct)} of supply) at once, the price would fall about ${Math.round(fallOf(a.changePct))}% and $100 held now would be worth about ${dollarsText(a.usd100)}.${most}`;
+  if (drainsHard(a)) return `EKO estimates insiders hold enough (${shareText(a.sharePct)} of supply) to take all the ETH in the curve if they sold at once, including what new buyers pay in: $100 bought now would come back as about ${dollarsText(a.usd100)}.${most}`;
+  if (a.drains) return `EKO estimates insiders hold enough (${shareText(a.sharePct)} of supply) to take all the ETH in the curve if they sold at once, but the curve's price would hardly move and $100 bought now would still come back as about ${dollarsText(a.usd100)}.${most}`;
+  return `EKO estimates that if insiders sold everything they hold (${shareText(a.sharePct)} of supply) at once, the price would fall about ${Math.round(fallOf(a.changePct))}% and $100 bought now would come back as about ${dollarsText(a.usd100)}.${most}`;
 }
 
 export const NOT_MEASURED: Record<Extract<Dump, { measured: false }>['reason'], string> = {

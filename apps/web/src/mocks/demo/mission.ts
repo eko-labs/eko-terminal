@@ -1,4 +1,6 @@
-import { AgentSchema, AgentDetailSchema, ApprovalSchema, JournalEntrySchema, PolicySchema, UncheckedOrderSchema, ApiKeyInfoSchema } from '@eko/shared';
+import { AgentSchema, AgentDetailSchema, ApprovalSchema, JournalEntrySchema, PolicySchema, UncheckedOrderSchema, ApiKeyInfoSchema, AgentCallSchema, type AgentActivity, type AgentCall, type RadarRow } from '@eko/shared';
+import { countCall, emptyToday, ACTIVITY_CAP } from '../../lib/agentActivity';
+import { createRadarRows } from './radar';
 import prototype from './mission-prototype.json';
 import history from './mission-history.json';
 import connections from './mission-connections.json';
@@ -55,10 +57,95 @@ export function createMissionDemo(now = loaded) {
 export const missionDemo = createMissionDemo();
 
 // Shared by the offline HTTP transport and WebSocket transport, so decisions update every consumer.
-type DemoEvent = { ch: 'agents'; kind: 'agent'; data: import('@eko/shared').Agent } | { ch: 'agents'; kind: 'journal'; data: import('@eko/shared').JournalEntry } | { ch: 'approvals'; kind: 'approval'; data: import('@eko/shared').Approval };
+type DemoEvent = { ch: 'agents'; kind: 'agent'; data: import('@eko/shared').Agent } | { ch: 'agents'; kind: 'journal'; data: import('@eko/shared').JournalEntry }
+  | { ch: 'agents'; kind: 'call'; data: AgentCall } | { ch: 'approvals'; kind: 'approval'; data: import('@eko/shared').Approval };
 const listeners = new Set<(event: DemoEvent) => void>();
 export function onMissionEvent(listener: (event: DemoEvent) => void) { listeners.add(listener); return () => { listeners.delete(listener); }; }
 export function emitMission(ch: DemoEvent['ch'], kind: DemoEvent['kind'], data: DemoEvent['data']) {
   const event = { ch, kind, data: structuredClone(data) } as DemoEvent;
   listeners.forEach((listener) => listener(event));
+}
+
+/*
+ * A believable live agent for mock mode: "Trench scout" (scout) runs the starter agent's loop against the mock Radar's
+ * coins, one MCP call every few seconds: watch → coins → coin_verdict → preflight → trade_prepare (only after an allow)
+ * → journal. Each call is kept in a ring (GET /agents/:id/activity) and pushed on the agents channel (kind `call`), as
+ * the edge does. Display only: nothing is signed, sent or traded. Timers start lazily and never in tests.
+ */
+export const LIVE_DEMO_AGENT = 'scout';
+const calls = new Map<string, AgentCall[]>();
+/** Today's counts before this page load, so the mock agent reads as one that has been running since morning. */
+const BASELINE: Record<string, AgentActivity['today']> = { scout: { calls: 1268, checks: 214, allowed: 171, denied: 38, needsApproval: 5, prepared: 44, notes: 61 } };
+let seq = 0, step = 0, pick = 0;
+const untrusted = (text: string) => ({ text, flags: [], truncated: false });
+/** The Radar's scored coins, a Clear one between every two others, so the scout both buys and skips as a real one would. */
+const scored = () => {
+  const rows = createRadarRows().filter((r) => r.ekoScore && r.verdict !== 'pending');
+  const ok = rows.filter((r) => r.verdict === 'clear'), rest = rows.filter((r) => r.verdict !== 'clear'), out: RadarRow[] = [];
+  for (let i = 0; out.length < rows.length; i++) { if (ok[i]) out.push(ok[i]!); if (rest[2 * i]) out.push(rest[2 * i]!); if (rest[2 * i + 1]) out.push(rest[2 * i + 1]!); }
+  return out;
+};
+const coinOf = (r: RadarRow): NonNullable<AgentCall['coin']> => ({ address: r.address, symbol: r.symbol, verdict: r.verdict,
+  ...(r.ekoScore ? { score: r.ekoScore.value, band: r.ekoScore.band } : {}) });
+function record(agentId: string, call: Omit<AgentCall, 'id' | 'agentId' | 'ts' | 'ok'> & { ok?: boolean }, ts = Date.now()) {
+  const c = AgentCallSchema.parse({ ok: true, ...call, id: `demo-call-${++seq}`, agentId, ts: new Date(ts).toISOString() });
+  calls.set(agentId, [c, ...(calls.get(agentId) ?? [])].slice(0, ACTIVITY_CAP));
+  return c;
+}
+/** The scout's next call in its loop, about the coin it is looking at. */
+function nextCall(agentId: string, ts = Date.now()) {
+  const rows = scored(), row = rows[pick % rows.length]!, coin = coinOf(row), usd = [25, 40, 60, 80][pick % 4]!;
+  const allowed = row.verdict === 'clear' && (row.ekoScore?.value ?? 0) >= 70 && row.exitCost1kPct <= 10;
+  const reasons = allowed ? [`Clear, score ${row.ekoScore?.value}. A round trip costs ${row.exitCost1kPct.toFixed(1)}%.`]
+    : row.verdict === 'danger' ? ['EKO rates this coin danger; the policy blocks danger and above.']
+    : row.exitCost1kPct > 10 ? [`A round trip costs ${row.exitCost1kPct.toFixed(1)}%; the policy allows 10%.`]
+    : [`EKO rates this coin ${row.verdict}; the scout only buys Clear coins scoring 70 or more.`];
+  const s = step++ % 6;
+  if (s === 5) pick++;
+  switch (s) {
+    case 0: return record(agentId, { tool: 'watch', ms: 1200 + (pick % 5) * 900, results: 1 + pick % 3, coin }, ts);
+    case 1: return record(agentId, { tool: 'coins', ms: 38, results: 12 + pick % 7 }, ts);
+    case 2: return record(agentId, { tool: 'coin_verdict', ms: 64, coin }, ts);
+    case 3: return record(agentId, { tool: 'preflight', ms: 91, coin, preflight: { decision: allowed ? 'allow' : 'deny', side: 'buy', notionalUsd: usd, reasons } }, ts);
+    case 4: return allowed
+      ? record(agentId, { tool: 'trade_prepare', ms: 240, coin, trade: { status: 'ready', side: 'buy', amountUsd: usd, amountIn: String(Math.round(usd / 3150 * 1e6)) + '000000000000', minOut: String(Math.round(usd / Math.max(row.priceUsd, 1e-9) * 0.97)) + '000000000000000000' } }, ts)
+      : record(agentId, { tool: 'coin_card', ms: 72, coin }, ts);
+    default: return record(agentId, { tool: 'journal', ms: 22, coin, journal: { kind: 'note', text: untrusted(allowed
+      ? `Prepared a $${usd} buy of $${row.symbol.text} (score ${row.ekoScore?.value}, Clear). Dry run: left unsigned.`
+      : `Skipped $${row.symbol.text}: ${reasons[0]}`) } }, ts);
+  }
+}
+/** The ring for one agent, seeded for the scout with its last couple of minutes so its page is never empty. */
+function ring(agentId: string, now = Date.now()) {
+  if (!calls.has(agentId) && agentId === LIVE_DEMO_AGENT) for (let i = 18; i >= 1; i--) nextCall(agentId, now - i * 7000 - 2000);
+  return calls.get(agentId) ?? [];
+}
+/** GET /agents/:id/activity in mock mode: the ring, and today's counts (the baseline plus this page load's calls). */
+export function demoActivity(agentId: string, since: string, now = Date.now()): AgentActivity {
+  const list = ring(agentId, now), from = Date.parse(since) || now - 86_400_000;
+  const today = list.filter((c) => Date.parse(c.ts) >= from).reduceRight(countCall, BASELINE[agentId] ? { ...BASELINE[agentId] } : emptyToday());
+  return { calls: list, lastCallAt: list[0]?.ts ?? null, since: new Date(from).toISOString(), today };
+}
+/** One step of the live loop (tests drive it directly; mock mode runs it on a timer). */
+export function tickDemoAgent(agentId = LIVE_DEMO_AGENT, now = Date.now()) {
+  ring(agentId, now);
+  const c = nextCall(agentId, now);
+  emitMission('agents', 'call', c);
+  return c;
+}
+let liveTimer: ReturnType<typeof setTimeout> | undefined;
+const testing = () => import.meta.env.MODE === 'test';
+/** Start the scout's loop once (mock mode in a browser only): a call every 3 to 5 seconds. */
+export function startDemoAgent() {
+  if (liveTimer !== undefined || testing() || typeof window === 'undefined') return;
+  const go = () => { liveTimer = setTimeout(() => { tickDemoAgent(); go(); }, 3000 + (step % 3) * 1000); };
+  go();
+}
+/** A new demo agent's first call, a few seconds after its key is created, so Connect's test sees it arrive. */
+export function firstDemoCall(agentId: string, delayMs = 8000) {
+  if (testing() || typeof window === 'undefined') return;
+  setTimeout(() => {
+    const rows = scored(), row = rows.find((r) => r.verdict === 'clear') ?? rows[0]!;
+    emitMission('agents', 'call', record(agentId, { tool: 'coin_verdict', ms: 58, coin: coinOf(row) }));
+  }, delayMs);
 }

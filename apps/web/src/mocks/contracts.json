@@ -2830,6 +2830,33 @@
         },
         "agentId": "fixture",
         "clientOrderRef": "fixture"
+      },
+      "call": {
+        "id": "fixture",
+        "agentId": "fixture",
+        "ts": "fixture",
+        "tool": "preflight",
+        "ok": true,
+        "ms": 42,
+        "coin": {
+          "address": "0xabababababababababababababababababababab",
+          "symbol": {
+            "text": "FIX",
+            "flags": [],
+            "truncated": false
+          },
+          "verdict": "clear",
+          "score": 78,
+          "band": "ok"
+        },
+        "preflight": {
+          "decision": "allow",
+          "side": "buy",
+          "notionalUsd": 25,
+          "reasons": [
+            "fixture"
+          ]
+        }
       }
     },
     "approvals": {

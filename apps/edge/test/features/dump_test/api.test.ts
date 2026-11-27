@@ -1,3 +1,6 @@
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { decodeFunctionData, encodeAbiParameters, encodeFunctionResult, getAddress, keccak256, parseAbi, toHex, zeroAddress, type Address, type Hex } from 'viem';
 import { loadRegistry, v4PoolId, type V4PoolKey } from '@eko/chain';
@@ -7,13 +10,14 @@ import { AlertInbox } from '../../../src/alerts.js';
 import { HistoryStore } from '../../../src/history.js';
 import { robinhoodAddresses, robinhoodChain, type RobinhoodCoinState } from '../../../src/chains/robinhood/index.js';
 import { ponsPoolReserve } from '../../../src/chains/robinhood/probe.js';
-import { loadRobinhoodTradeAddresses, PONS_CURVE_ABI, ponsPoolKey, ponsSellOut, type PonsCurveState } from '../../../src/chains/robinhood/trade.js';
+import { loadRobinhoodTradeAddresses, PONS_CURVE_ABI, ponsBuyOut, ponsPoolKey, ponsSellOut, type PonsCurveState } from '../../../src/chains/robinhood/trade.js';
 import { Tracker, type CoinState, type Rpc } from '../../../src/tracker.js';
 import { Edge } from '../../../src/service.js';
 import { buildServer } from '../../../src/server.js';
 import { loadFeatures, type FeatureContext } from '../../../src/features/index.js';
 import type { FundingLookup } from '../../../src/insiders.js';
-import dumpTest, { ALERT, alertText, EARLY_GAP_SEC, IDLE_SEC, REFRESH_SEC, setup, type DumpReply, type DumpSummary } from '../../../src/features/dump_test/index.js';
+import dumpTest, { ALERT, alertText, CAUGHT_UP_BLOCKS, EARLY_GAP_SEC, IDLE_SEC, REFRESH_SEC, RESTORED_SEC, riskOf, SERVE_SEC, setup, type DumpReply, type DumpSummary } from '../../../src/features/dump_test/index.js';
+import { decodeDumps, DUMP_SNAPSHOT_VERSION, dumpSnapshotPath, encodeDumps, MAX_ENTRIES } from '../../../src/features/dump_test/snapshot.js';
 import { curveDump, fullRangeReserves, insiderHoldings, poolDump, PONS_HOOK_SELL_FEE, quoterAbi, weiFor } from '../../../src/features/dump_test/dump.js';
 
 const registry = loadRegistry(), addrs = robinhoodAddresses(registry), trade = { ...loadRobinhoodTradeAddresses(), ponsHook: addrs.hook };
@@ -108,21 +112,27 @@ function launched(c: RobinhoodCoinState) {
 }
 const funding: FundingLookup = (w) => lc(w) === lc(LINKED) ? { funder: DEV, fundedTs: NOW - 9000, hub: false } : undefined;
 
-function rig(curves: Record<string, PonsCurveState & { token: Address }> = {}, pools: Record<string, Pool> = {}, opts: { accounts?: boolean } = {}) {
+function rig(curves: Record<string, PonsCurveState & { token: Address }> = {}, pools: Record<string, Pool> = {}, opts: { accounts?: boolean; snapshotPath?: string; replaying?: boolean; now?: number } = {}) {
   const fake = chainRpc(new Map(Object.entries(curves).map(([k, v]) => [k.toLowerCase(), v])), new Map(Object.entries(pools)));
   const chain = robinhoodChain(registry, { moreLaunchpads: true });
   const tracker = new Tracker(fake.rpc, chain);
-  tracker.head = HEAD;
-  let t = NOW;
+  // Caught up with the head, unless the start-up replay is still running (its cursor an hour behind).
+  tracker.head = HEAD; tracker.cursor = opts.replaying ? HEAD - 32_400n : HEAD;
+  let t = opts.now ?? NOW;
   const edge = new Edge(tracker, fake.rpc, chain, { latest: ETH_USD, get: async () => ETH_USD }, { now: () => t * 1000 });
   const store = opts.accounts ? new HistoryStore(':memory:') : undefined, accounts = store ? new AccountStore(store.db) : undefined, alerts = new AlertInbox();
   let api!: ReturnType<typeof setup>;
   const app = buildServer(edge, { rpc: fake.rpc, alerts, ...(store ? { store } : {}), ...(accounts ? { accounts } : {}),
-    features: [{ flag: 'dump_test', register: (ctx: FeatureContext) => { api = setup(ctx, { now: () => t, trade }); } }] });
+    features: [{ flag: 'dump_test', register: (ctx: FeatureContext) => { api = setup(ctx, { now: () => t, trade, snapshotPath: opts.snapshotPath ?? null, log: () => undefined }); } }] });
   const add = (c: RobinhoodCoinState) => { tracker.coins.set(lc(c.token), c as unknown as CoinState); return c; };
   const ask = async (coin: Address, ip = '10.0.0.1') => app.inject({ url: `/v2/coins/${coin}/dump`, remoteAddress: ip });
-  return { app, edge, add, ask, calls: fake.calls, store, alerts, api: () => api, clock: { advance: (sec: number) => { t += sec; }, now: () => t } };
+  const row = async (coin: Address) => ((await app.inject({ url: '/v2/radar' })).json() as { rows: { address: string; extras?: { dump_test?: DumpSummary } }[] })
+    .rows.find(x => lc(x.address) === lc(coin))?.extras?.dump_test;
+  return { app, edge, tracker, add, ask, row, calls: fake.calls, store, alerts, api: () => api, clock: { advance: (sec: number) => { t += sec; }, now: () => t } };
 }
+/** The Radar row's figure the route's answer implies: what both must agree on. */
+const summaryOfReply = (r: DumpReply): DumpSummary | undefined => r.measured && r.all.changePct !== null && r.all.usd100 !== null
+  ? { changePct: r.all.changePct, usd100: r.all.usd100, sharePct: r.all.sharePct, ...(r.all.drains ? { drains: true as const } : {}) } : undefined;
 const measured = (r: DumpReply) => { if (!r.measured) throw new Error(`not measured: ${JSON.stringify(r)}`); return r; };
 const group = (r: DumpReply, id: string) => measured(r).groups.find(g => g.id === id)!;
 
@@ -153,16 +163,29 @@ describe('dump test: the price after a dump, per venue', () => {
     const s = curveState(), t = M(185), o = curveDump(s, t, ETH_USD);
     expect(o.drains).toBe(false);
     expect(o.changePct).toBeCloseTo(-(1 - (800 / 985) ** 2) * 100, 1);
-    // The $100 holding: its tokens at today's price, sold after the dump with the 1% fee off.
-    const gross = t * s.quoteReserve / (s.tokenReserve + t);
-    const after = { ...s, quoteReserve: s.quoteReserve - gross, tokenReserve: s.tokenReserve + t, realQuote: s.realQuote - gross, sellable: s.sellable + t };
-    const v0 = weiFor(100, ETH_USD), back = ponsSellOut(after, v0 * s.tokenReserve / s.quoteReserve);
-    expect(o.usd100).toBeCloseTo(Number(back.out) / Number(v0) * 100, 1);
-    // About the price ratio less the 1% fee, and a little under: the $100 sale moves the shallower curve too.
-    expect(o.usd100).toBeLessThan(100 * (800 / 985) ** 2 * 0.99); expect(o.usd100).toBeGreaterThan(100 * (800 / 985) ** 2 * 0.99 - 1.5);
-    // Nothing sold: no change; $100 sells for itself less the 1% fee and its own ~1.1% move on a 3 ETH curve.
+    // Your $100: bought now (its ETH goes into the curve), the insiders sell into that, then you sell what you bought.
+    const v0 = weiFor(100, ETH_USD), buy = ponsBuyOut(s, v0);
+    const bought = { ...s, quoteReserve: s.quoteReserve + buy.net, tokenReserve: s.tokenReserve - buy.tokens, realQuote: s.realQuote + buy.net, sellable: s.sellable - buy.tokens };
+    const gross = t * bought.quoteReserve / (bought.tokenReserve + t);
+    const after = { ...bought, quoteReserve: bought.quoteReserve - gross, tokenReserve: bought.tokenReserve + t, realQuote: bought.realQuote - gross, sellable: bought.sellable + t };
+    expect(o.usd100).toBeCloseTo(Number(ponsSellOut(after, buy.tokens).out) / Number(v0) * 100, 1);
+    // About the price ratio less the fees: a little under the bare ratio.
+    expect(o.usd100).toBeLessThan(100 * (800 / 985) ** 2); expect(o.usd100).toBeGreaterThan(100 * (800 / 985) ** 2 * 0.99 - 2);
+    // Nothing sold: no change; $100 in and straight back out loses only the fees.
     expect(curveDump(s, 0n, ETH_USD)).toMatchObject({ changePct: 0, drains: false });
-    expect(curveDump(s, 0n, ETH_USD).usd100).toBeCloseTo(100 * 0.99 * 3 / (3 + 100 / ETH_USD), 1);
+    expect(curveDump(s, 0n, ETH_USD).usd100).toBeGreaterThan(97);
+  });
+  it('Pons curve: an empty curve drains a buyer: insiders sell into the next $100', () => {
+    // No real ETH: insiders can sell nothing today, but they can sell into the next buyer's $100.
+    const empty = curveState({ realQuote: 0n }), o = curveDump(empty, M(80), ETH_USD);
+    expect(o.drains).toBe(true);
+    expect(o.usd100).toBeLessThan(20);
+  });
+  it('Pons curve: a curve holding less than $100 still answers "your $100" (it never reads $0 without a dump)', () => {
+    // 0.01 ETH of real ETH (~$30): selling $100 of tokens into it would fail, but buying $100 first funds the way out.
+    const tiny = curveState({ realQuote: wei(0.01) });
+    expect(curveDump(tiny, 0n, ETH_USD).usd100).toBeGreaterThan(97);
+    expect(curveDump(tiny, M(1), ETH_USD).usd100).toBeGreaterThan(90);
   });
   it('Pons curve: a dump bigger than its real ETH stops when the ETH runs out, and leaves nothing for a holder', () => {
     const s = curveState({ realQuote: wei(0.3) }), o = curveDump(s, M(400), ETH_USD);
@@ -287,7 +310,7 @@ describe('GET /v2/coins/:address/dump (dump_test)', () => {
     expect(await api().tick()).toBe(1);
   });
 
-  it('keeps the last figure when the RPC budget or provider fails', async () => {
+  it('keeps the last figure while servable when the RPC budget or provider fails, then shows none', async () => {
     const token = A(32), curve = A(33), r = rig({ [curve]: { ...curveState(), token } });
     const c = r.add(launched(curveCoin(token, curve)));
     const first = (await r.ask(token)).json() as DumpReply;
@@ -296,7 +319,53 @@ describe('GET /v2/coins/:address/dump (dump_test)', () => {
     Object.assign(c, { curve: { ...c.curve!, address: A(34) } });
     swap(c, DEV, 'buy', M(1), at(8000, 800));
     r.clock.advance(REFRESH_SEC + 1);
+    expect(await r.api().tick()).toBe(1);
+    expect(r.calls).toHaveLength(1);
     expect((await r.ask(token)).json()).toEqual(first);
+    expect(await r.row(token)).toEqual(summaryOfReply(first));
+    // Past SERVE_SEC with every read failing: neither the route nor the row shows the old figure.
+    r.clock.advance(SERVE_SEC);
+    expect((await r.ask(token)).json()).toMatchObject({ measured: false, reason: 'unavailable' });
+    expect(await r.row(token)).toBeUndefined();
+  });
+
+  it('answers the route and the Radar row from one computation: they agree at every step', async () => {
+    const token = A(35), curve = A(36), r = rig({ [curve]: { ...curveState(), token } });
+    const c = r.add(launched(curveCoin(token, curve)));
+    const agree = async () => {
+      const route = (await r.ask(token)).json() as DumpReply, list = await r.row(token);
+      expect(list).toEqual(summaryOfReply(route));
+      return route;
+    };
+    // Nothing worked out yet: the route works it out, and the next list carries the same.
+    expect(await r.row(token)).toBeUndefined();
+    const first = await agree();
+    // An insider sells after the figure was worked out: the route keeps serving it (no second, fresher answer) until
+    // the background pass works it out again, and then both move together.
+    swap(c, S1, 'sell', M(30), at(8100, 810));
+    r.clock.advance(EARLY_GAP_SEC + 4);
+    expect(await agree()).toEqual(first);
+    expect(await r.api().tick()).toBe(1);
+    const after = await agree();
+    expect(measured(after).all.sharePct).toBeLessThan(measured(first).all.sharePct);
+    expect(r.calls).toHaveLength(2);
+  });
+
+  it('works nothing out during the start-up replay, when a restored coin\'s later transfers are not back yet', async () => {
+    const token = A(37), curve = A(38), r = rig({ [curve]: { ...curveState(), token } }, {}, { replaying: true });
+    const c = r.add(launched(curveCoin(token, curve)));
+    expect(r.api().caughtUp()).toBe(false);
+    expect(await r.api().tick()).toBe(0);
+    expect((await r.ask(token)).json()).toMatchObject({ measured: false, reason: 'unavailable' });
+    expect(await r.row(token)).toBeUndefined();
+    expect(r.calls).toHaveLength(0);
+    // The replay brings back a sniper's sell; once caught up, the figure counts it.
+    swap(c, S1, 'sell', M(30), at(8200, 820));
+    r.tracker.cursor = HEAD - BigInt(CAUGHT_UP_BLOCKS);
+    expect(await r.api().tick()).toBe(1);
+    const reply = measured((await r.ask(token)).json() as DumpReply);
+    expect(reply.all.sharePct).toBe(11.5);
+    expect(await r.row(token)).toEqual(summaryOfReply(reply));
   });
 
   it('puts the all-insiders figure on each Radar row once worked out', async () => {
@@ -309,6 +378,56 @@ describe('GET /v2/coins/:address/dump (dump_test)', () => {
     expect(summary!.changePct).toBeCloseTo(-(1 - (800 / 945) ** 2) * 100, 1);
     // $100 sold on the curve as the dump leaves it: its own small move included.
     expect(summary!.usd100).toBe(curveDump(curveState(), M(145), ETH_USD).usd100);
+  });
+});
+
+describe('dump test across restarts', () => {
+  it('saves the figures and puts them back at start, served by the route and the list during the replay', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'dump-snapshot-')), file = join(dir, 'dump.json');
+    const token = A(70), curve = A(71), state = { [curve]: { ...curveState(), token } };
+    const before = rig(state, {}, { snapshotPath: file });
+    before.add(launched(curveCoin(token, curve)));
+    await before.api().tick();
+    const figure = (await before.ask(token)).json() as DumpReply;
+    await before.app.close();
+    // A restart two minutes later: the coin is back from the coin snapshot, the replay still running.
+    const after = rig(state, {}, { snapshotPath: file, replaying: true, now: NOW + 120 });
+    after.add(launched(curveCoin(token, curve)));
+    expect((await after.ask(token)).json()).toEqual(figure);
+    expect(await after.row(token)).toEqual(summaryOfReply(figure));
+    expect(after.calls).toHaveLength(0);
+    // Caught up: worked out again first, and both readers move to the new figure together.
+    after.tracker.cursor = HEAD;
+    expect(await after.api().tick()).toBe(1);
+    const fresh = (await after.ask(token)).json() as DumpReply;
+    expect(fresh).not.toEqual(figure);
+    expect(await after.row(token)).toEqual(summaryOfReply(fresh));
+    // Too old to put back: nothing restored.
+    const late = rig(state, {}, { snapshotPath: file, replaying: true, now: NOW + 120 + RESTORED_SEC + 60 });
+    late.add(launched(curveCoin(token, curve)));
+    expect(await late.row(token)).toBeUndefined();
+  });
+  it('keeps the file versioned and bounded, and ignores one it cannot read', () => {
+    const reply = { version: 1, coin: A(72), at: '2026-11-27T00:00:00.000Z', asOfBlock: 1, measured: false, reason: 'unknown_venue' } as DumpReply;
+    const entries = Array.from({ length: MAX_ENTRIES + 5 }, () => ({ token: lc(A(72)), at: NOW, reply }));
+    const { text, kept } = encodeDumps(entries, NOW);
+    expect(kept).toBe(MAX_ENTRIES);
+    const decoded = decodeDumps(text);
+    if ('error' in decoded) throw new Error(decoded.error);
+    expect(decoded.entries).toHaveLength(MAX_ENTRIES);
+    expect(decodeDumps(text.replace(`"version":${DUMP_SNAPSHOT_VERSION}`, '"version":99'))).toEqual({ error: 'version 99 (expected 1)' });
+    expect(decodeDumps('{')).toEqual({ error: 'unparseable' });
+    // A malformed entry (the coin does not match its key) is dropped on its own.
+    const mixed = decodeDumps(JSON.stringify({ version: 1, savedAt: NOW, entries: [{ token: lc(A(72)), at: NOW, reply }, { token: lc(A(73)), at: NOW, reply }] }));
+    expect('entries' in mixed && mixed.entries).toHaveLength(1);
+    const dir = mkdtempSync(join(tmpdir(), 'dump-snapshot-')), file = join(dir, 'dump.json');
+    writeFileSync(file, 'not json');
+    const r = rig({}, {}, { snapshotPath: file });
+    expect(r.api().cache.size).toBe(0);
+    expect(dumpSnapshotPath({ DUMP_SNAPSHOT: 'off' }, true)).toBeNull();
+    expect(dumpSnapshotPath({ HISTORY_DB: '/data/history.db' }, true)).toBe('/data/dump.json');
+    expect(dumpSnapshotPath({ COLUMNS_SNAPSHOT: '/vol/columns.json' }, false)).toBe('/vol/dump.json');
+    expect(dumpSnapshotPath({}, false)).toBeNull();
   });
 });
 
@@ -343,9 +462,16 @@ describe('dump risk alerts', () => {
     await r.api().tick();
     expect(r.alerts.page('acct-watch').rows).toHaveLength(1);
   });
+  it('reads a draining curve\'s risk as what a $100 buyer loses, and says so', () => {
+    expect(riskOf({ changePct: -1.3, usd100: 91.74, drains: true })).toBeCloseTo(8.26, 2);
+    expect(riskOf({ changePct: -40, usd100: 58 })).toBe(40);
+    const t = alertText('$MAPLE', 72, 30, 28, 'watched', true);
+    expect(t.title).toBe('Dump risk rose on $MAPLE: insiders now hold enough to drain its curve');
+    expect(t.body).toContain('EKO estimates'); expect(t.body).toContain('$100 bought now would come back as about $28');
+  });
   it('words the alert as an estimate, with what $100 keeps', () => {
     const t = alertText('$MAPLE', 70.4, 45, 26.2, 'bag');
     expect(t.title).toBe('Dump risk rose on $MAPLE: insiders now hold enough to drop it 70%');
-    expect(t.body).toBe('EKO estimates the price would fall 70% if the coin\'s insiders sold everything at once, up from 45%. $100 held now would be worth about $26 after. Your wallet holds this coin.');
+    expect(t.body).toBe('EKO estimates the price would fall 70% if the coin\'s insiders sold everything at once, up from 45%. $100 bought now would come back as about $26 after. Your wallet holds this coin.');
   });
 });

@@ -93,3 +93,14 @@
 :where(.mission-screen) .cn-code-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0;font-size:13px;color:var(--muted)}
 :where(.mission-screen) .cn-pack-steps{padding-left:22px;color:var(--ink2);font-size:14px;line-height:1.6}
 :where(.mission-screen) .cn-clients{margin-top:16px}
+/* Paste-ready setup and the first call (Connect). Code never widens the page: long lines wrap inside their block. */
+:where(.mission-screen) .cn-ready{margin-top:16px}
+:where(.mission-screen) .cn-ready .panel-head{flex-wrap:wrap;gap:4px 12px}
+:where(.mission-screen) .cn-ready .cn-code{min-width:0}
+:where(.mission-screen) .cn-ready .cn-code+.cn-code{margin-top:12px}
+:where(.mission-screen) .cn-ready .mc-code{max-width:100%}
+:where(.mission-screen) .cn-ready .note{margin:12px 0 0;font-size:13px;color:var(--muted)}
+:where(.mission-screen) .cn-arrived{display:flex;align-items:center;gap:8px;margin:0 0 10px;font:500 14px var(--sans);color:var(--ink)}
+:where(.mission-screen) .cn-arrived span{min-width:0;overflow-wrap:anywhere}
+:where(.mission-screen) .cn-waiting{display:inline-flex;align-items:center;gap:8px}
+:where(.mission-screen) .cn-tools>.note{margin:0;font-size:13px;color:var(--muted)}

@@ -5,6 +5,7 @@ import type { Edge } from './service.js';
 import { feedItem } from './views.js';
 import { readCookie, sameOrigin, type AccountStore } from './accounts.js';
 import type { FastifyRequest } from 'fastify';
+import { accountPush } from './agent-activity.js';
 
 /** Channels that carry one account's own events: only a signed-in socket may join, and only its events reach it. */
 const PRIVATE = new Set(['orders', 'approvals', 'agents', 'alerts']);
@@ -68,6 +69,9 @@ export async function registerRealtime(app: FastifyInstance, edge: Edge, opts: {
     const msg = { t: 'ev', ch, seq: ++seq, ts: Date.now(), kind, data };
     for (const [ws, subs] of clients) if (owner.get(ws) === accountId && subs.has(ch)) send(ws, msg);
   }
+
+  // The server's routes push an account's own events (an agent's live calls) through the app's bridge.
+  accountPush(app).deliver = pushTo;
 
   // Push feed items that landed since the last push (called after each tracker tick).
   let pushed = edge.tracker.feed.at(-1)?.id ?? null;

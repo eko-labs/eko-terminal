@@ -141,6 +141,56 @@ export const AgentDetailSchema = AgentSchema.extend({
   policy: PolicySchema.pick({ mode: true, version: true, guardPolicyVersion: true, killed: true, blockPlaybookLevel: true, approvalAboveUsd: true, maxPositionUsd: true, maxDailyLossUsd: true }),
 });
 export type AgentDetail = z.infer<typeof AgentDetailSchema>;
+/**
+ * TODO(spec): additive (2026-11-27). One MCP call an agent made with its key, as Mission Control's live activity shows
+ * it to the agent's owner (and only to them): the tool, the coin it was about (with EKO's verdict and score at that
+ * moment), preflight's decision, a prepared trade's sizes, or the note it journaled. Pushed on the owner's `agents`
+ * channel (kind `call`) and read back from GET /v1/agents/:id/activity. Token symbols and agent notes are untrusted text.
+ */
+export const AgentCallSchema = z.object({
+  id: z.string(),
+  agentId: z.string(),
+  ts: z.string(),
+  tool: z.string().max(40),
+  ok: z.boolean(),
+  ms: z.number().int().nonnegative().optional(),
+  /** The tool's own error, in plain words, when ok is false. */
+  error: z.string().max(240).optional(),
+  coin: z.object({
+    address: AddressSchema,
+    symbol: UntrustedSchema.optional(),
+    verdict: z.enum(['clear', 'info', 'monitor', 'danger', 'pending']).optional(),
+    score: z.number().int().min(0).max(100).optional(),
+    band: z.enum(['danger', 'careful', 'ok']).optional(),
+  }).optional(),
+  preflight: z.object({
+    decision: z.enum(['allow', 'deny', 'needs_approval']),
+    side: z.enum(['buy', 'sell']),
+    notionalUsd: z.number(),
+    reasons: z.array(z.string().max(300)).max(5),
+  }).optional(),
+  trade: z.object({
+    status: z.enum(['ready', 'approve_first']),
+    side: z.enum(['buy', 'sell']),
+    amountUsd: z.number(),
+    /** Base units (decimal strings), as trade_prepare returned them. */
+    amountIn: z.string().optional(),
+    minOut: z.string().optional(),
+    approvals: z.number().int().optional(),
+  }).optional(),
+  journal: z.object({ kind: z.enum(['session_start', 'outcome', 'note']), text: UntrustedSchema.optional() }).optional(),
+  /** Rows a list tool returned (coins, new_launches, watch). */
+  results: z.number().int().nonnegative().optional(),
+});
+export type AgentCall = z.infer<typeof AgentCallSchema>;
+/** TODO(spec): additive (2026-11-27). GET /v1/agents/:id/activity: the newest calls first and the counts since `since`. */
+export const AgentActivitySchema = z.object({
+  calls: z.array(AgentCallSchema),
+  lastCallAt: z.string().nullable(),
+  since: z.string(),
+  today: z.object({ calls: z.number(), checks: z.number(), allowed: z.number(), denied: z.number(), needsApproval: z.number(), prepared: z.number(), notes: z.number() }),
+});
+export type AgentActivity = z.infer<typeof AgentActivitySchema>;
 export const ApiKeyCreatedSchema = z.object({
   keyId: z.string(),
   prefix: z.string(),

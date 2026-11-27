@@ -24,6 +24,7 @@ export const ELYSIUM_PROFILE: ChainProfile = {
   playbooks: ELYSIUM_PLAYBOOK_CONFIG, sniperBlocks: 10, nearGradBps: 5000, price: { url: HYPERLIQUID_INFO, symbol: 'HYPE' },
   venue: 'elysium', outcomeVersion: 'elysium-1', mcp: { name: 'eko-elysium', title: 'EKO (Elysium)' },
   text: { launches: 'Montra launches', token: 'Montra token', coins: 'Montra coins', earlyFee: "Montra's early-buy fee", tradeVenue: 'Uniswap v4' },
+  launchpads: [{ id: 'montra', name: 'Montra' }, { id: 'flaunch', name: 'Flaunch' }, { id: 'hyperforge', name: 'HyperForge' }, { id: 'taxlaunch', name: 'tax launchpads' }, { id: 'unbranded', name: 'unbranded launchers' }],
 };
 
 const rh = NETWORKS['robinhood-mainnet'];
@@ -44,5 +45,8 @@ export const ROBINHOOD_PROFILE: ChainProfile = {
   // traders watch for graduation (other terminals' "almost bonded") are the ones past it.
   playbooks: SINGLE_PROBE_PLAYBOOK_CONFIG, sniperBlocks: 35, nearGradBps: 3000, price: { url: HYPERLIQUID_INFO, symbol: 'ETH' },
   venue: 'rhc', outcomeVersion: 'robinhood-1', mcp: { name: 'eko-robinhood', title: 'EKO (Robinhood Chain)' },
-  text: { launches: 'Pons launches', token: 'Pons token', coins: 'Pons coins', earlyFee: "Pons' launch snipe tax", tradeVenue: 'Pons curve or Uniswap v4' },
+  // Every launchpad EKO follows here, not Pons alone: Pons (bonding curve, then a v4 pool), and Pangea, long.xyz and the
+  // unbranded launcher (each in its own v4 pool from launch; with more_launchpads, long.xyz's token-quoted pools too).
+  text: { launches: 'launches (Pons, Pangea, long.xyz and unbranded launchers)', token: 'launchpad coin', coins: 'launchpad coins', earlyFee: "Pons' launch snipe tax", tradeVenue: 'Pons curve or Uniswap v4' },
+  launchpads: [{ id: 'pons', name: 'Pons' }, { id: 'pangea', name: 'Pangea' }, { id: 'longxyz', name: 'long.xyz' }, { id: 'unbranded', name: 'unbranded launchers' }],
 };

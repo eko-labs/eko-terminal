@@ -19,6 +19,7 @@ import { parseFlags } from './flags.js';
 import { loadFeatures } from './features/index.js';
 import { AlertInbox } from './alerts.js';
 import { ColumnSnapshot } from './snapshot.js';
+import { ProbeSnapshot } from './probe-snapshot.js';
 import { freeSpaceCheck, setStorageGuard } from './storage-guard.js';
 import { dirname, join } from 'node:path';
 
@@ -54,6 +55,9 @@ import { dirname, join } from 'node:path';
  *   STORE_MIN_FREE_MB  free space the database volume keeps: below it, new accounts, agents, keys, journal rows, approvals
  *                    and orders are refused (507) until space returns; chain memory keeps writing (default 512)
  *   EKO_FLAGS        features turned on, e.g. "leaderboards,referrals" (flags.ts; docs/FLAGS.md). Unset: none.
+ *   COLUMNS_SNAPSHOT the followed coins' file (default columns.json beside HISTORY_DB); "off" turns it off.
+ *   PROBES_SNAPSHOT  the coins' cached checks' file (default probes.json beside the coin snapshot; probe-snapshot.ts),
+ *                    restored before the server serves; "off" turns it off.
  *   EKO_TOKEN_ADDRESS  the project's token once it is live: shown with a copy button on the landing page and the terminal
  *                    header (/v1/config `token`). Unset or not an address: not shown. EKO_TOKEN_SYMBOL names it (optional).
  */
@@ -95,12 +99,22 @@ const historian = store ? new Historian(explorer(Number(env.EXPLORER_RPS ?? 2)),
 // The graduation columns' coins, kept on the volume across restarts (snapshot.ts). COLUMNS_SNAPSHOT=off turns it off.
 const snapshotPath = env.COLUMNS_SNAPSHOT === 'off' ? null : env.COLUMNS_SNAPSHOT ?? (store ? join(dirname(env.HISTORY_DB ?? '.data/history.db'), 'columns.json') : null);
 const snapshot = snapshotPath ? new ColumnSnapshot(snapshotPath, tracker) : null;
-if (snapshot) tracker.seed(snapshot.load());
+const seeded = snapshot?.load() ?? [];
+if (snapshot) tracker.seed(seeded);
 // The native coin in USD (HYPE or ETH) from the profile's price source.
 // The native coin in USD: HYPE from Hyperliquid on Elysium; ETH from Hyperliquid, checked against the WETH/USDG pool, on Robinhood Chain.
 const hype = chain.price(rpc);
 const edge = new Edge(tracker, rpc, chain, hype, { log, concurrency: Number(env.ASSESS_CONCURRENCY ?? 2),
   ...(store && historian ? { memory: { store, historian, ...(funders ? { funders } : {}) } } : {}) });
+// The coins' cached checks, kept beside the coin snapshot and put back before the server serves (probe-snapshot.ts): a coin
+// shows its last verdict and score as soon as the tracker has it again, and only checks older than the usual ten minutes
+// are redone. Only checks for coins the coin snapshot still holds are kept.
+const probesPath = env.PROBES_SNAPSHOT === 'off' ? null : env.PROBES_SNAPSHOT ?? (snapshotPath ? join(dirname(snapshotPath), 'probes.json') : null);
+const probeSnapshot = probesPath ? new ProbeSnapshot(probesPath, edge, log) : null;
+if (probeSnapshot) {
+  const tracked = seeded.length ? new Set(seeded.map(c => c.token.toLowerCase())) : undefined;
+  log('probes_restored', { probes: edge.restoreProbes(probeSnapshot.load(tracked)) });
+}
 const accounts = store && env.ACCOUNTS !== 'off' ? new AccountStore(store.db) : null;
 const maxTradeUsd = Number(env.MAX_TRADE_USD ?? 250);
 let pushTo: ((accountId: string, ch: string, kind: string, data: unknown) => void) | null = null;
@@ -124,8 +138,10 @@ async function loop() {
   while (!stopping) {
     const started = Date.now();
     // Never before the saved coins are back in memory (the cursor is set just before they are restored).
-    if (snapshot && tracker.cursor > 0n && Date.now() - savedAt >= 60_000) { savedAt = Date.now(); void snapshot.save().catch(error => log('snapshot_failed', { error: String((error as Error).message).slice(0, 160) })); }
-    try { await tracker.tick(); edge.prune(); void edge.name(); edge.schedule(); edge.settle(); publish(); void hype.get(); void trading?.reconcile().catch(error => log('reconcile_failed', { error: String((error as Error).message).slice(0, 160) })); }
+    if (tracker.cursor > 0n && Date.now() - savedAt >= 60_000) { savedAt = Date.now();
+      if (snapshot) void snapshot.save().catch(error => log('snapshot_failed', { error: String((error as Error).message).slice(0, 160) }));
+      if (probeSnapshot) void probeSnapshot.save().catch(error => log('probes_save_failed', { error: String((error as Error).message).slice(0, 160) })); }
+    try { await tracker.tick(); edge.prune(); void edge.name(); edge.schedule(); edge.warm(); edge.settle(); publish(); void hype.get(); void trading?.reconcile().catch(error => log('reconcile_failed', { error: String((error as Error).message).slice(0, 160) })); }
     catch (error) { log('tick_failed', { error: String((error as Error).message).slice(0, 200) }); }
     await new Promise(r => setTimeout(r, Math.max(250, pollMs - (Date.now() - started))));
   }
@@ -135,6 +151,8 @@ const shutdown = async (signal: string) => {
   if (stopping) return; stopping = true; log('shutdown', { signal });
   // Only once the saved coins are back in memory: a save before that would drop what the file still holds.
   if (snapshot && tracker.cursor > 0n) { try { log('snapshot_saved', { coins: snapshot.saveSync() }); } catch (error) { log('snapshot_failed', { error: String((error as Error).message).slice(0, 160) }); } }
+  // The checks are all in memory from the start (restored before serving), so they are saved whatever the replay's state.
+  if (probeSnapshot) { try { log('probes_saved', { probes: probeSnapshot.saveSync() }); } catch (error) { log('probes_save_failed', { error: String((error as Error).message).slice(0, 160) }); } }
   historian?.stop(); await app.close().catch(() => undefined); clients.meter.stop(); try { store?.close(); } catch { /* already closed */ } await clients.meter.close().catch(() => undefined); process.exit(0);
 };
 process.once('SIGINT', () => void shutdown('SIGINT'));
@@ -144,6 +162,11 @@ await hype.get();
 await app.listen({ port: Number(env.PORT ?? 8080), host: env.HOST ?? '0.0.0.0' });
 log('listening', { port: Number(env.PORT ?? 8080), hypeUsd: hype.latest });
 // Serve /health while the hour of history replays; the radar fills as it lands.
-tracker.start().then(() => { log('backfilled', { head: Number(tracker.head), coins: tracker.coins.size, restored: tracker.restored }); void edge.name(); edge.schedule(); void loop();
+// Checks start once the saved coins are back (the cursor is set just before they are restored), not after the replay:
+// a check reads the chain at the head the start read, and the replay only adds trades, so a coin that trades in the
+// replayed hour is simply due again later. Nothing is pruned until the replay is done (a coin it has not reached yet
+// keeps its restored check), and the RPC caps are shared with the replay as before.
+const early = setInterval(() => { if (!stopping && tracker.cursor > 0n) edge.schedule(); }, Number(env.POLL_MS ?? 2000));
+tracker.start().then(() => { clearInterval(early); log('backfilled', { head: Number(tracker.head), coins: tracker.coins.size, restored: tracker.restored, probes: edge.assessedCount }); void edge.name(); edge.schedule(); void loop();
   if (historian && (env.HISTORIAN ?? (explorerApi ? 'on' : 'off')) !== 'off') void historian.run(); })
-  .catch(error => { log('backfill_failed', { error: String((error as Error).message).slice(0, 200) }); void loop(); });
+  .catch(error => { clearInterval(early); log('backfill_failed', { error: String((error as Error).message).slice(0, 200) }); void loop(); });

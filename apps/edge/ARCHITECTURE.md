@@ -22,10 +22,10 @@ Robinhood Chain stack. It is not deployed for Elysium.
 
 | Actor | How it is identified | Can | Cannot |
 | --- | --- | --- | --- |
-| Visitor | nothing | Read routes (`/v1/feed`, coins, verdicts, deployers, config, `/health`), quotes (`POST /v1/trade/quote`, no wallet), the read-only relay (`POST /v1/rpc`, allowlisted methods, no full blocks), the websocket (public channels), MCP read tools (`coin_verdict`, `coin_card`, `playbook_match`, `deployer_history`, `new_launches`) | Any write that needs a wallet (401). Private socket channels. |
+| Visitor | nothing | Read routes (`/v1/feed`, coins, verdicts, deployers, config, `/health`), quotes (`POST /v1/trade/quote`, no wallet), the read-only relay (`POST /v1/rpc`, allowlisted methods, no full blocks), the websocket (public channels), MCP read tools (`coin_verdict`, `coin_card`, `playbook_match`, `deployer_history`, `new_launches`, `coins`, `watch`, and a feature's own read tool while its flag is on) | Any write that needs a wallet (401). Private socket channels. |
 | Wallet | SIWE on chain 99901, then a session cookie (`HttpOnly; SameSite=Lax`, 30 days) | Its own preferences, watchlist, alert settings, journal consent, data deletion; trade orders from its own quotes, and marking its own orders submitted or rejected; up to 3 active agents (10 kept in all, the oldest hard-killed one deleted first) with up to 5 live keys each, their policies, kill switches and approvals | Another account's anything: every read and write is filtered by the session's account (404, or 403 for another wallet's quote). Writes from another site's page (403, `sameOrigin`). |
-| Agent | Bearer key `eko_…` on `POST /mcp` (stored as a SHA-256 hash, shown once) | `preflight` against its owner's policy, `trade_prepare` (an unsigned swap for the wallet its owner set), `journal` (notes, session starts, outcomes) | Write decisions or orders into its own journal; trade without a fresh EKO-recorded allow; choose its own wallet; trade above its policy, slippage cap or `MAX_TRADE_USD`; act after its owner pauses or kills it, or after its key is revoked (401). |
-| Owner (a wallet, over its agents) | the wallet's session | Approve or deny an agent's pending order (bound to that exact order, one use, 15 minutes), pause, resume, hard-kill (revokes every key), set policy and wallet | Approve orders of another account's agents (404). |
+| Agent | Bearer key `eko_…` on `POST /mcp` (stored as a SHA-256 hash, shown once) | `preflight` against its owner's policy, `trade_prepare` (an unsigned swap for the wallet its owner set), `journal` (notes, session starts, outcomes); every call it makes is summarised for its owner's live view (`src/agent-activity.ts`: tool, coin, verdict and score, decision, sizes, note; never its arguments or key) | Write decisions or orders into its own journal; trade without a fresh EKO-recorded allow; choose its own wallet; trade above its policy, slippage cap or `MAX_TRADE_USD`; act after its owner pauses or kills it, or after its key is revoked (401). |
+| Owner (a wallet, over its agents) | the wallet's session | Approve or deny an agent's pending order (bound to that exact order, one use, 15 minutes), pause, resume, hard-kill (revokes every key), set policy and wallet; watch its calls live (`GET /v1/agents/:id/activity`, and `call` events on its private `agents` socket channel) | Approve orders of another account's agents (404). |
 | Operator | Railway project access, GitHub `main` | Deploy (merging to `main`), set environment and flags (`EKO_FLAGS`), read the volume | — |
 
 There is no admin route. Nothing on the server can sign a transaction or move funds: every trade is an unsigned
@@ -66,7 +66,9 @@ number of accounts or agents can starve the tracker; within it, signed-out quote
 orders 20 a minute per account or agent (60 per address), 10 in flight per account. Receipt checks have a reserved
 slice (60 a minute), and sign-in's contract-wallet check its own (60 a minute), so neither can be crowded out or crowd out
 the tracker. MCP 120 calls a minute per agent
-or address, counting each batch entry, and 600 per address across agents; the relay 120 calls a minute per address,
+or address, counting each batch entry, and 600 per address across agents; within it `watch` 30 a minute and 2 waiting at once
+per agent or address (500 waiting in all, each at most 25 s), `coins` pages of at most 50 rows from a list shared by every
+agent and rebuilt at most every 10 s, and a live view of the newest 100 calls per agent in memory; the relay 120 calls a minute per address,
 600 in all, 16 in flight; 20 websockets per address, 64 channels per socket, idle ones closed after 2 minutes; funder
 lookups from page views in their own bounded lane behind live deployers. Stored per account: 3 active and 10 kept
 agents, 5 live keys and 20 key rows per agent, journals of 1,000 rows and 90 days per agent, 2,000 journal rows (500
@@ -85,3 +87,4 @@ chain memory and existing sign-ins. Tests: `test/limits.test.ts`.
 | Request size, client address, relay, storage, websockets, build identity | `test/limits.test.ts` |
 | Sign-in, sessions, quotes and the swap encoding against mainnet swaps | `test/accounts-trade.test.ts` |
 | Agents, keys and MCP tools | `test/agents-mcp.test.ts` |
+| MCP coins and watch, descriptions for every launchpad, feature tools, owners' live activity | `test/mcp-tools.test.ts` |

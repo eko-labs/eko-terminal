@@ -19,7 +19,34 @@ export const MISSION_COPY = {
   unchecked: 'Your agent placed this without checking. Re-send the harness instructions, or stop the agent.',
   performanceNote: 'Positions and fills are self-reported by the agent from its own venue connection. Past results don’t predict future ones. Not financial advice.',
   pendingVerify: 'Waiting for your agent’s first call…',
-  connected: 'First journal event received',
+  connected: 'Your agent reached EKO. Every call it makes now shows live on its page in Mission Control.',
+  coverage: pick({
+    elysium: `${APP_NAME} covers every Montra launch it follows from the last day.`,
+    robinhood: `${APP_NAME} covers every Robinhood Chain launchpad it follows: Pons, Pangea, long.xyz and unbranded launchers.`,
+  }),
+};
+
+/** The Connect page's paste-ready setup and test, and the agent page's live activity. */
+export const AGENT_LIVE = {
+  pasteReady: 'Paste-ready setup',
+  pasteReadyNote: 'Each copy button copies the line with your key in it. The key stays hidden on screen.',
+  pasteReadyAfterKey: 'Generate a key above and these fill in with it, ready to paste.',
+  claudeCode: 'Claude Code',
+  mcpJson: 'Cursor and other MCP clients (JSON)',
+  curl: 'Plain HTTP (curl)',
+  starter: 'Starter agent (dry run)',
+  starterNote: `From a copy of the EKO repository. It watches new launches, asks preflight and journals its reasons. It prepares trades but never signs or sends them; ${APP_NAME} never holds keys.`,
+  firstCall: (tool: string, ago: string) => `First call arrived: ${tool} · ${ago}`,
+  lastCall: (tool: string, ago: string) => `Latest call: ${tool} · ${ago}`,
+  discover: 'Discover',
+  watchLive: 'Watch it live',
+  live: 'Live activity',
+  liveNote: 'Every call this agent makes with its key, as it happens. Private to you.',
+  none: 'No calls yet. Start the agent and its calls show up here as they happen.',
+  today: 'Today',
+  calls: 'Calls', checks: 'Checks', allowed: 'Allowed', denied: 'Blocked', needsApproval: 'Sent to you', prepared: 'Trades prepared', notes: 'Notes',
+  score: (value: number, band: string) => `Score ${value} · ${band}`,
+  unavailable: 'Live activity isn’t available on this server yet.',
 };
 export const PLATFORM_COPY = {
   claude_connector: ['Claude Desktop and claude.ai', 'Custom connector. You sign in with OAuth; there’s no key to copy.'],

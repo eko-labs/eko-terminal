@@ -5,7 +5,7 @@ import Fastify, { type FastifyInstance, type FastifyReply } from 'fastify';
 import fastifyStatic from '@fastify/static';
 import { brotliCompressSync, constants as zlib, gzipSync } from 'node:zlib';
 import { isAddress, type Address } from 'viem';
-import type { ErrorCode, PairRow, ScanResult } from '@eko/shared';
+import type { ErrorCode, PairRow, RadarRow, ScanResult } from '@eko/shared';
 import { barsFromTrades, MAX_BARS, TIMEFRAMES, type Timeframe } from './market.js';
 import type { Edge } from './service.js';
 import type { CoinState, Rpc } from './tracker.js';
@@ -19,11 +19,14 @@ import { registerMemoryRoutes } from './memory-routes.js';
 import { registerAccountRoutes, type AccountStore } from './accounts.js';
 import { budgetedRpc, registerTradeRoutes, type Trading } from './trade.js';
 import { AgentStore, registerAgentRoutes } from './agents.js';
-import { registerMcp } from './mcp.js';
+import { COINS_POOL, registerMcp } from './mcp.js';
+import { WatchStream } from './watch.js';
+import { accountPush, AgentActivityLog } from './agent-activity.js';
 import type { Approval } from '@eko/shared';
 import type { BuildInfo } from './build.js';
 import { RelayBusy, relayFromRpc, type RelayClient } from './relay.js';
 import { registerSecurityTxt } from './security-txt.js';
+import { rankCoins } from './rank.js';
 
 const fail = (reply: FastifyReply, status: number, error: ErrorCode, message: string) => reply.code(status).send({ error, message });
 const LIMIT = 100, SEARCH_LIMIT = 8;
@@ -84,24 +87,21 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
     if (!coin) { void fail(reply, 404, 'not_found', `EKO follows ${text.launches} from the last 24 hours on ${chain.name}; this coin is not one of them yet.`); return null; }
     return coin;
   };
-  const ranked = () => {
-    const ctx = edge.ctx();
-    // Newest activity first: an hour's volume, then age. Verdict never re-ranks (a ranking is not a recommendation).
-    return [...edge.tracker.coins.values()].map(c => ({ c, vol: c.trades.filter(t => t.ts >= ctx.nowSec - 3600).reduce((s, t) => s + t.hype, 0) }))
-      .sort((x, y) => y.vol - x.vol || y.c.ts - x.c.ts).map(x => x.c);
-  };
+  // Newest activity first: an hour's volume, then age (rank.ts; the background checks follow the same order).
+  const ranked = () => rankCoins(edge.tracker.coins.values(), edge.ctx().nowSec);
 
   const tradingConfig = opts.trading ? { routers: opts.trading.routers, spenders: opts.trading.spenders, permit2: opts.trading.permit2, maxTradeUsd: opts.maxTradeUsd ?? 1000 } : undefined;
   app.get('/v1/config', async () => publicConfig(tradingConfig, { accounts: !!opts.accounts, ...(opts.flags ? { flags: opts.flags } : {}), ...(opts.token ? { token: opts.token } : {}) }, chain));
   const agents = opts.accounts ? new AgentStore(opts.accounts.db) : undefined;
+  // Mission Control's live view of each agent's MCP calls, pushed to the owner's sockets (ws.ts wires the push).
+  const activity = agents ? new AgentActivityLog(edge, accountPush(app)) : undefined;
   let auth: ReturnType<typeof registerAccountRoutes> | undefined;
   if (opts.accounts && agents) {
     // Sign-in's contract-wallet check gets its own small slice of the RPC, never the tracker's whole lane.
-    auth = registerAccountRoutes(app, { store: opts.accounts, chain, ...(opts.alerts ? { alerts: opts.alerts } : {}), ...(opts.rpc ? { rpc: budgetedRpc(opts.rpc, { perMin: 60, inFlight: 4 }) } : {}), onErase: (id) => { agents.erase(id); opts.trading?.erase(id); } });
+    auth = registerAccountRoutes(app, { store: opts.accounts, chain, ...(opts.alerts ? { alerts: opts.alerts } : {}), ...(opts.rpc ? { rpc: budgetedRpc(opts.rpc, { perMin: 60, inFlight: 4 }) } : {}), onErase: (id) => { for (const a of agents.list(id)) activity?.forget(a.id); agents.erase(id); opts.trading?.erase(id); } });
     if (opts.trading) registerTradeRoutes(app, opts.trading, auth);
-    registerAgentRoutes(app, agents, auth, { mcpUrl: (req) => `${req.protocol}://${req.headers['x-forwarded-host'] ?? req.headers.host}/mcp`, ...(opts.onApproval ? { onApproval: opts.onApproval } : {}) });
+    registerAgentRoutes(app, agents, auth, { mcpUrl: (req) => `${req.protocol}://${req.headers['x-forwarded-host'] ?? req.headers.host}/mcp`, ...(opts.onApproval ? { onApproval: opts.onApproval } : {}), ...(activity ? { activity } : {}) });
   } else app.get('/v1/me', async (_req, reply) => fail(reply, 401, 'wallet_auth_required', `Accounts are not open on EKO for ${chain.name} yet.`));
-  registerMcp(app, { edge, ...(opts.store ? { store: opts.store } : {}), ...(agents ? { agents } : {}), ...(opts.trading ? { trading: opts.trading } : {}) });
 
   // The radar list is the same for every visitor and building it judges up to 100 coins, which takes seconds when their
   // verdicts are due (measured 3.5 s after a quiet spell). So it is shared: a list under RADAR_FRESH_MS old is served as
@@ -115,10 +115,15 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
   }).finally(() => { radarJob = null; });
   const radar = async () => {
     const age = radarCache ? Date.now() - radarCache.at : Infinity;
-    if (radarCache && age < RADAR_FRESH_MS) return radarCache.body;
-    if (radarCache && age < RADAR_STALE_MS) { void rebuildRadar(true).catch(() => undefined); return radarCache.body; }
-    return rebuildRadar(false);
+    if (radarCache && age < RADAR_FRESH_MS) return current(radarCache.body);
+    if (radarCache && age < RADAR_STALE_MS) { void rebuildRadar(true).catch(() => undefined); return current(radarCache.body); }
+    return current(await rebuildRadar(false));
   };
+  // Features' figures are read as each response goes out, not when the shared list was built (up to RADAR_STALE_MS
+  // earlier): a feature's own route and the list then answer from the same figure at the same moment. A read is a
+  // cache lookup per row (RowExtras), so this costs next to nothing.
+  const current = <B extends { rows: RadarRow[] }>(body: B): B => !rowExtras.size ? body
+    : { ...body, rows: body.rows.map(r => { const c = edge.tracker.coin(r.address); const { extras: _, ...plain } = r; return c ? withExtras(c, plain as RadarRow) : plain as RadarRow; }) };
   // Features' figures on each row (features/index.ts RowExtras), under their flag; none while no feature adds one.
   const rowExtras = new Map<string, (coin: CoinState) => unknown>();
   const rowsPlace: RowExtras = { add: (flag, read) => { rowExtras.set(flag, read); } };
@@ -128,9 +133,29 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
     for (const [flag, read] of rowExtras) { try { const v = read(c); if (v !== undefined) extras[flag] = v; } catch { /* nothing from this feature */ } }
     return Object.keys(extras).length ? { ...row, extras } : row;
   };
+  // The MCP coins tool's list: the Radar's order (most traded in the last hour, quiet coins newest first) over the
+  // COINS_POOL first coins, built like the Radar list (shared by every agent, rebuilt after the reply once stale).
+  const COINS_FRESH_MS = 10_000, COINS_STALE_MS = 120_000;
+  let coinsCache: { at: number; rows: RadarRow[] } | null = null, coinsJob: Promise<RadarRow[]> | null = null;
+  const rebuildCoins = (defer: boolean) => coinsJob ??= new Promise<RadarRow[]>((done, failed) => {
+    const run = () => { try { const ctx = edge.ctx(), rows = ranked().slice(0, COINS_POOL).map((c, i) => withExtras(c, radarRow(c, edge.assessment(c.token), ctx, i + 1))); coinsCache = { at: Date.now(), rows }; done(rows); } catch (e) { failed(e); } };
+    if (defer) setTimeout(run, 0); else run();
+  }).finally(() => { coinsJob = null; });
+  const coinRows = async () => {
+    const age = coinsCache ? Date.now() - coinsCache.at : Infinity;
+    if (coinsCache && age < COINS_FRESH_MS) return coinsCache.rows;
+    if (coinsCache && age < COINS_STALE_MS) { void rebuildCoins(true).catch(() => undefined); return coinsCache.rows; }
+    return rebuildCoins(false);
+  };
+  // Public events for the MCP watch tool (launches, graduations, verdict changes, and what features post).
+  const watch = new WatchStream(edge);
+  app.addHook('onClose', async () => watch.stop());
+  const mcp = registerMcp(app, { edge, coinRows, watch, ...(activity ? { activity } : {}), ...(opts.store ? { store: opts.store } : {}), ...(agents ? { agents } : {}), ...(opts.trading ? { trading: opts.trading } : {}),
+    extras: (c) => { const row = withExtras(c, {}) as { extras?: Record<string, unknown> }; return row.extras; } });
+
   const buildRadar = () => {
     const ctx = edge.ctx();
-    const rows = ranked().slice(0, LIMIT).map((c, i) => withExtras(c, radarRow(c, edge.assessment(c.token), ctx, i + 1)));
+    const rows = ranked().slice(0, LIMIT).map((c, i) => radarRow(c, edge.assessment(c.token), ctx, i + 1));
     // Counts use each coin's last verdict: recomputing every coin's verdict per request stalls the server.
     const levels = [...edge.tracker.coins.values()].map(c => edge.cachedLevel(c.token));
     const count = (l: string) => levels.filter(x => x === l).length;
@@ -144,7 +169,7 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
   const oneRow = async (req: { params: { address: string } }) => {
     const key = req.params.address.toLowerCase();
     const listed = radarCache?.body.rows.find(r => r.address.toLowerCase() === key);
-    if (listed) return { row: listed };
+    if (listed) return { row: current({ rows: [listed] }).rows[0] };
     const coin = isAddress(req.params.address, { strict: false }) ? edge.tracker.coin(req.params.address) : undefined;
     return { row: coin ? withExtras(coin, radarRow(coin, edge.assessment(coin.token), edge.ctx(), 0)) : null };
   };
@@ -305,7 +330,7 @@ export function buildServer(edge: Edge, opts: { webDist?: string; landingDist?: 
   });
 
   // Post-launch features that are on (features/index.ts): their routes come before the catch-all below.
-  for (const feature of opts.features ?? []) feature.register({ app, edge, rows: rowsPlace, ...(opts.store ? { store: opts.store } : {}), ...(opts.accounts ? { accounts: opts.accounts } : {}), ...(auth ? { auth } : {}), ...(opts.alerts ? { alerts: opts.alerts } : {}), ...(opts.rpc ? { rpc: opts.rpc } : {}), ...(opts.funders ? { funders: opts.funders } : {}) });
+  for (const feature of opts.features ?? []) feature.register({ app, edge, rows: rowsPlace, mcp, ...(opts.store ? { store: opts.store } : {}), ...(opts.accounts ? { accounts: opts.accounts } : {}), ...(auth ? { auth } : {}), ...(opts.alerts ? { alerts: opts.alerts } : {}), ...(opts.rpc ? { rpc: opts.rpc } : {}), ...(opts.funders ? { funders: opts.funders } : {}) });
 
   // Everything else under the API is not served yet.
   app.all('/v1/*', async (_req, reply) => fail(reply, 404, 'not_found', `Not available on EKO for ${chain.name} yet.`));

@@ -3,7 +3,7 @@ import type { V4PoolKey } from '@eko/chain';
 import { notTraders, tradeWallets } from '../../flow-stats.js';
 import { launchInsiders, linkedToDev, ROLE_ORDER, type InsiderOptions } from '../../insiders.js';
 import { priceHypeFromSqrt } from '../../market.js';
-import { PONS_CURVE_ABI, ponsSellOut, type PonsCurveState } from '../../chains/robinhood/trade.js';
+import { PONS_CURVE_ABI, ponsBuyOut, ponsSellOut, type PonsCurveState } from '../../chains/robinhood/trade.js';
 import type { CoinState, Rpc } from '../../tracker.js';
 
 /**
@@ -118,7 +118,7 @@ export function insiderHoldings(coin: CoinState, o: InsiderOptions): Holdings {
   return { groups, all, insiders };
 }
 
-/** What one sell does: the price change (percent, negative), what $100 held keeps, and whether the venue runs dry. */
+/** What one sell does: the price change (percent, negative), what $100 bought now comes back as, and whether the venue runs dry. */
 export interface DumpOutcome { changePct: number; usd100: number; drains: boolean }
 
 const round1 = (n: number) => Math.round(n * 10) / 10, round2 = (n: number) => Math.round(n * 100) / 100;
@@ -135,7 +135,8 @@ const outcome = (priceRatio: number, keep: number, drains = false): DumpOutcome 
  * "Your $100" sells, on the curve as the dump leaves it, the tokens $100 buys at today's price (ponsSellOut: fee,
  * snipe tax and creator tax off the ETH).
  */
-export function curveDump(s: PonsCurveState, tokens: bigint, ethUsd: number | null): DumpOutcome {
+/** The insiders sell `tokens` into curve `s`; they can take out only the real ETH it holds (`drains` when they would). */
+function curveSell(s: PonsCurveState, tokens: bigint): { after: PonsCurveState; drains: boolean } {
   const Q = s.quoteReserve, T = s.tokenReserve;
   let sold = tokens > 0n ? tokens : 0n, gross = sold * Q / (T + sold), drains = false;
   if (gross > s.realQuote) {
@@ -144,11 +145,34 @@ export function curveDump(s: PonsCurveState, tokens: bigint, ethUsd: number | nu
     gross = sold * Q / (T + sold);
     if (gross > s.realQuote) gross = s.realQuote;
   }
-  const after: PonsCurveState = { ...s, quoteReserve: Q - gross, tokenReserve: T + sold, realQuote: s.realQuote - gross, sellable: s.sellable + sold };
-  const price = ratioOf(after.quoteReserve * T, Q * after.tokenReserve);
-  const v0 = ethUsd && ethUsd > 0 ? weiFor(100, ethUsd) : 10n ** 17n, mine = v0 * T / Q;
-  const back = ponsSellOut(after, mine);
-  return outcome(price, back.capacity && !drains ? ratioOf(back.out, v0) : 0, drains);
+  return { after: { ...s, quoteReserve: Q - gross, tokenReserve: T + sold, realQuote: s.realQuote - gross, sellable: s.sellable + sold }, drains };
+}
+/**
+ * "Your $100" asks what a trader asks: buy $100 now, the insiders then sell, then you sell what you bought. Your buy
+ * puts ETH into the curve, so the answer exists even on a curve that holds less than $100 today (selling $100 of
+ * tokens into such a curve read as "$100 → $0", which was the curve's size, not the dump). When the insiders' sale
+ * would take out every last wei, yours included, what is left for you is what is left in the curve.
+ */
+function curveKeep(s: PonsCurveState, insiderTokens: bigint, v0: bigint): { keep: number; price: number } | null {
+  const buy = ponsBuyOut(s, v0);
+  if (buy.completes || buy.tokens <= 0n) return null;
+  const bought: PonsCurveState = { ...s, quoteReserve: s.quoteReserve + buy.net, tokenReserve: s.tokenReserve - buy.tokens,
+    realQuote: s.realQuote + buy.net, sellable: s.sellable - buy.tokens };
+  const { after } = curveSell(bought, insiderTokens);
+  const back = ponsSellOut(after, buy.tokens);
+  const out = back.capacity ? back.out : after.realQuote > 0n ? after.realQuote : 0n;
+  return { keep: ratioOf(out, v0), price: ratioOf(after.quoteReserve * bought.tokenReserve, bought.quoteReserve * after.tokenReserve) };
+}
+export function curveDump(s: PonsCurveState, tokens: bigint, ethUsd: number | null): DumpOutcome {
+  const { after, drains } = curveSell(s, tokens);
+  const today = ratioOf(after.quoteReserve * s.tokenReserve, s.quoteReserve * after.tokenReserve);
+  const v0 = ethUsd && ethUsd > 0 ? weiFor(100, ethUsd) : 10n ** 17n;
+  const mine = curveKeep(s, tokens, v0);
+  // A $100 buy that would finish the curve (it graduates) is not modelled: fall back to selling $100 of tokens now.
+  const keep = mine?.keep ?? (() => { const b = ponsSellOut(after, v0 * s.tokenReserve / s.quoteReserve); return b.capacity && !drains ? ratioOf(b.out, v0) : 0; })();
+  // A curve with (almost) no real ETH cannot absorb the insiders' sale: the price barely moves (most of a curve's
+  // reserves are virtual), but they take what a buyer pays in. `drains` says so; the pages say it in words.
+  return outcome(today, keep, drains);
 }
 
 /** A full-range pool's reserves now, in whole units: the probe's (ETH held, price) give L = x/√p; the price now moves them. */

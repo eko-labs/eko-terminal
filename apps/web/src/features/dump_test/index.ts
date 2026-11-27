@@ -1,6 +1,6 @@
 import { lazy } from 'react';
 import type { Feature } from '../../features';
-import { fallOf, summaryOf } from './model';
+import { figureFall, summaryOf } from './model';
 
 /**
  * Dump test (flag `dump_test`): what a coin's price would do if its insiders sold everything they hold right now, in
@@ -18,8 +18,8 @@ const feature: Feature = {
   },
   places: {
     coinRow: {
-      id: 'dump', label: 'Dump', title: 'If insiders dump: how far EKO estimates the price would fall if they sold everything at once',
-      value: row => { const s = summaryOf(row); return s ? fallOf(s.changePct) : undefined; },
+      id: 'dump', label: 'Dump', title: 'If insiders dump: how far EKO estimates the price would fall if they sold everything at once (on a curve they could drain, what $100 bought now would lose); worst first',
+      value: row => { const s = summaryOf(row); return s ? figureFall(s) : undefined; },
       cell: lazy(() => view().then(m => ({ default: m.DumpCell }))),
     },
   },

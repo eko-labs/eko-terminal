@@ -144,11 +144,11 @@
 .sv-walk .tour-actions .btn.primary{background:var(--dither-ink) 0 0/var(--dither-size),var(--lit);color:var(--brand-ink);border:0}
 
 /* Features' figures in each row (placeSlots.tsx coinRow): a short column before the answer. */
-.has-place .sv-list-head,.has-place .sv-row{grid-template-columns:minmax(0,1.5fr) minmax(90px,140px) 120px 100px 76px 150px}
+.has-place .sv-list-head,.has-place .sv-row{grid-template-columns:minmax(0,1.5fr) minmax(90px,140px) 120px 100px 88px 150px}
 .sv-row-place{justify-self:end;text-align:right;white-space:nowrap}
 @media(max-width:899px){
   .sv-list-head,.sv-row{grid-template-columns:minmax(0,1fr) 100px 150px}
-  .has-place .sv-list-head,.has-place .sv-row{grid-template-columns:minmax(0,1fr) 100px 70px 150px}
+  .has-place .sv-list-head,.has-place .sv-row{grid-template-columns:minmax(0,1fr) 100px 84px 150px}
   .sv-list-head span:nth-child(2),.sv-row-spark,.sv-list-head span:nth-child(4),.sv-row-move{display:none}
 }
 @media(max-width:700px){

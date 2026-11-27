@@ -538,3 +538,169 @@ describe('graduation columns across a restart', () => {
     expect(new ColumnSnapshot('/nonexistent/eko/columns.json', after).load()).toEqual([]);
   });
 });
+
+describe('checks across a restart (probe-snapshot.ts)', () => {
+  const file = (name: string) => `${process.env.TMPDIR ?? '/tmp'}/eko-${name}-${process.pid}.json`;
+  const settle = async () => { for (let i = 0; i < 20; i++) await new Promise(r => setTimeout(r, 0)); };
+  const TIP_TX = keccak256(toHex('early buy'));
+  /** A cached check taken at `atSec`, as the Elysium probe leaves it (the fixture's sell test: sellable, 2% exit). */
+  const probeAt = (atSec: number) => { const f = assessment('clear');
+    return { block: launchBlock, at: new Date(atSec * 1000).toISOString(), name: 'Test coin', symbol: 'TEST', key: null, config: f.config,
+      currentBuyFeePips: 20000, probe: f.probe, probeUsd: 1000, tips: { [TIP_TX]: 1.5 } as Record<string, number> }; };
+  /** The chain, with its log reads held until `release` (a start-up replay still running) and its eth_calls counted. */
+  const heldChain = () => {
+    const chain = fakeChain(launchBlock + 500);
+    let release!: () => void; const gate = new Promise<void>(r => { release = r; });
+    const calls = { eth_call: 0 };
+    const rpc: Rpc = { request: async (input) => {
+      const { method } = input as { method: string };
+      if (method === 'eth_call') { calls.eth_call++; throw new Error('test chain: no eth_call'); }
+      if (method === 'eth_getLogs') await gate;
+      return chain.request(input);
+    } };
+    return { rpc, release, calls };
+  };
+  /** A process that followed the coin and checked it at `probedAt` with `trades` trades, saved to disk as at shutdown. */
+  const before = async (probedAt: (ts: number) => number, trades: number) => {
+    const { ColumnSnapshot } = await import('../src/snapshot.js');
+    const { ProbeSnapshot } = await import('../src/probe-snapshot.js');
+    const tracker = new Tracker(fakeChain(launchBlock + 500), registry, { backfillBlocks: 600, chunk: 100 });
+    await tracker.start();
+    const edge = new Edge(tracker, fakeChain(launchBlock + 500), registry, new HypeUsd(async () => new Response('{}')));
+    edge.restoreProbes([{ token: token.toLowerCase(), trades, probe: probeAt(probedAt(tracker.coin(token)!.ts)) }]);
+    const paths = { columns: file('restart-columns'), probes: file('restart-probes') };
+    new ColumnSnapshot(paths.columns, tracker).saveSync();
+    expect(new ProbeSnapshot(paths.probes, edge).saveSync()).toBe(1);
+    return paths;
+  };
+  /** The next process, as main.ts starts it: coins seeded, checks restored, then the tracker started (its replay held). */
+  const after = async (paths: { columns: string; probes: string }, nowMs: (ts: number) => number) => {
+    const { ColumnSnapshot } = await import('../src/snapshot.js');
+    const { ProbeSnapshot } = await import('../src/probe-snapshot.js');
+    const held = heldChain();
+    const seeded = new ColumnSnapshot(paths.columns, new Tracker(held.rpc, registry)).load();
+    const now = nowMs(seeded[0]!.ts);
+    const tracker = new Tracker(held.rpc, registry, { backfillBlocks: 400, chunk: 100, now: () => now / 1000 });
+    tracker.seed(seeded);
+    const hype = new HypeUsd(async () => new Response(JSON.stringify({ HYPE: '70' }))); await hype.get();
+    const edge = new Edge(tracker, held.rpc, registry, hype, { now: () => now });
+    const restored = edge.restoreProbes(new ProbeSnapshot(paths.probes, edge).load(new Set(seeded.map(c => c.token.toLowerCase())), now));
+    const started = tracker.start();
+    for (let i = 0; i < 100 && !tracker.coin(token); i++) await new Promise(r => setTimeout(r, 0));
+    expect(tracker.restored).toBe(1);
+    return { tracker, edge, restored, started, ...held };
+  };
+
+  it('writes bigints, dates and fees and reads them back the same', async () => {
+    const { decodeProbes, encodeProbes } = await import('../src/probe-snapshot.js');
+    const probe = { ...probeAt(1_794_330_060), pons: { realQuoteReserve: 12_345_678_901_234_567_890n, realTokenReserve: -1n, graduated: false },
+      lock: { locked: true, tokenId: 42n, liquidity: 2n ** 200n, locker: null }, seenAt: new Date('2026-11-27T10:00:00.000Z') };
+    const { text, kept } = encodeProbes([{ token, trades: 7, probe }], 1_794_330_100);
+    expect(kept).toBe(1);
+    const decoded = decodeProbes(text);
+    if ('error' in decoded) throw new Error(decoded.error);
+    expect(decoded.savedAt).toBe(1_794_330_100);
+    expect(decoded.probes).toEqual([{ token: token.toLowerCase(), trades: 7, probe }]);
+    const back = decoded.probes[0]!.probe as unknown as typeof probe;
+    expect(typeof back.pons.realQuoteReserve).toBe('bigint'); expect(back.lock.liquidity).toBe(2n ** 200n);
+    expect(back.seenAt).toBeInstanceOf(Date); expect(back.tips[TIP_TX]).toBe(1.5);
+  });
+
+  it('stays inside its bounds: fees per check capped, an oversized check skipped', async () => {
+    const { decodeProbes, encodeProbes, MAX_TIPS } = await import('../src/probe-snapshot.js');
+    const many = Object.fromEntries(Array.from({ length: MAX_TIPS + 10 }, (_, i) => [keccak256(toHex(i)), i]));
+    const huge = { ...probeAt(1_794_330_060), name: 'x'.repeat(70 * 1024) };
+    const other = '0x2222222222222222222222222222222222222222';
+    const { text, kept } = encodeProbes([{ token, trades: 0, probe: { ...probeAt(1_794_330_060), tips: many } }, { token: other, trades: 0, probe: huge }], 1);
+    expect(kept).toBe(1);
+    const decoded = decodeProbes(text);
+    if ('error' in decoded) throw new Error(decoded.error);
+    expect(decoded.probes.map(p => p.token)).toEqual([token.toLowerCase()]);
+    expect(Object.keys(decoded.probes[0]!.probe.tips)).toHaveLength(MAX_TIPS);
+  });
+
+  it('shows the last verdict and score right after a start, before the replay is done, with no new check', async () => {
+    // Checked 30 s before the restart, after both trades; the new process starts a minute later.
+    const paths = await before(ts => ts + 500, 2);
+    const next = await after(paths, ts => (ts + 560) * 1000);
+    expect(next.restored).toBe(1);
+    // The replay is still held: the coin is back from the snapshot with its launch trade only.
+    expect(next.tracker.coin(token)!.trades).toHaveLength(1);
+    const row = (await buildServer(next.edge).inject({ method: 'GET', url: `/v1/radar/${token}` })).json().row;
+    expect(row.verdict).toBe('clear');
+    expect(row.ekoScore).toBeDefined();
+    // The check is fresh, so the scheduler (running during the replay, as main.ts does) spends nothing on it.
+    next.edge.schedule(); await settle();
+    next.release(); await next.started;
+    next.edge.prune(); next.edge.schedule(); await settle();
+    expect(next.calls.eth_call).toBe(0);
+    expect(next.edge.probes.get(token.toLowerCase())!.tips[TIP_TX]).toBe(1.5);
+    // The counts over every coin read it as well once warm() has judged it.
+    const fresh = await after(paths, ts => (ts + 560) * 1000);
+    expect(fresh.edge.cachedLevel(token)).toBe('pending');
+    fresh.release(); await fresh.started;
+    expect(fresh.edge.warm(1000)).toBe(1);
+    expect(fresh.edge.cachedLevel(token)).toBe('clear');
+  });
+
+  it('re-checks a restored check older than the recheck window once the coin has traded since', async () => {
+    // Checked when the coin had one trade, twenty minutes before the new process starts; it sold since.
+    const paths = await before(ts => ts + 10, 1);
+    const next = await after(paths, ts => (ts + 1210) * 1000);
+    expect(next.restored).toBe(1);
+    // Its last verdict meanwhile, not pending.
+    expect(next.edge.assessment(token)?.verdict.level).toBe('clear');
+    // During the replay the coin has no trade the check did not see yet: nothing to redo.
+    next.edge.schedule(); await settle();
+    expect(next.calls.eth_call).toBe(0);
+    next.release(); await next.started;
+    next.edge.schedule(); await settle();
+    expect(next.calls.eth_call).toBeGreaterThan(0);
+  });
+
+  it('ignores a corrupt, foreign-version or missing file with a log line, and keeps only coins still followed', async () => {
+    const { writeFileSync } = await import('node:fs');
+    const { ProbeSnapshot, encodeProbes } = await import('../src/probe-snapshot.js');
+    const events: { event: string; fields: Record<string, unknown> }[] = [];
+    const log = (event: string, fields: Record<string, unknown>) => { events.push({ event, fields }); };
+    const path = file('probes-corrupt'), none = { savedProbes: () => [] };
+    writeFileSync(path, '{"version":1,"probes":[{"tok');
+    expect(new ProbeSnapshot(path, none, log).load()).toEqual([]);
+    writeFileSync(path, JSON.stringify({ version: 999, savedAt: 1, probes: [] }));
+    expect(new ProbeSnapshot(path, none, log).load()).toEqual([]);
+    expect(events.map(e => [e.event, e.fields.reason])).toEqual([['probes_ignored', 'unparseable'], ['probes_ignored', 'version 999 (expected 1)']]);
+    expect(new ProbeSnapshot('/nonexistent/eko/probes.json', none, log).load()).toEqual([]);
+    expect(events).toHaveLength(2);
+    // Malformed entries are dropped one by one; a coin the coin snapshot no longer holds is left out.
+    const gone = '0x3333333333333333333333333333333333333333';
+    const { text } = encodeProbes([{ token, trades: 1, probe: probeAt(1_794_330_060) }, { token: gone, trades: 1, probe: probeAt(1_794_330_060) }], 1);
+    writeFileSync(path, text.replace(/\]\}$/, ',{"token":"0x1","trades":1,"probe":{}}]}'));
+    expect(new ProbeSnapshot(path, none, log).load(undefined, 1_794_330_100_000).map(s => s.token)).toEqual([token.toLowerCase(), gone]);
+    expect(new ProbeSnapshot(path, none, log).load(new Set([token.toLowerCase()]), 1_794_330_100_000).map(s => s.token)).toEqual([token.toLowerCase()]);
+  });
+
+  it('queues due coins in the radar list\'s order, coins with no verdict yet first', async () => {
+    const tracker = new Tracker(fakeChain(launchBlock + 500), registry, { backfillBlocks: 600, chunk: 100 });
+    await tracker.start();
+    const base = tracker.coin(token)!, nowSec = base.ts + 3000;
+    const trade = (hype: number) => ({ ...base.trades[0]!, ts: nowSec - 600, hype });
+    const addr = (d: number) => getAddress(`0x${String(d).repeat(40)}`).toLowerCase();
+    // Five more coins: hour volumes 5, 1 and 9, then two that never traded (an older launch, and a newer one never checked).
+    ([[5, 0], [1, 0], [9, 0], [null, -100], [null, 100]] as const).forEach(([vol, age], i) => {
+      const c = { ...structuredClone(base), token: getAddress(addr(i + 1)), ts: base.ts + age, trades: vol === null ? [] : [trade(vol)] };
+      tracker.coins.set(c.token.toLowerCase(), c);
+    });
+    const hype = new HypeUsd(async () => new Response(JSON.stringify({ HYPE: '70' }))); await hype.get();
+    const edge = new Edge(tracker, fakeChain(launchBlock + 500), registry, hype, { now: () => nowSec * 1000, concurrency: 100 });
+    // Every coin but the newest has a check older than the window, taken before any of its trades.
+    edge.restoreProbes([...tracker.coins.keys()].filter(k => k !== addr(5)).map(k => ({ token: k, trades: 0, probe: probeAt(nowSec - 1200) })));
+    const order: string[] = [];
+    vi.spyOn(edge, 'check').mockImplementation(async (c) => { order.push(c.token.toLowerCase()); return null; });
+    edge.schedule();
+    const radar = RadarResponseSchema.parse((await buildServer(edge).inject({ method: 'GET', url: '/v2/radar' })).json()).rows.map(r => r.address.toLowerCase());
+    // The never-checked coin first; then the radar's order, without the coin that has not traded since its check.
+    expect(order[0]).toBe(addr(5));
+    expect(order.slice(1)).toEqual(radar.filter(a => a !== addr(5) && a !== addr(4)));
+    expect(order.slice(1, 4)).toEqual([addr(3), addr(1), addr(2)]);
+  });
+});

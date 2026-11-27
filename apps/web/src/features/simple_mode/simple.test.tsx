@@ -8,6 +8,7 @@ import { navHidden, navLabel, shellHidden, viewPage } from '../../components/vie
 import { NAV_GROUPS } from '../../components/shell/navigation';
 import feature, { SIMPLE_MENU } from './index';
 import { savedChoice, savedWalks, useSimple } from './choice';
+import { readOwnerAgents, useOwnerAgents } from './missionLink';
 import { NOTHING_WRONG, PLAYBOOK_PLAIN, REASON_PLAIN, SELL_WORDS, STILL_CHECKING, WARNING_SIGNS, WATCHED_LATE, answerOf, canSell, hundredBack, moveText, plainReason } from './model';
 import { LIST_WALK, coinWalk } from './Walkthrough';
 import Switch from './Switch';
@@ -109,6 +110,24 @@ describe('Simple as a view of the site', () => {
     expect(navLabel(views, '/radar', 'Radar')).toBe('Coins');
     for (const part of ['search', 'plan', 'risk', 'crumb'] as const) expect(shellHidden(views, part)).toBe(true);
     expect(feature.places?.header).toBeDefined();
+  });
+  it('keeps Mission Control in the menu only for a signed-in owner whose agents are not all disconnected', async () => {
+    const menu = () => NAV_GROUPS.flatMap(([, items]) => items.map(([to]) => to as string)).filter(to => !navHidden(views, to)).sort();
+    const agent = (status: string) => ({ id: 'sample-agent', name: 'Sample', kind: 'other', status, uncheckedOrders24h: 0 });
+    const fetch = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ agents: [agent('disconnected')] })));
+    vi.stubGlobal('fetch', fetch);
+    await readOwnerAgents('0x1111111111111111111111111111111111111111');
+    expect(menu()).toEqual(['/radar', '/watch']);
+    fetch.mockImplementation(async () => new Response(JSON.stringify({ agents: [agent('active')] })));
+    await readOwnerAgents('0x2222222222222222222222222222222222222222');
+    expect(menu()).toEqual(['/mission', '/radar', '/watch']);
+    // Read once per wallet; signing out puts the menu back.
+    await readOwnerAgents('0x2222222222222222222222222222222222222222');
+    expect(fetch).toHaveBeenCalledTimes(2);
+    await readOwnerAgents(null);
+    expect(useOwnerAgents.getState().has).toBe(false);
+    expect(menu()).toEqual(['/radar', '/watch']);
+    vi.unstubAllGlobals();
   });
   it('replays its own walkthrough from Help while Simple is chosen', () => {
     useOnboarding.setState({ guide: null, tour: null });

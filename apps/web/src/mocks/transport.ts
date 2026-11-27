@@ -9,7 +9,7 @@ import { isQuotedDemoCoin } from './demo/launchpads';
 import { feedSnapshot, pairSnapshot } from './demo/market';
 import { match } from '../lib/router';
 import { DEFAULT_PREFERENCES, PreferencesSchema, TelemetrySchema, SIWE_STATEMENT, AgentDetailSchema, AgentSchema, PolicySchema, ApiKeyInfoSchema, AlertSettingsSchema, TradeQuoteRequestSchema, TradeQuoteSchema, JournalConsentSchema, type AlertSettings, type Preferences } from '@eko/shared';
-import { createMissionDemo, emitMission } from './demo/mission';
+import { createMissionDemo, demoActivity, emitMission, firstDemoCall, startDemoAgent } from './demo/mission';
 import { demoPacks, demoPresets } from './demo/mission-packs';
 import { policyErrors } from '../lib/mission';
 import { featureMock } from '../features';
@@ -169,10 +169,14 @@ export function createMockTransport(opts: { flags?: Partial<Flags> } = {}) {
         return json({ rows: page, cursor: start + page.length < rows.length ? page.at(-1)?.id : null });
       }
       if (child === 'unchecked-orders' && method === 'GET') return json({ rows: mission.unchecked.filter((u) => u.agentId === id), cursor: null });
+      // The agent's MCP calls (the scout runs live in mock mode: demo/mission.ts).
+      if (child === 'activity' && method === 'GET') { if (a.status === 'active') startDemoAgent(); return json(demoActivity(id, query.get('since') ?? '')); }
       if (child === 'keys' && method === 'GET') return json({ keys: mission.keys[id] });
       if (child === 'keys' && method === 'POST') {
         const keyId = `demo-key-${crypto.randomUUID()}`, prefix = 'eko_demo';
         mission.keys[id].push(ApiKeyInfoSchema.parse({ keyId, prefix, kind: 'api', createdAt: new Date().toISOString(), scopes: ['preflight', 'journal'] }));
+        // A demo agent "connects" a few seconds after its key is made, so Connect's test sees its first call arrive.
+        if (!mission.journals[id]?.length) firstDemoCall(id);
         // Synthetic fixture only. Never persist the issued value, even in the mock key list.
         return json({ keyId, prefix, secret: `eko_demo_${crypto.randomUUID()}` });
       }

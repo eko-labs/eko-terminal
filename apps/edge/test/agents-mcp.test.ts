@@ -84,7 +84,7 @@ describe('Mission Control and MCP', () => {
     expect(init.result.serverInfo.name).toBe('eko-elysium');
     expect((await mcp({ jsonrpc: '2.0', method: 'notifications/initialized' })).statusCode).toBe(202);
     const list = (await mcp({ jsonrpc: '2.0', id: 2, method: 'tools/list' })).json().result.tools.map((t: { name: string }) => t.name);
-    expect(list).toEqual(['coin_verdict', 'coin_card', 'playbook_match', 'deployer_history', 'new_launches', 'preflight', 'trade_prepare', 'journal']);
+    expect(list).toEqual(['coin_verdict', 'coin_card', 'playbook_match', 'deployer_history', 'new_launches', 'coins', 'watch', 'preflight', 'trade_prepare', 'journal']);
     const call = async (name: string, args: object, bearer?: string) => (await mcp({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name, arguments: args } }, bearer)).json().result;
     expect((await call('coin_verdict', { coin: COIN })).isError).toBe(true);
     expect((await call('preflight', { clientOrderRef: 'order-1234', coin: COIN, side: 'buy', notionalUsd: 10 })).content[0].text).toMatch(/needs an agent key/);

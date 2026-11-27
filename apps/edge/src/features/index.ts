@@ -29,7 +29,24 @@ export interface FeatureContext {
   funders?: FunderTracer;
   /** Short figures on each Radar row (RadarRow.extras, under the feature's flag). */
   rows?: RowExtras;
+  /** The MCP server (mcp.ts): a feature adds tools for agents, and posts events to the `watch` tool's stream. */
+  mcp?: McpPlace;
 }
+/**
+ * What a feature may add to EKO's MCP server while its flag is on (the folder is loaded only then, so with the flag off
+ * the tool does not exist). Its figures on Radar rows (RowExtras) reach agents too: in the `coins` tool's rows and in
+ * coin_verdict and coin_card, under `extras.<flag>`.
+ *
+ * `tool` adds a read-only tool that needs no key: a name (lower snake case, not one of EKO's own), a description an agent
+ * reads, its JSON input schema, and `run`, which answers with a JSON object or throws an Error whose message the agent
+ * sees. Calls are rate limited with every other MCP call. `event` posts to the public `watch` stream (watch.ts) as one of
+ * its kinds, for example `dump_risk` or `dev_sell`; the stream adds the time, the coin's symbol, verdict and score.
+ */
+export interface McpPlace {
+  tool(flag: FlagName, tool: FeatureTool): void;
+  event(flag: FlagName, e: { kind: 'dev_sell' | 'insider_sell' | 'dump_risk'; coin: string; title: string; data?: Record<string, unknown> }): void;
+}
+export interface FeatureTool { name: string; description: string; inputSchema: Record<string, unknown>; run(args: Record<string, unknown>): Promise<unknown> }
 /**
  * Figures a feature adds to each Radar row, under its flag: `read(coin)` is asked for every row each time the list is
  * built (up to 100 coins, shared by every visitor), so it must be synchronous and cheap: return a figure computed

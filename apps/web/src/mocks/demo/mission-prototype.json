@@ -9,7 +9,7 @@
       "preset": "Balanced",
       "status": "active",
       "enforcement": "enforced",
-      "note": "Scans new Pons pairs and buys Clear coins under $100.",
+      "note": "Watches new launches on every Robinhood Chain launchpad EKO follows and buys Clear coins scoring 70 or more, under $100.",
       "lastSeenSec": 12,
       "preflights24h": 214,
       "allowed": 171,

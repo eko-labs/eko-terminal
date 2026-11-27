@@ -11,7 +11,7 @@ import { createRadarCard, createRadarRows } from '../../mocks/demo/radar';
 import feature from './index';
 import { DumpCell, DumpFactView, DumpTile, DumpView } from './DumpTest';
 import { dumpFor, summaryFor } from './demo';
-import { changeText, DumpSchema, dumpPath, fallOf, keepLine, NOT_MEASURED, sentence, shareText, summaryOf, tokensText, toneOf, type Dump, type Figure, type Measured } from './model';
+import { changeText, DumpSchema, dumpPath, fallOf, figureFall, figureLine, figureShort, figureText, figureTone, keepLine, moneyTone, NOT_MEASURED, sentence, shareText, summaryOf, tokensText, toneOf, type Dump, type Figure, type Measured } from './model';
 
 const COIN = '0x5d2c41f39a0b77e8c6a1f3d920e4b18a6f7c0e35';
 const FORBIDDEN = /guarantee|win rate|rug-proof|\bsafe\b|audited|will (pump|moon|go up)|mock|demo|fake|fixture|sample|test data|placeholder/i;
@@ -33,9 +33,31 @@ describe('dump test words', () => {
     expect(fallOf(-12.5)).toBe(12.5); expect(dumpPath(COIN)).toBe(`/v2/coins/${COIN}/dump`);
   });
   it('says what it means in one plain sentence, an estimate', () => {
-    expect(sentence(reply())).toBe('EKO estimates that if insiders sold everything they hold (35% of supply) at once, the price would fall about 83% and $100 held now would be worth about $17. The biggest part is with bundle wallets (16%).');
+    expect(sentence(reply())).toBe('EKO estimates that if insiders sold everything they hold (35% of supply) at once, the price would fall about 83% and $100 bought now would come back as about $17. The biggest part is with bundle wallets (16%).');
     expect(sentence(reply({ all: { ...fig('all', 40, -91, 0, 20), drains: true } }))).toContain('take all the ETH in the curve');
     expect(sentence(reply({ groups: [], all: fig('all', 0, 0, 98, 0) }))).toBe('EKO finds no insider still holding this coin, so there is nothing left for them to dump.');
+  });
+  it('reads "Drains" only when a buyer would lose most of their money; otherwise the money is the headline', () => {
+    // A curve insiders could drain where a $100 buyer keeps $92 (the live HYALIS case): no coral Drains.
+    const mild = { changePct: -1.3, usd100: 91.74, drains: true as const };
+    expect([figureText(mild), figureTone(mild), figureLine(mild), figureShort(mild)]).toEqual(['$100 → $92', 'good', 'Insiders could drain the curve', '$100→$92']);
+    expect(figureFall(mild)).toBeCloseTo(8.26, 2);
+    const half = { changePct: -0.4, usd100: 62, drains: true as const };
+    expect([figureText(half), figureTone(half)]).toEqual(['$100 → $62', 'watch']);
+    const hard = { changePct: 0, usd100: 31.5, drains: true as const };
+    expect([figureText(hard), figureTone(hard), figureLine(hard), figureShort(hard)]).toEqual(['Drains', 'bad', '$100 → $32', 'Drains']);
+    expect(figureFall(hard)).toBeCloseTo(68.5, 2);
+    // Not draining: the fall, as before.
+    expect([figureText({ changePct: -41.2, usd100: 57.6 }), figureTone({ changePct: -41.2, usd100: 57.6 }), figureFall({ changePct: -41.2, usd100: 57.6 })]).toEqual(['−41%', 'watch', 41.2]);
+    expect([moneyTone(80), moneyTone(79.9), moneyTone(50), moneyTone(49.9)]).toEqual(['good', 'watch', 'watch', 'bad']);
+    // Sorting by the buyer's loss puts a hard drain above a mild one, and a mild one by what it loses.
+    const rows = [mild, hard, { changePct: -20, usd100: 79 }];
+    expect(sortByPlace(rows, figureFall)).toEqual([hard, rows[2], mild]);
+    expect(sentence(reply({ all: { ...fig('all', 3.5, -1.3, 91.74, 2), drains: true } }))).toContain('would still come back as about $92');
+    const tile = render(<DumpTile reply={reply({ all: { ...fig('all', 3.5, -1.3, 91.74, 2), drains: true } })} />);
+    expect(text(tile)).toContain('$100 → $92'); expect(text(tile)).not.toContain('Drains'); expect(tile).toContain('glance-good');
+    const cell = render(<DumpCell row={{ extras: { dump_test: { changePct: 0, usd100: 31.5, sharePct: 9, drains: true } } } as never} />);
+    expect(text(cell).trim()).toBe('Drains'); expect(cell).toContain('dt-bad');
   });
   it('reads the Radar row\'s figure only in its own shape', () => {
     const row = createRadarRows()[0]!;
