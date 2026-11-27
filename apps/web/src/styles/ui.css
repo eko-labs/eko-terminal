@@ -189,3 +189,6 @@ select.select option{background:var(--raise);color:var(--ink)}
 /* Guard completeness is part of the shared chip on every consuming surface. */
 .guard-chip{display:inline-flex;flex-wrap:wrap;gap:8px;align-items:center;max-width:100%;white-space:normal;font:600 12px var(--sans)}
 .guard-chip.lg{font-size:14px}.guard-chip .verdict{white-space:normal;height:auto;min-height:24px}.guard-gap{flex-basis:100%;font:inherit;font-weight:600;color:var(--v-monitor);overflow-wrap:anywhere}
+
+/* Partly checked is a Looks OK verdict on part of the history: it wears the OK colours, so it agrees with its score. */
+.verdict.neutral.partly{color:var(--clear);border-color:#8fcaf055;background:var(--clear-bg)}

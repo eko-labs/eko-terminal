@@ -321,7 +321,7 @@
 .score-px.score-dim i.on{background:repeating-linear-gradient(0deg,var(--faint) 0 2px,transparent 2px 3px);box-shadow:none}
 .rt-score{display:inline-flex;flex-direction:column;align-items:flex-end;gap:5px;cursor:help}
 .rt-score-top{display:inline-flex;align-items:baseline;gap:6px;white-space:nowrap}
-.rt-score-top b{font-weight:500;color:var(--ink)}
+.rt-score-top b{font-weight:500;color:var(--band,var(--ink))}
 .rt-score .score-px{width:60px}
 .rt tr.h-avoid .rt-score .score-px i.on{opacity:.8}
 .radar .htile-facts .htile-score small.score-word{font:var(--type-label);font-size:10px;letter-spacing:var(--type-label-ls);text-transform:uppercase;color:var(--band)}

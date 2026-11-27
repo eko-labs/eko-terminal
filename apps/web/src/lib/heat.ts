@@ -51,7 +51,7 @@ export function marking(c: HeatRow, { pending = false, redFlag = false } = {}): 
     // TODO(spec): RadarRow has no match confidence; the inspector supplies CoinCard's redFlag predicate.
     return { kind: 'ember', level: redFlag || (c.exitCost1kPct ?? 0) >= 75 || c.topPlaybook === 'honeypot' ? 3 : 2 };
   }
-  if (!c.unavailable?.includes('change') && c.change1hPct <= -8 && momentumUnder(c, 65)) return { kind: 'ember', level: 1 };
+  // Coral means Danger only: a falling coin that is not Danger keeps its Fading tag and dimmed figures, no ember.
   if (heatOf(c) === 'hot') return { kind: 'shimmer', level: c.change1hPct >= 10 && (activityRatio(c) >= 6 || (!c.unavailable?.includes('flow') && c.flow.agentPct >= 40)) ? 3 : 2 };
   if (!c.unavailable?.includes('change') && !c.unavailable?.includes('flow') && c.change1hPct >= 3 && c.flow.agentPct >= 25 && momentumAtLeast(c, 60)) return { kind: 'shimmer', level: 1 };
   return null;
